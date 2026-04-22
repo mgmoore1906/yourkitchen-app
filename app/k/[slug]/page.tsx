@@ -2,7 +2,12 @@ import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
 import CoordKitchenClient from './client'
 
-export default async function KitchenPage({ params }: { params: { slug: string } }) {
+type Props = {
+  params: Promise<{ slug: string }>
+}
+
+export default async function KitchenPage({ params }: Props) {
+  const { slug } = await params
   const supabase = await createClient()
 
   const { data: kitchen } = await supabase
@@ -15,7 +20,7 @@ export default async function KitchenPage({ params }: { params: { slug: string }
       ),
       calendar_dates (*)
     `)
-    .eq('slug', params.slug)
+    .eq('slug', slug)
     .eq('status', 'active')
     .single()
 
