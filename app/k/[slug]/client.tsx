@@ -26,63 +26,58 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
     setLoading(true)
 
     // Save guest coordinator
-    const handleSubmit = async () => {
+    cconst handleSubmit = async () => {
   setLoading(true)
 
-  const { data: guest, error: guestError } = await supabase
-    .from('guest_coordinators')
-    .insert({ full_name: name, email })
-    .select()
-    .single()
+  try {
+    const guestResult = await supabase
+      .from('guest_coordinators')
+      .insert({ full_name: name, email })
+      .select()
+      .single()
 
-  if (guestError) {
-    console.error('Guest error:', guestError)
-    alert('Error: ' + guestError.message)
+    if (guestResult.error) throw new Error('Guest: ' + guestResult.error.message)
+    const guestId = guestResult.data.id
+
+    const claimResult = await supabase
+      .from('claims')
+      .insert({
+        calendar_date_id: selectedDate.id,
+        guest_coordinator_id: guestId,
+        claim_type: 'one_time' as const,
+        status: 'active' as const,
+        expires_at: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
+      })
+      .select()
+      .single()
+
+    if (claimResult.error) throw new Error('Claim: ' + claimResult.error.message)
+    const claimId = claimResult.data.id
+
+    const proposalResult = await supabase
+      .from('meal_proposals')
+      .insert({
+        claim_id: claimId,
+        kitchen_restaurant_id: selectedRestaurant.id,
+        menu_item_id: selectedItem.id,
+        coordinator_note: note,
+        status: 'pending' as const,
+      })
+
+    if (proposalResult.error) throw new Error('Proposal: ' + proposalResult.error.message)
+
+    await supabase
+      .from('calendar_dates')
+      .update({ status: 'claimed' as const })
+      .eq('id', selectedDate.id)
+
+    setSubmitted(true)
+  } catch (err: any) {
+    alert(err.message)
+  } finally {
     setLoading(false)
-    return
   }
-
-  const { data: claim, error: claimError } = await supabase
-    .from('claims')
-    .insert({
-      calendar_date_id: selectedDate.id,
-      guest_coordinator_id: guest.id,
-      claim_type: 'one_time',
-      status: 'active',
-      expires_at: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
-    })
-    .select()
-    .single()
-
-  if (claimError) {
-    console.error('Claim error:', claimError)
-    alert('Error: ' + claimError.message)
-    setLoading(false)
-    return
-  }
-
-  const { error: proposalError } = await supabase.from('meal_proposals').insert({
-    claim_id: claim.id,
-    kitchen_restaurant_id: selectedRestaurant.id,
-    menu_item_id: selectedItem.id,
-    coordinator_note: note,
-    status: 'pending',
-  })
-
-  if (proposalError) {
-    console.error('Proposal error:', proposalError)
-    alert('Error: ' + proposalError.message)
-    setLoading(false)
-    return
-  }
-
-  await supabase
-    .from('calendar_dates')
-    .update({ status: 'claimed' })
-    .eq('id', selectedDate.id)
-
-  setSubmitted(true)
-  setLoading(false)
+}
 }
 
     // Create claim
