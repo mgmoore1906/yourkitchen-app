@@ -26,7 +26,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
     setLoading(true)
 
     // Save guest coordinator
-    cconst handleSubmit = async () => {
+    const handleSubmit = async () => {
   setLoading(true)
 
   try {
