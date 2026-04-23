@@ -20,64 +20,34 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   }
 
-  const handleSubmit = async () => {
-    setLoading(true)
-    setErrorMsg('')
+ const handleSubmit = async () => {
+  setLoading(true)
+  setErrorMsg('')
 
-    const guestRes = await supabase
-      .from('guest_coordinators')
-      .insert({ full_name: name, email })
-      .select('id')
-      .single()
+  const res = await fetch('/api/proposal', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      name,
+      email,
+      calendar_date_id: selectedDate.id,
+      restaurant_id: selectedRestaurant.id,
+      menu_item_id: selectedItem.id,
+      note,
+    }),
+  })
 
-    if (guestRes.error) {
-      setErrorMsg('Error: ' + guestRes.error.message)
-      setLoading(false)
-      return
-    }
+  const data = await res.json()
 
-    const claimRes = await supabase
-      .from('claims')
-      .insert({
-        calendar_date_id: selectedDate.id,
-        guest_coordinator_id: guestRes.data.id,
-        claim_type: 'one_time',
-        status: 'active',
-        expires_at: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
-      })
-      .select('id')
-      .single()
-
-    if (claimRes.error) {
-      setErrorMsg('Error: ' + claimRes.error.message)
-      setLoading(false)
-      return
-    }
-
-    const proposalRes = await supabase
-      .from('meal_proposals')
-      .insert({
-        claim_id: claimRes.data.id,
-        kitchen_restaurant_id: selectedRestaurant.id,
-        menu_item_id: selectedItem.id,
-        coordinator_note: note,
-        status: 'pending',
-      })
-
-    if (proposalRes.error) {
-      setErrorMsg('Error: ' + proposalRes.error.message)
-      setLoading(false)
-      return
-    }
-
-    await supabase
-      .from('calendar_dates')
-      .update({ status: 'claimed' })
-      .eq('id', selectedDate.id)
-
-    setSubmitted(true)
+  if (!res.ok) {
+    setErrorMsg('Error: ' + data.error)
     setLoading(false)
+    return
   }
+
+  setSubmitted(true)
+  setLoading(false)
+}
 
   if (submitted) {
     return (
