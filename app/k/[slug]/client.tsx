@@ -1,9 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { createClient } from '@/lib/supabase/client'
 
-export default function CoordKitchenClient({ kitchen, availableDates, restaurants }: any) {  const supabase = createClient()
+export default function CoordKitchenClient({ kitchen, availableDates, restaurants }: any) {
   const [step, setStep] = useState(1)
   const [selectedDate, setSelectedDate] = useState<any>(null)
   const [selectedRestaurant, setSelectedRestaurant] = useState<any>(null)
@@ -20,34 +19,34 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   }
 
- const handleSubmit = async () => {
-  setLoading(true)
-  setErrorMsg('')
+  const handleSubmit = async () => {
+    setLoading(true)
+    setErrorMsg('')
 
-  const res = await fetch('/api/proposal', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      name,
-      email,
-      calendar_date_id: selectedDate.id,
-      restaurant_id: selectedRestaurant.id,
-      menu_item_id: selectedItem.id,
-      note,
-    }),
-  })
+    const res = await fetch('/api/proposal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        calendar_date_id: selectedDate.id,
+        restaurant_id: selectedRestaurant.id,
+        menu_item_id: selectedItem.id,
+        note,
+      }),
+    })
 
-  const data = await res.json()
+    const data = await res.json()
 
-  if (!res.ok) {
-    setErrorMsg('Error: ' + data.error)
+    if (!res.ok) {
+      setErrorMsg('Error: ' + data.error)
+      setLoading(false)
+      return
+    }
+
+    setSubmitted(true)
     setLoading(false)
-    return
   }
-
-  setSubmitted(true)
-  setLoading(false)
-}
 
   if (submitted) {
     return (
