@@ -17,11 +17,18 @@ export async function POST(request: Request) {
     const { name, email, calendar_date_id, restaurant_id, menu_item_id, note } = await request.json()
 
     // Get kitchen details for SMS
-    const { data: calendarDate } = await supabase
-      .from('calendar_dates')
-      .select('*, kitchens(*, profiles(*))')
-      .eq('id', calendar_date_id)
-      .single()
+   const { data: calendarDate } = await supabase
+  .from('calendar_dates')
+  .select('*, kitchens(*)')
+  .eq('id', calendar_date_id)
+  .single()
+
+// Get recipient phone separately
+const { data: recipientProfile } = await supabase
+  .from('profiles')
+  .select('phone')
+  .eq('id', calendarDate?.kitchens?.recipient_id)
+  .single()
 
     // Get restaurant and menu item details
     const { data: restaurant } = await supabase
@@ -87,7 +94,7 @@ export async function POST(request: Request) {
     })
 
     // Send SMS to recipient
-    const recipientPhone = calendarDate?.kitchens?.profiles?.phone
+    const recipientPhone = recipientProfile?.phone
     if (recipientPhone) {
       const smsBody = `${name} wants to send you dinner on ${dateFormatted} — ${menuItem?.name} from ${restaurant?.name}.\n\nReply Y to confirm or N to decline.\n\n— YourKitchen`
 
