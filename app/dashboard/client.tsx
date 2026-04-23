@@ -14,20 +14,24 @@ export default function DashboardClient({ kitchen, pendingProposals, userEmail }
   }
 
   const handleResponse = async (proposalId: string, action: 'confirm' | 'decline') => {
-    setLoading(proposalId)
-    const res = await fetch('/api/confirm', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ proposal_id: proposalId, action }),
-    })
+  setLoading(proposalId)
+  const res = await fetch('/api/confirm', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ proposal_id: proposalId, action }),
+  })
 
-    if (res.ok) {
-      setProposals((prev: any[]) => prev.filter((p: any) => p.id !== proposalId))
-      router.refresh()
+  const data = await res.json()
+
+  if (res.ok) {
+    setProposals((prev: any[]) => prev.filter((p: any) => p.id !== proposalId))
+    if (action === 'confirm' && data.checkout_url) {
+      window.open(data.checkout_url, '_blank')
     }
-    setLoading(null)
+    router.refresh()
   }
-
+  setLoading(null)
+}
   return (
     <div style={{ minHeight: '100vh', background: '#FAFAF5', fontFamily: "'DM Sans', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
