@@ -51,7 +51,15 @@ export async function POST(request: Request) {
         mode: 'payment',
         success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment-success`,
         cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
-        customer_email: proposal.claims?.guest_coordinators?.email,
+       SELECT 
+  mp.id,
+  mp.status,
+  gc.full_name,
+  gc.email
+FROM meal_proposals mp
+JOIN claims c ON c.id = mp.claim_id
+JOIN guest_coordinators gc ON gc.id = c.guest_coordinator_id
+WHERE mp.status = 'pending';
         metadata: {
           proposal_id,
           coordinator_name: proposal.claims?.guest_coordinators?.full_name || '',
