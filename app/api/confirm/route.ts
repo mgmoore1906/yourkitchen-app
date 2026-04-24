@@ -30,9 +30,7 @@ export async function POST(request: Request) {
     if (!proposal) return NextResponse.json({ error: 'Proposal not found' }, { status: 404 })
 
     if (action === 'confirm') {
-      // Create Stripe payment link for coordinator
       const price = proposal.menu_items?.price || 20
-      const platformFee = Math.round(price * 0.03 * 100) // 3% in cents
       const totalCents = Math.round(price * 100)
 
       const session = await stripe.checkout.sessions.create({
@@ -51,48 +49,16 @@ export async function POST(request: Request) {
         mode: 'payment',
         success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment-success`,
         cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/dashboard`,
-       SELECT 
-  mp.id,
-  mp.status,
-  gc.full_name,
-  gc.email
-FROM meal_proposals mp
-JOIN claims c ON c.id = mp.claim_id
-JOIN guest_coordinators gc ON gc.id = c.guest_coordinator_id
-WHERE mp.status = 'pending';
+        ...(proposal.claims?.guest_coordinators?.email?.includes('@') && {
+          customer_email: proposal.claims?.guest_coordinators?.email,
+        }),
         metadata: {
           proposal_id,
           coordinator_name: proposal.claims?.guest_coordinators?.full_name || '',
         },
       })
 
-      // Update proposal status
       await supabase.from('meal_proposals').update({
         status: 'confirmed',
         responded_at: new Date().toISOString()
-      }).eq('id', proposal_id)
-
-      await supabase.from('calendar_dates').update({
-        status: 'confirmed'
-      }).eq('id', proposal.claims?.calendar_date_id)
-
-      return NextResponse.json({ success: true, checkout_url: session.url })
-
-    } else if (action === 'decline') {
-      await supabase.from('meal_proposals').update({
-        status: 'declined',
-        responded_at: new Date().toISOString()
-      }).eq('id', proposal_id)
-
-      await supabase.from('calendar_dates').update({
-        status: 'available'
-      }).eq('id', proposal.claims?.calendar_date_id)
-
-      return NextResponse.json({ success: true })
-    }
-
-    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
-}
+      }).eq('id
