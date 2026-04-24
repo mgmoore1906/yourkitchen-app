@@ -61,4 +61,29 @@ export async function POST(request: Request) {
       await supabase.from('meal_proposals').update({
         status: 'confirmed',
         responded_at: new Date().toISOString()
-      }).eq('id
+      }).eq('id', proposal_id)
+
+      await supabase.from('calendar_dates').update({
+        status: 'confirmed'
+      }).eq('id', proposal.claims?.calendar_date_id)
+
+      return NextResponse.json({ success: true, checkout_url: session.url })
+
+    } else if (action === 'decline') {
+      await supabase.from('meal_proposals').update({
+        status: 'declined',
+        responded_at: new Date().toISOString()
+      }).eq('id', proposal_id)
+
+      await supabase.from('calendar_dates').update({
+        status: 'available'
+      }).eq('id', proposal.claims?.calendar_date_id)
+
+      return NextResponse.json({ success: true })
+    }
+
+    return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
