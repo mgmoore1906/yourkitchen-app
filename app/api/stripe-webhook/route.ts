@@ -66,10 +66,6 @@ export async function POST(request: Request) {
 
     if (!proposal) return NextResponse.json({ received: true })
 
-    await supabase.from('meal_proposals')
-      .update({ status: 'paid' })
-      .eq('id', proposal_id)
-
     const recipientId = proposal.claims?.calendar_dates?.kitchens?.recipient_id
     const { data: recipientProfile } = await supabase
       .from('profiles')
@@ -90,8 +86,9 @@ export async function POST(request: Request) {
       proposal.claims?.calendar_dates?.date + 'T12:00:00'
     ).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
-    // ── DoorDash Drive order ──
     let doordashTrackingUrl: string | null = null
+    let doordashDeliveryId: string | null = null
+    let doordashError: string | null = null
 
     if (restaurantAddress && kitchenAddress) {
       try {
@@ -114,31 +111,26 @@ export async function POST(request: Request) {
         })
 
         doordashTrackingUrl = (delivery.data as any)?.tracking_url || null
-
-        await supabase.from('meal_proposals').update({
-          doordash_delivery_id: (delivery.data as any)?.external_delivery_id || proposal_id,
-          doordash_tracking_url: doordashTrackingUrl,
-          status: 'dispatched',
-        }).eq('id', proposal_id)
-
+        doordashDeliveryId = (delivery.data as any)?.external_delivery_id || proposal_id
       } catch (ddErr: any) {
         console.error('DoorDash order failed:', ddErr.message)
-        await supabase.from('notifications').insert({
-          kitchen_id: kitchenId,
-          type: 'doordash_error',
-          channel: 'internal',
-          content: `DoorDash order failed for proposal ${proposal_id}: ${ddErr.message}`,
-        })
+        doordashError = ddErr.message
       }
     } else {
       console.warn('DoorDash skipped: missing restaurantAddress or kitchenAddress', {
-        proposal_id,
-        restaurantAddress,
-        kitchenAddress,
+        proposal_id, restaurantAddress, kitchenAddress,
       })
+      doordashError = 'Missing pickup or dropoff address'
     }
 
-    // ── SMS to recipient ──
+    // Single update — uses 'confirmed' status which already exists in your DB
+    await supabase.from('meal_proposals').update({
+      status: 'confirmed',
+      doordash_delivery_id: doordashDeliveryId,
+      doordash_tracking_url: doordashTrackingUrl,
+    }).eq('id', proposal_id)
+
+    // SMS to recipient
     if (recipientProfile?.phone) {
       const trackingLine = doordashTrackingUrl
         ? ` Track your delivery: ${doordashTrackingUrl}`
@@ -151,11 +143,16 @@ export async function POST(request: Request) {
       })
     }
 
+    // Log notification — uses 'meal_confirmed' type which already exists
+    const notifContent = doordashError
+      ? `[DoorDash error] ${doordashError} | Payment confirmed for ${mealName} on ${dateFormatted}`
+      : `Payment confirmed for ${mealName} on ${dateFormatted}`
+
     await supabase.from('notifications').insert({
       kitchen_id: kitchenId,
-      type: 'meal_paid',
+      type: 'meal_confirmed',
       channel: 'sms',
-      content: `Payment confirmed for ${mealName} on ${dateFormatted}`,
+      content: notifContent,
     })
   }
 
