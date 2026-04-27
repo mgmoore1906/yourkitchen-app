@@ -82,6 +82,12 @@ export async function POST(request: Request) {
     const totalCents = Math.round((proposal.menu_items?.price || 20) * 100)
     const kitchenId = proposal.claims?.calendar_dates?.kitchens?.id
 
+    console.log('[WEBHOOK] proposal_id:', proposal_id)
+    console.log('[WEBHOOK] kitchenId:', kitchenId)
+    console.log('[WEBHOOK] restaurantAddress:', restaurantAddress)
+    console.log('[WEBHOOK] kitchenAddress:', kitchenAddress)
+    console.log('[WEBHOOK] recipientPhone:', recipientProfile?.phone)
+
     const dateFormatted = new Date(
       proposal.claims?.calendar_dates?.date + 'T12:00:00'
     ).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
@@ -112,25 +118,36 @@ export async function POST(request: Request) {
 
         doordashTrackingUrl = (delivery.data as any)?.tracking_url || null
         doordashDeliveryId = (delivery.data as any)?.external_delivery_id || proposal_id
+        console.log('[WEBHOOK] DoorDash success:', doordashDeliveryId)
       } catch (ddErr: any) {
-        console.error('DoorDash order failed:', ddErr.message)
+        console.error('[WEBHOOK] DoorDash failed:', ddErr.message)
         doordashError = ddErr.message
       }
     } else {
-      console.warn('DoorDash skipped: missing restaurantAddress or kitchenAddress', {
-        proposal_id, restaurantAddress, kitchenAddress,
-      })
+      console.warn('[WEBHOOK] DoorDash skipped: missing addresses')
       doordashError = 'Missing pickup or dropoff address'
     }
 
-    // Single update — uses 'confirmed' status which already exists in your DB
-    await supabase.from('meal_proposals').update({
-      status: 'confirmed',
+    // Update with explicit error capture
+    const updatePayload = {
+      status: 'confirmed' as const,
       doordash_delivery_id: doordashDeliveryId,
       doordash_tracking_url: doordashTrackingUrl,
-    }).eq('id', proposal_id)
+    }
+    console.log('[WEBHOOK] meal_proposals UPDATE payload:', JSON.stringify(updatePayload))
 
-    // SMS to recipient
+    const { data: updateData, error: updateError } = await supabase
+      .from('meal_proposals')
+      .update(updatePayload)
+      .eq('id', proposal_id)
+      .select()
+
+    if (updateError) {
+      console.error('[WEBHOOK] meal_proposals UPDATE failed:', JSON.stringify(updateError))
+    } else {
+      console.log('[WEBHOOK] meal_proposals UPDATE success:', JSON.stringify(updateData))
+    }
+
     if (recipientProfile?.phone) {
       const trackingLine = doordashTrackingUrl
         ? ` Track your delivery: ${doordashTrackingUrl}`
@@ -143,17 +160,28 @@ export async function POST(request: Request) {
       })
     }
 
-    // Log notification — uses 'meal_confirmed' type which already exists
     const notifContent = doordashError
       ? `[DoorDash error] ${doordashError} | Payment confirmed for ${mealName} on ${dateFormatted}`
       : `Payment confirmed for ${mealName} on ${dateFormatted}`
 
-    await supabase.from('notifications').insert({
+    const notifPayload = {
       kitchen_id: kitchenId,
-      type: 'meal_confirmed',
-      channel: 'sms',
+      type: 'meal_confirmed' as const,
+      channel: 'sms' as const,
       content: notifContent,
-    })
+    }
+    console.log('[WEBHOOK] notifications INSERT payload:', JSON.stringify(notifPayload))
+
+    const { data: notifData, error: notifError } = await supabase
+      .from('notifications')
+      .insert(notifPayload)
+      .select()
+
+    if (notifError) {
+      console.error('[WEBHOOK] notifications INSERT failed:', JSON.stringify(notifError))
+    } else {
+      console.log('[WEBHOOK] notifications INSERT success:', JSON.stringify(notifData))
+    }
   }
 
   return NextResponse.json({ received: true })
