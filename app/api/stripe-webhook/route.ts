@@ -22,18 +22,25 @@ const doordash = new DoorDashClient({
   signing_secret: process.env.DOORDASH_SIGNING_SECRET!,
 })
 
+async function logToDb(supabase: any, kitchenId: string | null, message: string) {
+  if (!kitchenId) return
+  try {
+    await supabase.from('notifications').insert({
+      kitchen_id: kitchenId,
+      type: 'meal_confirmed',
+      channel: 'sms',
+      content: `[DEBUG] ${message}`.slice(0, 500),
+    })
+  } catch (e) { /* swallow */ }
+}
+
 export async function POST(request: Request) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')!
 
   let event: Stripe.Event
-
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_WEBHOOK_SECRET!
-    )
+    event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch (err: any) {
     return NextResponse.json({ error: `Webhook error: ${err.message}` }, { status: 400 })
   }
@@ -41,7 +48,6 @@ export async function POST(request: Request) {
   if (event.type === 'checkout.session.completed') {
     const session = event.data.object as Stripe.Checkout.Session
     const proposal_id = session.metadata?.proposal_id
-
     if (!proposal_id) return NextResponse.json({ received: true })
 
     const { data: proposal } = await supabase
@@ -51,12 +57,7 @@ export async function POST(request: Request) {
         claims(
           calendar_date_id,
           guest_coordinators(full_name, email),
-          calendar_dates(date, kitchens(
-            id,
-            recipient_id,
-            name,
-            address
-          ))
+          calendar_dates(date, kitchens(id, recipient_id, name, address))
         ),
         kitchen_restaurants(name, address, phone),
         menu_items(name, price)
@@ -82,19 +83,17 @@ export async function POST(request: Request) {
     const totalCents = Math.round((proposal.menu_items?.price || 20) * 100)
     const kitchenId = proposal.claims?.calendar_dates?.kitchens?.id
 
-    console.log('[WEBHOOK] proposal_id:', proposal_id)
-    console.log('[WEBHOOK] kitchenId:', kitchenId)
-    console.log('[WEBHOOK] restaurantAddress:', restaurantAddress)
-    console.log('[WEBHOOK] kitchenAddress:', kitchenAddress)
-    console.log('[WEBHOOK] recipientPhone:', recipientProfile?.phone)
-
     const dateFormatted = new Date(
       proposal.claims?.calendar_dates?.date + 'T12:00:00'
     ).toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
 
     let doordashTrackingUrl: string | null = null
     let doordashDeliveryId: string | null = null
-    let doordashError: string | null = null
+
+    // Log what we're about to send to DoorDash
+    await logToDb(supabase, kitchenId,
+      `DD inputs: pickup=${restaurantAddress} pickup_phone=${restaurantPhone} dropoff=${kitchenAddress} dropoff_phone=${recipientProfile?.phone}`
+    )
 
     if (restaurantAddress && kitchenAddress) {
       try {
@@ -107,81 +106,60 @@ export async function POST(request: Request) {
           pickup_address: restaurantAddress,
           pickup_business_name: restaurantName,
           pickup_phone_number: restaurantPhone || process.env.DOORDASH_SUPPORT_PHONE!,
-          pickup_instructions: 'Order placed via YourKitchen. Ask for the YourKitchen order.',
+          pickup_instructions: 'Order placed via YourKitchen.',
           dropoff_address: kitchenAddress,
           dropoff_phone_number: recipientProfile?.phone || process.env.DOORDASH_SUPPORT_PHONE!,
           dropoff_contact_given_name: firstName,
           dropoff_contact_family_name: lastName,
-          dropoff_instructions: 'Please leave at the door. Ring the bell.',
+          dropoff_instructions: 'Please leave at the door.',
           order_value: totalCents,
         })
 
+        const respStr = JSON.stringify(delivery).slice(0, 400)
+        await logToDb(supabase, kitchenId, `DD response: ${respStr}`)
+
         doordashTrackingUrl = (delivery.data as any)?.tracking_url || null
         doordashDeliveryId = (delivery.data as any)?.external_delivery_id || proposal_id
-        console.log('[WEBHOOK] DoorDash success:', doordashDeliveryId)
       } catch (ddErr: any) {
-        console.error('[WEBHOOK] DoorDash failed:', ddErr.message)
-        doordashError = ddErr.message
+        const errPayload = JSON.stringify({
+          message: ddErr.message,
+          name: ddErr.name,
+          response: ddErr.response?.data,
+          status: ddErr.response?.status,
+        }).slice(0, 450)
+        await logToDb(supabase, kitchenId, `DD ERROR: ${errPayload}`)
       }
     } else {
-      console.warn('[WEBHOOK] DoorDash skipped: missing addresses')
-      doordashError = 'Missing pickup or dropoff address'
+      await logToDb(supabase, kitchenId,
+        `DD SKIPPED: restaurantAddress=${restaurantAddress} kitchenAddress=${kitchenAddress}`
+      )
     }
 
-    // Update with explicit error capture
-    const updatePayload = {
-      status: 'confirmed' as const,
+    await supabase.from('meal_proposals').update({
+      status: 'confirmed',
       doordash_delivery_id: doordashDeliveryId,
       doordash_tracking_url: doordashTrackingUrl,
-    }
-    console.log('[WEBHOOK] meal_proposals UPDATE payload:', JSON.stringify(updatePayload))
-
-    const { data: updateData, error: updateError } = await supabase
-      .from('meal_proposals')
-      .update(updatePayload)
-      .eq('id', proposal_id)
-      .select()
-
-    if (updateError) {
-      console.error('[WEBHOOK] meal_proposals UPDATE failed:', JSON.stringify(updateError))
-    } else {
-      console.log('[WEBHOOK] meal_proposals UPDATE success:', JSON.stringify(updateData))
-    }
+    }).eq('id', proposal_id)
 
     if (recipientProfile?.phone) {
-      const trackingLine = doordashTrackingUrl
-        ? ` Track your delivery: ${doordashTrackingUrl}`
-        : ''
-
-      await twilioClient.messages.create({
-        body: `🧡 Your meal is confirmed! ${coordinatorName} sent you ${mealName} from ${restaurantName} on ${dateFormatted}. It's on its way.${trackingLine} — YourKitchen`,
-        from: process.env.TWILIO_PHONE_NUMBER!,
-        to: recipientProfile.phone,
-      })
+      const trackingLine = doordashTrackingUrl ? ` Track: ${doordashTrackingUrl}` : ''
+      try {
+        await twilioClient.messages.create({
+          body: `🧡 Your meal is confirmed! ${coordinatorName} sent you ${mealName} from ${restaurantName} on ${dateFormatted}.${trackingLine}`,
+          from: process.env.TWILIO_PHONE_NUMBER!,
+          to: recipientProfile.phone,
+        })
+      } catch (twErr: any) {
+        await logToDb(supabase, kitchenId, `Twilio ERROR: ${twErr.message}`)
+      }
     }
 
-    const notifContent = doordashError
-      ? `[DoorDash error] ${doordashError} | Payment confirmed for ${mealName} on ${dateFormatted}`
-      : `Payment confirmed for ${mealName} on ${dateFormatted}`
-
-    const notifPayload = {
+    await supabase.from('notifications').insert({
       kitchen_id: kitchenId,
-      type: 'meal_confirmed' as const,
-      channel: 'sms' as const,
-      content: notifContent,
-    }
-    console.log('[WEBHOOK] notifications INSERT payload:', JSON.stringify(notifPayload))
-
-    const { data: notifData, error: notifError } = await supabase
-      .from('notifications')
-      .insert(notifPayload)
-      .select()
-
-    if (notifError) {
-      console.error('[WEBHOOK] notifications INSERT failed:', JSON.stringify(notifError))
-    } else {
-      console.log('[WEBHOOK] notifications INSERT success:', JSON.stringify(notifData))
-    }
+      type: 'meal_confirmed',
+      channel: 'sms',
+      content: `Payment confirmed for ${mealName} on ${dateFormatted}`,
+    })
   }
 
   return NextResponse.json({ received: true })
