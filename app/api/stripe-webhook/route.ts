@@ -22,18 +22,6 @@ const doordash = new DoorDashClient({
   signing_secret: process.env.DOORDASH_SIGNING_SECRET!,
 })
 
-async function logToDb(supabase: any, kitchenId: string | null, message: string) {
-  if (!kitchenId) return
-  try {
-    await supabase.from('notifications').insert({
-      kitchen_id: kitchenId,
-      type: 'meal_confirmed',
-      channel: 'sms',
-      content: `[DEBUG] ${message}`.slice(0, 500),
-    })
-  } catch (e) { /* swallow */ }
-}
-
 export async function POST(request: Request) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')!
@@ -89,11 +77,7 @@ export async function POST(request: Request) {
 
     let doordashTrackingUrl: string | null = null
     let doordashDeliveryId: string | null = null
-
-    // Log what we're about to send to DoorDash
-    await logToDb(supabase, kitchenId,
-      `DD inputs: pickup=${restaurantAddress} pickup_phone=${restaurantPhone} dropoff=${kitchenAddress} dropoff_phone=${recipientProfile?.phone}`
-    )
+    let doordashError: string | null = null
 
     if (restaurantAddress && kitchenAddress) {
       try {
@@ -115,24 +99,14 @@ export async function POST(request: Request) {
           order_value: totalCents,
         })
 
-        const respStr = JSON.stringify(delivery).slice(0, 400)
-        await logToDb(supabase, kitchenId, `DD response: ${respStr}`)
-
         doordashTrackingUrl = (delivery.data as any)?.tracking_url || null
         doordashDeliveryId = (delivery.data as any)?.external_delivery_id || proposal_id
       } catch (ddErr: any) {
-        const errPayload = JSON.stringify({
-          message: ddErr.message,
-          name: ddErr.name,
-          response: ddErr.response?.data,
-          status: ddErr.response?.status,
-        }).slice(0, 450)
-        await logToDb(supabase, kitchenId, `DD ERROR: ${errPayload}`)
+        console.error('DoorDash createDelivery failed:', ddErr.message)
+        doordashError = ddErr.message
       }
     } else {
-      await logToDb(supabase, kitchenId,
-        `DD SKIPPED: restaurantAddress=${restaurantAddress} kitchenAddress=${kitchenAddress}`
-      )
+      doordashError = 'Missing pickup or dropoff address'
     }
 
     await supabase.from('meal_proposals').update({
@@ -150,7 +124,7 @@ export async function POST(request: Request) {
           to: recipientProfile.phone,
         })
       } catch (twErr: any) {
-        await logToDb(supabase, kitchenId, `Twilio ERROR: ${twErr.message}`)
+        console.error('Twilio messages.create failed:', twErr.message)
       }
     }
 
@@ -158,7 +132,9 @@ export async function POST(request: Request) {
       kitchen_id: kitchenId,
       type: 'meal_confirmed',
       channel: 'sms',
-      content: `Payment confirmed for ${mealName} on ${dateFormatted}`,
+      content: doordashError
+        ? `Payment confirmed for ${mealName} on ${dateFormatted} (delivery dispatch issue logged)`
+        : `Payment confirmed for ${mealName} on ${dateFormatted}`,
     })
   }
 
