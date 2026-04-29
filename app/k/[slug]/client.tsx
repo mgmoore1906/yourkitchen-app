@@ -9,7 +9,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [note, setNote] = useState('')
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')
+ const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
@@ -205,7 +205,15 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Marcus" style={inputStyle} />
 
             <label style={labelStyle}>Your email</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="marcus@example.com" type="email" style={inputStyle} />
+           <input
+  type="tel"
+  value={phone}
+  onChange={(e) => setPhone(e.target.value)}
+  placeholder="(555) 123-4567"
+  required
+  className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-emerald-600 focus:outline-none"
+/>
+<p className="text-xs text-gray-500 mt-1">We'll text you when your meal is delivered.</p>
 
             <label style={labelStyle}>Personal note (optional)</label>
             <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Thinking of you! Hope you enjoy dinner tonight 🧡" style={{ ...inputStyle, minHeight: 90, resize: 'none' }} />
