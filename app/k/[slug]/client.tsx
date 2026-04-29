@@ -29,6 +29,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
       body: JSON.stringify({
         name,
         email,
+        phone,
         calendar_date_id: selectedDate.id,
         restaurant_id: selectedRestaurant.id,
         menu_item_id: selectedItem.id,
