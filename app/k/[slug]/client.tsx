@@ -9,7 +9,8 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [note, setNote] = useState('')
   const [name, setName] = useState('')
-  const [phone, setPhone] = useState('')
+  const [email, setEmail] = useState('')   // ← this line should exist
+  const [phone, setPhone] = useState('')   // ← Edit 1 added this
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
