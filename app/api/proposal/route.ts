@@ -14,7 +14,7 @@ const twilioClient = twilio(
 
 export async function POST(request: Request) {
   try {
-    const { name, email, calendar_date_id, restaurant_id, menu_item_id, note } = await request.json()
+   const { name, email, phone, calendar_date_id, restaurant_id, menu_item_id, note } = await request.json()
 
     // Get kitchen details for SMS
    const { data: calendarDate } = await supabase
@@ -46,7 +46,7 @@ const { data: recipientProfile } = await supabase
     // Save guest coordinator
     const { data: guest, error: guestError } = await supabase
       .from('guest_coordinators')
-      .insert({ full_name: name, email })
+      .insert({ full_name: name, email, phone: phone || null })
       .select('id')
       .single()
 
