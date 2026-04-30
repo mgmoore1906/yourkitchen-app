@@ -109,3 +109,29 @@ export async function POST(request: Request) {
           body: `Thank you for sending ${recipientProfile?.full_name || 'them'} dinner. ${mealName} from ${restaurantName} was just delivered on ${dateFormatted}. — YourKitchen`,
           from: process.env.TWILIO_PHONE_NUMBER!,
           to: coordinator.phone,
+        })
+      } catch (e: any) { console.error('Coordinator thank-you failed:', e.message) }
+    }
+
+    await supabase.from('notifications').insert({
+      kitchen_id: kitchenId,
+      type: 'meal_confirmed',
+      channel: 'sms',
+      content: `Delivered: ${mealName} from ${restaurantName} on ${dateFormatted}`,
+    })
+  }
+
+  if (isCancelled) {
+    const cancelMsg = `⚠️ Issue with ${mealName} from ${restaurantName}. We are looking into it. — YourKitchen`
+    if (recipientProfile?.phone) {
+      try { await twilioClient.messages.create({ body: cancelMsg, from: process.env.TWILIO_PHONE_NUMBER!, to: recipientProfile.phone }) }
+      catch (e: any) { console.error(e.message) }
+    }
+    if (coordinator?.phone) {
+      try { await twilioClient.messages.create({ body: cancelMsg, from: process.env.TWILIO_PHONE_NUMBER!, to: coordinator.phone }) }
+      catch (e: any) { console.error(e.message) }
+    }
+  }
+
+  return NextResponse.json({ received: true })
+}
