@@ -14,7 +14,7 @@ const twilioClient = twilio(
 // Validate DoorDash webhook signature
 const authHeader = request.headers.get('Authorization')
 const expectedToken = process.env.DOORDASH_WEBHOOK_SECRET
-if (!authHeader || authHeader !== `Bearer ${expectedToken}`) {
+if (!authHeader || authHeader !== `Bearer ${0cK293Vo@0L!Rp@97lXzzyWXo4&RvW*i}`) {
   return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 }
 export async function POST(request: Request) {
