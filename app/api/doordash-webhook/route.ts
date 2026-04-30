@@ -11,13 +11,15 @@ const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID!,
   process.env.TWILIO_AUTH_TOKEN!
 )
-// Validate DoorDash webhook signature
-const authHeader = request.headers.get('Authorization')
-const expectedToken = process.env.DOORDASH_WEBHOOK_SECRET
-if (!authHeader || authHeader !== `Bearer ${0cK293Vo@0L!Rp@97lXzzyWXo4&RvW*i}`) {
-  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-}
+
 export async function POST(request: Request) {
+  // Validate DoorDash webhook auth
+  const authHeader = request.headers.get('DOORDASH_WEBHOOK_SECRET')
+  const expectedToken = process.env.DOORDASH_WEBHOOK_SECRET
+  if (!authHeader || authHeader !== expectedToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+
   let payload: any
   try {
     payload = await request.json()
@@ -28,11 +30,8 @@ export async function POST(request: Request) {
   const eventName = payload.event_name || payload.delivery_status || ''
   const externalDeliveryId = payload.external_delivery_id || payload.data?.external_delivery_id
 
-  if (!externalDeliveryId) {
-    return NextResponse.json({ received: true })
-  }
+  if (!externalDeliveryId) return NextResponse.json({ received: true })
 
-  // Look up proposal by DoorDash delivery ID
   const { data: proposal } = await supabase
     .from('meal_proposals')
     .select(`
@@ -68,7 +67,6 @@ export async function POST(request: Request) {
     .eq('id', recipientId)
     .single()
 
-  // Map DoorDash event name to internal status
   const isPickup = /PICKUP|PICKED_UP/i.test(eventName)
   const isDelivered = /DROPPED_OFF|DELIVERED/i.test(eventName)
   const isCancelled = /CANCELLED|CANCELED|FAILED/i.test(eventName)
@@ -84,7 +82,6 @@ export async function POST(request: Request) {
       .eq('id', p.id)
   }
 
-  // Pickup → recipient gets "your meal is on the way"
   if (isPickup && recipientProfile?.phone) {
     try {
       await twilioClient.messages.create({
@@ -95,7 +92,6 @@ export async function POST(request: Request) {
     } catch (e: any) { console.error('Pickup SMS failed:', e.message) }
   }
 
-  // Delivered → recipient gets confirmation, coordinator gets thank-you
   if (isDelivered) {
     if (recipientProfile?.phone) {
       try {
@@ -113,30 +109,3 @@ export async function POST(request: Request) {
           body: `Thank you for sending ${recipientProfile?.full_name || 'them'} dinner. ${mealName} from ${restaurantName} was just delivered on ${dateFormatted}. — YourKitchen`,
           from: process.env.TWILIO_PHONE_NUMBER!,
           to: coordinator.phone,
-        })
-      } catch (e: any) { console.error('Coordinator thank-you failed:', e.message) }
-    }
-
-    await supabase.from('notifications').insert({
-      kitchen_id: kitchenId,
-      type: 'meal_confirmed',
-      channel: 'sms',
-      content: `Delivered: ${mealName} from ${restaurantName} on ${dateFormatted}`,
-    })
-  }
-
-  // Cancelled → both notified
-  if (isCancelled) {
-    const cancelMsg = `⚠️ Issue with ${mealName} from ${restaurantName}. We're looking into it. — YourKitchen`
-    if (recipientProfile?.phone) {
-      try { await twilioClient.messages.create({ body: cancelMsg, from: process.env.TWILIO_PHONE_NUMBER!, to: recipientProfile.phone }) }
-      catch (e: any) { console.error(e.message) }
-    }
-    if (coordinator?.phone) {
-      try { await twilioClient.messages.create({ body: cancelMsg, from: process.env.TWILIO_PHONE_NUMBER!, to: coordinator.phone }) }
-      catch (e: any) { console.error(e.message) }
-    }
-  }
-
-  return NextResponse.json({ received: true })
-}
