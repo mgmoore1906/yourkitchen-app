@@ -9,8 +9,8 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
   const [selectedItem, setSelectedItem] = useState<any>(null)
   const [note, setNote] = useState('')
   const [name, setName] = useState('')
-  const [email, setEmail] = useState('')   
-  const [phone, setPhone] = useState('')  
+  const [email, setEmail] = useState('')
+  const [phone, setPhone] = useState('')
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
@@ -39,13 +39,11 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
     })
 
     const data = await res.json()
-
     if (!res.ok) {
       setErrorMsg('Error: ' + data.error)
       setLoading(false)
       return
     }
-
     setSubmitted(true)
     setLoading(false)
   }
@@ -118,8 +116,16 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
                 {availableDates.map((d: any) => (
-                  <button key={d.id} onClick={() => setSelectedDate(d)}
-                    style={{ background: selectedDate?.id === d.id ? '#EAF2ED' : '#fff', border: `2px solid ${selectedDate?.id === d.id ? '#3D6B4F' : '#DDE8E0'}`, borderRadius: 14, padding: '16px 18px', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontFamily: "'DM Sans', sans-serif" }}>
+                  <button
+                    key={d.id}
+                    onClick={() => setSelectedDate(d)}
+                    style={{
+                      background: selectedDate?.id === d.id ? '#EAF2ED' : '#fff',
+                      border: `2px solid ${selectedDate?.id === d.id ? '#3D6B4F' : '#DDE8E0'}`,
+                      borderRadius: 14, padding: '16px 18px', cursor: 'pointer',
+                      display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+                      fontFamily: "'DM Sans', sans-serif"
+                    }}>
                     <div>
                       <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: '#1E2620' }}>📅 {formatDate(d.date)}</div>
                       <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>Delivery {d.delivery_window_start?.slice(0, 5)} – {d.delivery_window_end?.slice(0, 5)}</div>
@@ -141,8 +147,16 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
             <p style={subStyle}>{kitchen.name.split("'")[0]}&apos;s preferred restaurants — all delivered via DoorDash.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
               {restaurants.map((r: any) => (
-                <button key={r.id} onClick={() => setSelectedRestaurant(r)}
-                  style={{ background: selectedRestaurant?.id === r.id ? '#EAF2ED' : '#fff', border: `2px solid ${selectedRestaurant?.id === r.id ? '#3D6B4F' : '#DDE8E0'}`, borderRadius: 16, padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'DM Sans', sans-serif" }}>
+                <button
+                  key={r.id}
+                  onClick={() => setSelectedRestaurant(r)}
+                  style={{
+                    background: selectedRestaurant?.id === r.id ? '#EAF2ED' : '#fff',
+                    border: `2px solid ${selectedRestaurant?.id === r.id ? '#3D6B4F' : '#DDE8E0'}`,
+                    borderRadius: 16, padding: '14px 16px', cursor: 'pointer',
+                    display: 'flex', alignItems: 'center', gap: 14,
+                    fontFamily: "'DM Sans', sans-serif"
+                  }}>
                   <div style={{ flex: 1, textAlign: 'left' }}>
                     <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: '#1E2620' }}>{r.name}</div>
                     <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>{r.cuisine} · DoorDash</div>
@@ -166,8 +180,16 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
             <p style={subStyle}>⭐ starred items are {kitchen.name.split("'")[0]}&apos;s favorites.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
               {selectedRestaurant?.menu_items?.map((item: any) => (
-                <button key={item.id} onClick={() => setSelectedItem(item)}
-                  style={{ background: selectedItem?.id === item.id ? '#EAF2ED' : '#fff', border: `2px solid ${selectedItem?.id === item.id ? '#3D6B4F' : '#DDE8E0'}`, borderRadius: 14, padding: '14px 16px', cursor: 'pointer', textAlign: 'left', display: 'flex', gap: 12, alignItems: 'flex-start', fontFamily: "'DM Sans', sans-serif" }}>
+                <button
+                  key={item.id}
+                  onClick={() => setSelectedItem(item)}
+                  style={{
+                    background: selectedItem?.id === item.id ? '#EAF2ED' : '#fff',
+                    border: `2px solid ${selectedItem?.id === item.id ? '#3D6B4F' : '#DDE8E0'}`,
+                    borderRadius: 14, padding: '14px 16px', cursor: 'pointer',
+                    textAlign: 'left', display: 'flex', gap: 12, alignItems: 'flex-start',
+                    fontFamily: "'DM Sans', sans-serif"
+                  }}>
                   <div style={{ flex: 1 }}>
                     <div style={{ fontFamily: "'Lora', serif", fontSize: 14, fontWeight: 600, color: '#1E2620' }}>{item.is_favorite ? '⭐ ' : ''}{item.name}</div>
                     <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>{item.description}</div>
@@ -203,23 +225,42 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
               ))}
             </div>
 
-           <label style={labelStyle}>Your name</label>
-<input value={name} onChange={e => setName(e.target.value)} placeholder="Marcus" style={inputStyle} />
+            <label style={labelStyle}>Your name</label>
+            <input
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Marcus"
+              style={inputStyle}
+            />
 
-<label style={labelStyle}>Your email</label>
-<input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
+            <label style={labelStyle}>Your email</label>
+            <input
+              type="email"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              style={inputStyle}
+            />
 
-<label style={labelStyle}>Your phone</label>
-<input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 123-4567" style={inputStyle} />
-<p style={{ fontSize: 12, color: '#6B7066', marginTop: -16, marginBottom: 20, fontWeight: 300 }}>We'll text you when your meal is delivered.</p>
-
-<label style={labelStyle}>Personal note (optional)</label>
-<textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Thinking of you! Hope you enjoy dinner tonight 🧡" style={{ ...inputStyle, minHeight: 90, resize: 'none' }} />
-/>
-<p className="text-xs text-gray-500 mt-1">We'll text you when your meal is delivered.</p>
+            <label style={labelStyle}>Your phone</label>
+            <input
+              type="tel"
+              value={phone}
+              onChange={e => setPhone(e.target.value)}
+              placeholder="(555) 123-4567"
+              style={inputStyle}
+            />
+            <p style={{ fontSize: 12, color: '#6B7066', marginTop: -16, marginBottom: 20, fontWeight: 300 }}>
+              We&apos;ll text you when your meal is delivered.
+            </p>
 
             <label style={labelStyle}>Personal note (optional)</label>
-            <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Thinking of you! Hope you enjoy dinner tonight 🧡" style={{ ...inputStyle, minHeight: 90, resize: 'none' }} />
+            <textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder="Thinking of you! Hope you enjoy dinner tonight 🧡"
+              style={{ ...inputStyle, minHeight: 90, resize: 'none' }}
+            />
 
             <div style={{ background: '#fff', border: '1px solid #DDE8E0', borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
               <p style={{ fontSize: 13, color: '#6B7066', margin: 0, lineHeight: 1.6 }}>
@@ -231,9 +272,12 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
 
             <div style={{ display: 'flex', gap: 10 }}>
               <button onClick={() => setStep(3)} style={backStyle}>← Back</button>
-             <button onClick={handleSubmit} disabled={!name || !email || !phone || loading} style={{ ...btnStyle(!name || !email || !phone || loading), flex: 1 }}>
-  {loading ? 'Sending…' : 'Send Proposal 🧡'}
-</button>
+              <button
+                onClick={handleSubmit}
+                disabled={!name || !email || !phone || loading}
+                style={{ ...btnStyle(!name || !email || !phone || loading), flex: 1 }}
+              >
+                {loading ? 'Sending…' : 'Send Proposal 🧡'}
               </button>
             </div>
           </>
@@ -247,11 +291,9 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
 const h2Style: React.CSSProperties = {
   fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 500, color: '#1E2620', margin: '0 0 6px'
 }
-
 const subStyle: React.CSSProperties = {
   fontSize: 14, color: '#6B7066', margin: '0 0 20px', fontWeight: 300
 }
-
 const btnStyle = (disabled: boolean): React.CSSProperties => ({
   width: '100%', padding: '14px', borderRadius: 10, border: 'none',
   background: disabled ? '#DDE8E0' : '#3D6B4F',
@@ -260,18 +302,15 @@ const btnStyle = (disabled: boolean): React.CSSProperties => ({
   cursor: disabled ? 'default' : 'pointer',
   fontFamily: "'DM Sans', sans-serif"
 })
-
 const backStyle: React.CSSProperties = {
   padding: '14px 20px', borderRadius: 10, border: '1.5px solid #DDE8E0',
   background: 'transparent', fontSize: 14, color: '#6B7066', cursor: 'pointer',
   fontFamily: "'DM Sans', sans-serif"
 }
-
 const labelStyle: React.CSSProperties = {
   fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5,
   textTransform: 'uppercase', display: 'block', marginBottom: 8
 }
-
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '13px 16px', borderRadius: 10,
   border: '1.5px solid #DDE8E0', fontSize: 14, background: '#fff',
