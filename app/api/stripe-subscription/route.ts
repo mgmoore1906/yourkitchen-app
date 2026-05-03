@@ -31,18 +31,30 @@ export async function POST(request: Request) {
 
     const isLifetime = plan === 'lifetime'
 
-    const session = await stripe.checkout.sessions.create({
-      mode: isLifetime ? 'payment' : 'subscription',
-      line_items: [{ price: priceId, quantity: 1 }],
-      ...(isLifetime ? {} : { subscription_data: { trial_period_days: 14 } }),
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
-      metadata: {
-        kitchen_id,
-        user_id,
-        plan,
-      },
-    })
+const sessionConfig: any = {
+  mode: isLifetime ? 'payment' : 'subscription',
+  line_items: [{ price: priceId, quantity: 1 }],
+  success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
+  cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
+  metadata: {
+    kitchen_id,
+    user_id,
+    plan,
+  },
+}
+
+if (!isLifetime) {
+  sessionConfig.subscription_data = {
+    trial_period_days: 14,
+    metadata: {
+      kitchen_id,
+      user_id,
+      plan,
+    },
+  }
+}
+
+const session = await stripe.checkout.sessions.create(sessionConfig)
 
     return NextResponse.json({ url: session.url })
   } catch (err: any) {
