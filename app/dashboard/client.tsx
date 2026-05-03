@@ -7,6 +7,7 @@ export default function DashboardClient({ kitchen, pendingProposals, userEmail }
   const router = useRouter()
   const [proposals, setProposals] = useState(pendingProposals)
   const [loading, setLoading] = useState<string | null>(null)
+  const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T12:00:00')
@@ -14,24 +15,55 @@ export default function DashboardClient({ kitchen, pendingProposals, userEmail }
   }
 
   const handleResponse = async (proposalId: string, action: 'confirm' | 'decline') => {
-  setLoading(proposalId)
-  const res = await fetch('/api/confirm', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ proposal_id: proposalId, action }),
-  })
-
-  const data = await res.json()
-
-  if (res.ok) {
-    setProposals((prev: any[]) => prev.filter((p: any) => p.id !== proposalId))
-    if (action === 'confirm' && data.checkout_url) {
-      window.open(data.checkout_url, '_blank')
+    setLoading(proposalId)
+    const res = await fetch('/api/confirm', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ proposal_id: proposalId, action }),
+    })
+    const data = await res.json()
+    if (res.ok) {
+      setProposals((prev: any[]) => prev.filter((p: any) => p.id !== proposalId))
+      if (action === 'confirm' && data.checkout_url) {
+        window.open(data.checkout_url, '_blank')
+      }
+      router.refresh()
     }
-    router.refresh()
+    setLoading(null)
   }
-  setLoading(null)
-}
+
+  const handleUpgrade = async (plan: string) => {
+    setUpgradeLoading(plan)
+    const res = await fetch('/api/stripe-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan,
+        kitchen_id: kitchen?.id,
+        user_id: kitchen?.organizer_id,
+      }),
+    })
+    const data = await res.json()
+    if (data.url) {
+      window.location.href = data.url
+    } else {
+      console.error('Upgrade error:', data.error)
+    }
+    setUpgradeLoading(null)
+  }
+
+  const isSubscribed = ['active', 'trialing', 'lifetime'].includes(kitchen?.subscription_status)
+  const isTrialing = kitchen?.subscription_status === 'trialing'
+  const isLifetime = kitchen?.subscription_plan === 'lifetime'
+
+  const tierLabel = isLifetime
+    ? '🌟 Founding Member'
+    : isTrialing
+    ? '✨ Care+ Trial'
+    : isSubscribed
+    ? '✅ Care+'
+    : '🎁 Free'
+
   return (
     <div style={{ minHeight: '100vh', background: '#FAFAF5', fontFamily: "'DM Sans', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -66,7 +98,6 @@ export default function DashboardClient({ kitchen, pendingProposals, userEmail }
                     <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>No charge until you confirm</div>
                   </div>
                 </div>
-
                 {[
                   ['Meal', p.menu_items?.name],
                   ['From', p.kitchen_restaurants?.name],
@@ -78,19 +109,21 @@ export default function DashboardClient({ kitchen, pendingProposals, userEmail }
                     <span style={{ fontSize: 13, color: '#1E2620', fontWeight: 500 }}>{v}</span>
                   </div>
                 ))}
-
                 {p.coordinator_note && (
                   <div style={{ background: '#EAF2ED', borderRadius: 10, padding: '10px 14px', margin: '12px 0 0' }}>
                     <p style={{ fontSize: 13, color: '#3D6B4F', margin: 0, fontStyle: 'italic' }}>"{p.coordinator_note}"</p>
                   </div>
                 )}
-
                 <div style={{ display: 'flex', gap: 10, marginTop: 16 }}>
-                  <button onClick={() => handleResponse(p.id, 'decline')} disabled={loading === p.id}
+                  <button
+                    onClick={() => handleResponse(p.id, 'decline')}
+                    disabled={loading === p.id}
                     style={{ flex: 1, padding: '12px', borderRadius: 10, border: '1.5px solid #DDE8E0', background: 'transparent', fontSize: 14, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                     ✕ Decline
                   </button>
-                  <button onClick={() => handleResponse(p.id, 'confirm')} disabled={loading === p.id}
+                  <button
+                    onClick={() => handleResponse(p.id, 'confirm')}
+                    disabled={loading === p.id}
                     style={{ flex: 2, padding: '12px', borderRadius: 10, border: 'none', background: loading === p.id ? '#6B9E7E' : '#3D6B4F', color: '#fff', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                     {loading === p.id ? 'Processing…' : '✓ Confirm — Send It!'}
                   </button>
@@ -125,7 +158,7 @@ export default function DashboardClient({ kitchen, pendingProposals, userEmail }
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
           {[
             { label: 'Status', value: '✅ Active', bg: '#EAF2ED', color: '#3D6B4F' },
-            { label: 'Tier', value: '🎁 Trial', bg: '#EAF2ED', color: '#3D6B4F' },
+            { label: 'Tier', value: tierLabel, bg: '#EAF2ED', color: '#3D6B4F' },
             { label: 'Address', value: kitchen.address?.split(',')[0] || '—', bg: '#fff', color: '#1E2620' },
             { label: 'Household', value: `${kitchen.household_size || '—'} people`, bg: '#fff', color: '#1E2620' },
           ].map(c => (
@@ -136,12 +169,63 @@ export default function DashboardClient({ kitchen, pendingProposals, userEmail }
           ))}
         </div>
 
+        {/* Upgrade to Care+ — only show if not already subscribed */}
+        {!isSubscribed && (
+          <div style={{ background: '#fff', border: '1.5px solid #3D6B4F', borderRadius: 16, padding: '22px', marginBottom: 20 }}>
+            <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, color: '#3D6B4F', textTransform: 'uppercase', marginBottom: 6 }}>
+              Upgrade to Care+
+            </div>
+            <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 500, color: '#1E2620', marginBottom: 6 }}>
+              Unlimited scheduling, home cook deliveries, and more.
+            </div>
+            <div style={{ fontSize: 13, color: '#6B7066', marginBottom: 18, fontWeight: 300, lineHeight: 1.6 }}>
+              14-day free trial on monthly and annual plans. Cancel anytime.
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <button
+                onClick={() => handleUpgrade('monthly')}
+                disabled={upgradeLoading === 'monthly'}
+                style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: 'none', background: '#3D6B4F', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
+                {upgradeLoading === 'monthly' ? 'Redirecting…' : '✨ Care+ Monthly — $9.99/mo · 14-day free trial'}
+              </button>
+              <button
+                onClick={() => handleUpgrade('annual')}
+                disabled={upgradeLoading === 'annual'}
+                style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #3D6B4F', background: '#fff', color: '#3D6B4F', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
+                {upgradeLoading === 'annual' ? 'Redirecting…' : '🌿 Early Adopter Annual — $59/yr · Best value'}
+              </button>
+              <button
+                onClick={() => handleUpgrade('lifetime')}
+                disabled={upgradeLoading === 'lifetime'}
+                style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: 'none', background: '#B88B4A', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
+                {upgradeLoading === 'lifetime' ? 'Redirecting…' : '🌟 Founding Member — $149 one-time · Unlimited forever'}
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* Active subscription banner */}
+        {isSubscribed && (
+          <div style={{ background: isLifetime ? '#FFF4E8' : '#EAF2ED', border: `1.5px solid ${isLifetime ? '#B88B4A' : '#3D6B4F'}`, borderRadius: 16, padding: '16px 20px', marginBottom: 20, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <div>
+              <div style={{ fontSize: 11, fontWeight: 600, letterSpacing: 2, color: isLifetime ? '#B88B4A' : '#3D6B4F', textTransform: 'uppercase', marginBottom: 4 }}>
+                {isLifetime ? 'Founding Member' : isTrialing ? 'Care+ Trial Active' : 'Care+ Active'}
+              </div>
+              <div style={{ fontSize: 13, color: '#6B7066', fontWeight: 300 }}>
+                {isLifetime ? 'Lifetime access — thank you for founding YourKitchen.' : isTrialing ? 'Your free trial is active. Enjoy Care+ features.' : 'Your subscription is active.'}
+              </div>
+            </div>
+            <div style={{ fontSize: 24 }}>{isLifetime ? '🌟' : '✅'}</div>
+          </div>
+        )}
+
         {/* Sign out */}
         <form action="/auth/signout" method="post">
           <button type="submit" style={{ width: '100%', padding: '13px', borderRadius: 10, border: '1.5px solid #DDE8E0', background: 'transparent', fontSize: 14, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
             Sign Out
           </button>
         </form>
+
       </div>
     </div>
   )
