@@ -5,30 +5,47 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 const MENU_ITEMS: Record<string, { id: string; name: string; desc: string; price: number }[]> = {
-  '1': [
-    { id: '101', name: 'Peri-Peri Chicken Plate', desc: 'Half rotisserie chicken, rice pilaf, peri-peri sauce', price: 18 },
-    { id: '102', name: 'Cape Malay Curry', desc: 'Slow-cooked lamb, fragrant rice, sambals', price: 22 },
-    { id: '103', name: 'Braai Burger & Fries', desc: 'Grass-fed beef, chimichurri, hand-cut fries', price: 16 },
+  'first-watch': [
+    { id: 'fw-1', name: 'Lemon Ricotta Pancakes', desc: 'Fluffy lemon-ricotta pancakes with seasonal berries and whipped cream.', price: 13.99 },
+    { id: 'fw-2', name: 'Avocado Toast', desc: 'Smashed avocado on multigrain toast with lemon, chili flakes, and fresh fruit.', price: 10.99 },
+    { id: 'fw-3', name: 'Chickichanga', desc: 'Breakfast burrito with scrambled eggs, chicken, avocado, cheddar, and salsa — pan-fried crispy.', price: 12.49 },
+    { id: 'fw-4', name: 'A.M. Superfoods Bowl', desc: 'Tri-colored quinoa, roasted sweet potatoes, avocado, kale, and lemon-tahini dressing.', price: 13.49 },
   ],
-  '2': [
-    { id: '201', name: 'Fajita Family Pack', desc: 'Beef & chicken, 12 tortillas, all fixings', price: 42 },
-    { id: '202', name: 'Enchilada Plate', desc: 'Cheese & chicken enchiladas, rice & beans', price: 16 },
-    { id: '203', name: 'Street Tacos & Queso', desc: '3 street tacos, chorizo queso, fresh guac', price: 19 },
+  'toasted-yolk': [
+    { id: 'ty-1', name: 'Shrimp & Grits', desc: 'Signature cheese grits topped with sautéed garlic shrimp, bacon, cilantro, and diced tomatoes.', price: 15.99 },
+    { id: 'ty-2', name: 'Chicken & Waffles', desc: "Crispy tenders on a Belgian waffle with cheddar and jalapeños, drizzled with Mike's Hot Honey.", price: 15.99 },
+    { id: 'ty-3', name: 'Banana Foster French Toast', desc: 'Belgian waffle-style French toast with banana custard, caramel sauce, and vanilla wafer crumbles.', price: 16.99 },
+    { id: 'ty-4', name: 'Brisket Scramble', desc: 'Scrambled eggs with smoked brisket and cheesy hashbrown casserole.', price: 15.49 },
   ],
-  '3': [
-    { id: '301', name: 'Chicken Shawarma Plate', desc: 'Marinated chicken, hummus, tabbouleh, pita', price: 17 },
-    { id: '302', name: 'Lamb Kofta', desc: 'Spiced lamb skewers, tzatziki, roasted veg', price: 21 },
-    { id: '303', name: 'Falafel Bowl', desc: 'Crispy falafel, couscous, pickled veg, tahini', price: 14 },
+  'harvest': [
+    { id: 'hk-1', name: 'Hot Chicken Benedict', desc: 'Crispy hot chicken on sourdough English muffins with poached eggs, hollandaise, and Harvest potatoes.', price: 17.99 },
+    { id: 'hk-2', name: 'Avocado & Goat Cheese Toast', desc: 'Sourdough toast with smashed avocado, arugula, fried goat cheese medallion, poached egg, and hollandaise.', price: 15.99 },
+    { id: 'hk-3', name: 'Huevos Rancheros', desc: 'Crispy corn tostadas with avocado, black beans, over-easy eggs, red and green salsa, queso fresco, and grits.', price: 16.49 },
+    { id: 'hk-4', name: 'Chicken Salad Avocado Toast', desc: 'Multigrain toast with chicken salad, fresh blueberries, candied pecans, and balsamic reduction.', price: 15.99 },
   ],
-  '4': [
-    { id: '401', name: 'Family Nugget Tray', desc: '64-count nuggets, 4 sauces, waffle fries', price: 34 },
-    { id: '402', name: 'Classic Sandwich Meal', desc: 'Classic sandwich, fries, lemonade', price: 12 },
-    { id: '403', name: 'Grilled Market Salad', desc: 'Grilled chicken, blueberries, harvest dressing', price: 11 },
+  'cava': [
+    { id: 'cv-1', name: 'Harissa Avocado Bowl', desc: 'Harissa honey chicken over basmati rice with Crazy Feta, hummus, avocado, and hot harissa vinaigrette.', price: 13.49 },
+    { id: 'cv-2', name: 'Chicken + Rice Bowl', desc: 'Grilled chicken over basmati rice with hummus, cucumber, tomato, feta, and lemon herb tahini.', price: 12.49 },
+    { id: 'cv-3', name: 'Spicy Lamb + Avocado Bowl', desc: 'Spiced lamb meatballs over SuperGreens and lentils with creamy avocado, Crazy Feta, and skhug sauce.', price: 13.49 },
+    { id: 'cv-4', name: 'Falafel Crunch Bowl', desc: 'Crispy falafel over roasted veggies and lentils with hummus, pickled onions, and lemon herb tahini.', price: 12.49 },
   ],
-  '5': [
-    { id: '501', name: 'Tour of Italy', desc: 'Chicken parmigiana, lasagna, fettuccine alfredo', price: 22 },
-    { id: '502', name: 'Five Cheese Ziti', desc: 'Ziti, five cheese marinara, mozzarella', price: 16 },
-    { id: '503', name: 'Chicken Alfredo', desc: 'Grilled chicken, fettuccine, creamy alfredo', price: 18 },
+  'kebab-shop': [
+    { id: 'ks-1', name: 'The Wrap', desc: 'Your choice of protein and rice wrapped in charred flatbread grilled at 700°. Add hummus, feta, and sauces.', price: 15.60 },
+    { id: 'ks-2', name: 'Grains Bowl', desc: 'Protein over herbed grains with roasted veggies, hummus, and signature Mediterranean sauces.', price: 15.60 },
+    { id: 'ks-3', name: 'Plate', desc: 'Double protein over rice with two sides — hummus, tabouli, or falafel.', price: 17.76 },
+    { id: 'ks-4', name: 'Kebab Fries', desc: 'Loaded fries with your choice of protein, feta, sauces, and fresh toppings.', price: 15.60 },
+  ],
+  'mod-fresh': [
+    { id: 'mf-1', name: 'Create-Your-Own Salad', desc: 'Start with romaine or mixed greens and build with unlimited fresh toppings and house dressings.', price: 10.99 },
+    { id: 'mf-2', name: 'Create-Your-Own Pizza', desc: 'MOD-size 11" thin crust with unlimited toppings from 40+ options. Baked fresh in minutes.', price: 12.99 },
+    { id: 'mf-3', name: 'Greek Signature Salad', desc: 'Romaine, feta, red onion, olives, pepperoncini, tomatoes, cucumbers, chickpeas, and Greek vinaigrette.', price: 10.99 },
+    { id: 'mf-4', name: 'Mad Dog Pizza', desc: 'Tomato sauce, mozzarella, Italian sausage, pepperoni, and spicy buffalo finish.', price: 12.99 },
+  ],
+  'up-thai': [
+    { id: 'ut-1', name: 'Pad Thai', desc: 'Classic thin rice noodles with tamarind sauce, bean sprouts, egg, green onion, and crushed peanuts.', price: 15.95 },
+    { id: 'ut-2', name: 'Basil Fried Rice', desc: 'Jasmine rice stir-fried with Thai basil, bell pepper, onion, egg, and your choice of protein.', price: 14.95 },
+    { id: 'ut-3', name: 'Massaman Curry', desc: 'Rich coconut milk curry with potatoes, peanuts, and your choice of chicken or beef.', price: 15.95 },
+    { id: 'ut-4', name: 'Pad See Ew', desc: 'Wide rice noodles stir-fried in sweet soy sauce with Chinese broccoli, egg, and your choice of protein.', price: 15.95 },
   ],
 }
 
@@ -36,6 +53,7 @@ export default function OnboardingFavorites() {
   const router = useRouter()
   const supabase = createClient()
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState('')
   const [restaurants, setRestaurants] = useState<any[]>([])
   const [activeTab, setActiveTab] = useState(0)
   const [favorites, setFavorites] = useState<string[]>([])
@@ -53,81 +71,40 @@ export default function OnboardingFavorites() {
 
   const handleFinish = async () => {
     setLoading(true)
+    setError('')
+
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
 
     const onboarding = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
 
-    // Generate slug from name
-    const slug = onboarding.full_name
-      ?.toLowerCase()
-      .replace(/\s+/g, '-')
-      .replace(/[^a-z0-9-]/g, '') || `kitchen-${Date.now()}`
-
-    // Create kitchen
-    const { data: kitchen, error: kitchenError } = await supabase
-      .from('kitchens')
-      .insert({
-        organizer_id: user.id,
-        recipient_id: user.id,
-        name: `${onboarding.full_name}'s Kitchen`,
-        slug,
+    const res = await fetch('/api/onboarding', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: user.id,
+        full_name: onboarding.full_name,
         address: onboarding.address,
-        household_size: parseInt(onboarding.household_size?.split('-')[0] || '3'),
+        household_size: onboarding.household_size,
         dietary_restrictions: onboarding.dietary_restrictions || [],
-        status: 'active',
-        tier: 'trial',
-        trial_started_at: new Date().toISOString(),
-      })
-      .select()
-      .single()
+        restaurants: onboarding.restaurants || [],
+        calendar_dates: onboarding.calendar_dates || [],
+        delivery_window_start: onboarding.delivery_window_start,
+        delivery_window_end: onboarding.delivery_window_end,
+        favorites,
+      }),
+    })
 
-    if (kitchenError || !kitchen) {
-      console.error(kitchenError)
+    const data = await res.json()
+
+    if (!res.ok || data.error) {
+      setError(data.error || 'Something went wrong. Please try again.')
       setLoading(false)
       return
     }
 
-    // Save restaurants
-    for (const r of onboarding.restaurants || []) {
-      const { data: rest } = await supabase
-        .from('kitchen_restaurants')
-        .insert({
-          kitchen_id: kitchen.id,
-          name: r.name,
-          cuisine: r.cuisine,
-        })
-        .select()
-        .single()
-
-      if (rest) {
-        // Save menu items
-        const items = MENU_ITEMS[r.id] || []
-        for (const item of items) {
-          await supabase.from('menu_items').insert({
-            kitchen_restaurant_id: rest.id,
-            name: item.name,
-            description: item.desc,
-            price: item.price,
-            is_favorite: favorites.includes(item.id),
-          })
-        }
-      }
-    }
-
-    // Save calendar dates
-    for (const date of onboarding.calendar_dates || []) {
-      await supabase.from('calendar_dates').insert({
-        kitchen_id: kitchen.id,
-        date,
-        status: 'available',
-        delivery_window_start: onboarding.delivery_window_start || '17:30',
-        delivery_window_end: onboarding.delivery_window_end || '19:00',
-      })
-    }
-
     localStorage.removeItem('yk_onboarding')
-    router.push(`/dashboard?kitchen=${kitchen.id}`)
+    router.push('/dashboard')
     setLoading(false)
   }
 
@@ -194,7 +171,11 @@ export default function OnboardingFavorites() {
 
         {/* Menu items */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 20 }}>
-          {menuItems.map(item => (
+          {menuItems.length === 0 ? (
+            <p style={{ fontSize: 14, color: '#6B7066', textAlign: 'center', padding: '20px 0' }}>
+              No menu items for this restaurant yet.
+            </p>
+          ) : menuItems.map(item => (
             <button key={item.id} onClick={() => toggleFav(item.id)}
               style={{ background: favorites.includes(item.id) ? '#EAF2ED' : '#fff',
                        border: `2px solid ${favorites.includes(item.id) ? '#3D6B4F' : '#DDE8E0'}`,
@@ -227,6 +208,13 @@ export default function OnboardingFavorites() {
             <p style={{ fontSize: 13, color: '#3D6B4F', margin: 0 }}>
               ⭐ <strong>{favorites.length} favorites</strong> saved across your restaurants.
             </p>
+          </div>
+        )}
+
+        {error && (
+          <div style={{ background: '#FDE8E8', border: '1.5px solid #B94040',
+                        borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
+            <p style={{ fontSize: 13, color: '#B94040', margin: 0 }}>⚠️ {error}</p>
           </div>
         )}
 
