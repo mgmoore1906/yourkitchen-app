@@ -19,7 +19,18 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
     const d = new Date(dateStr + 'T12:00:00')
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   }
+const formatDate = (dateStr: string) => {
+    const d = new Date(dateStr + 'T12:00:00')
+    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  }                                              // ← line 22, existing closing brace
 
+  const formatTime = (timeStr: string) => {     // ← add starting here
+    if (!timeStr) return ''
+    const [hours, minutes] = timeStr.split(':').map(Number)
+    const period = hours >= 12 ? 'PM' : 'AM'
+    const h = hours % 12 || 12
+    return `${h}:${String(minutes).padStart(2, '0')} ${period}`
+  }                                              // ← end here
   const handleSubmit = async () => {
     setLoading(true)
     setErrorMsg('')
@@ -87,7 +98,6 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
 
       <div style={{ background: '#fff', borderBottom: '1px solid #DDE8E0', padding: '20px 24px', textAlign: 'center' }}>
         <h1 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 500, color: '#1E2620', margin: '0 0 4px' }}>{kitchen.name}</h1>
-        <p style={{ fontSize: 13, color: '#6B7066', margin: 0, fontWeight: 300 }}>{kitchen.address}</p>
         {kitchen.dietary_restrictions?.length > 0 && (
           <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap', marginTop: 10 }}>
             {kitchen.dietary_restrictions.map((d: string) => (
@@ -128,7 +138,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
                     }}>
                     <div>
                       <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: '#1E2620' }}>📅 {formatDate(d.date)}</div>
-                      <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>Delivery {d.delivery_window_start?.slice(0, 5)} – {d.delivery_window_end?.slice(0, 5)}</div>
+                      <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>Delivery {formatTime(d.delivery_window_start)} – {formatTime(d.delivery_window_end)}</div>
                     </div>
                     {selectedDate?.id === d.id && <span style={{ color: '#3D6B4F', fontSize: 20 }}>✓</span>}
                   </button>
