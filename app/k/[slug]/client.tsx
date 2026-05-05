@@ -14,12 +14,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
-
   const formatDate = (dateStr: string) => {
-    const d = new Date(dateStr + 'T12:00:00')
-    return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-  }
-const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T12:00:00')
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
   }                                              // ← line 22, existing closing brace
