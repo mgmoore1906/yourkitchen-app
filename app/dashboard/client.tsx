@@ -319,9 +319,6 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
     </div>
   ))}
 </div>
-    </>
-  )
-}
 
 // ─── Dashboard Client ────────────────────────────────────────────────────────
 
