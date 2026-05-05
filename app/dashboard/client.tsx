@@ -2,6 +2,48 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
+// ─── Share Link ──────────────────────────────────────────────────────────────
+
+function ShareLink({ slug }: { slug: string }) {
+  const [copied, setCopied] = useState(false)
+  const url = typeof window !== 'undefined'
+    ? `${window.location.origin}/k/${slug}`
+    : `/k/${slug}`
+
+  const handleCopy = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: 'My YourKitchen',
+        text: 'Send me a meal through my YourKitchen — pick a date, choose a restaurant, and dinner is on its way 🧡',
+        url,
+      })
+    } else {
+      navigator.clipboard.writeText(url).then(() => {
+        setCopied(true)
+        setTimeout(() => setCopied(false), 2500)
+      })
+    }
+  }
+
+  return (
+    <div style={{ background: '#fff', border: '1.5px dashed #6B9E7E', borderRadius: 16, padding: '20px', marginBottom: 16 }}>
+      <p style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 8px' }}>Your Kitchen Link</p>
+      <p style={{ fontFamily: "'Lora', serif", fontSize: 14, color: '#3D6B4F', margin: '0 0 14px', wordBreak: 'break-all' }}>{url}</p>
+      <button
+        onClick={handleCopy}
+        style={{
+          width: '100%', padding: '13px', borderRadius: 10, border: 'none',
+          background: copied ? '#3D6B4F' : '#1E2620', color: '#fff',
+          fontSize: 14, fontWeight: 500, cursor: 'pointer',
+          fontFamily: "'DM Sans', sans-serif", transition: 'background 0.2s',
+        }}
+      >
+        {copied ? '✓ Link copied!' : navigator && 'share' in navigator ? '🔗 Share My Kitchen' : '📋 Copy Link'}
+      </button>
+    </div>
+  )
+}
+
 // ─── Calendar Section ────────────────────────────────────────────────────────
 
 function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarDates: any[], kitchenId: string }) {
@@ -305,17 +347,7 @@ export default function DashboardClient({ kitchen, pendingProposals, calendarDat
         </p>
 
         {/* Share link */}
-        <div style={{ background: '#fff', border: '1.5px dashed #6B9E7E', borderRadius: 16, padding: '20px', marginBottom: 16 }}>
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 8px' }}>Your Kitchen Link</p>
-          <p style={{ fontFamily: "'Lora', serif", fontSize: 15, color: '#3D6B4F', margin: '0 0 14px', wordBreak: 'break-all' }}>
-            yourkitchen.app/k/{kitchen.slug}
-          </p>
-          <div style={{ background: '#EAF2ED', borderRadius: 10, padding: '12px 16px' }}>
-            <p style={{ fontSize: 13, color: '#3D6B4F', margin: 0 }}>
-              🔗 Share this link with your village — they can claim dates and send you meals.
-            </p>
-          </div>
-        </div>
+        <ShareLink slug={kitchen.slug} />
 
         {/* Calendar */}
         <CalendarSection calendarDates={calendarDates} kitchenId={kitchen.id} />
