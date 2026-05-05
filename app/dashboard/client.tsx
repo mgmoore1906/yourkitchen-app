@@ -33,7 +33,7 @@ function ShareLink({ slug }: { slug: string }) {
         onClick={handleCopy}
         style={{
           width: '100%', padding: '13px', borderRadius: 10, border: 'none',
-          background: copied ? '#2D5240' : '#3D6B4F', color: '#fff',
+          background: copied ? '#3D6B4F' : '#1E2620', color: '#fff',
           fontSize: 14, fontWeight: 500, cursor: 'pointer',
           fontFamily: "'DM Sans', sans-serif", transition: 'background 0.2s',
         }}
@@ -52,36 +52,89 @@ const MEAL_TYPES = [
   { key: 'dinner',    label: 'Dinner',    emoji: '🌙',  color: '#3D6B4F', light: '#EAF2ED' },
 ]
 
-function MealTypePicker({ dateStr, onPick, onCancel }: { dateStr: string, onPick: (type: string) => void, onCancel: () => void }) {
+function MealTypePicker({
+  dateStr,
+  existingSlots,
+  onPick,
+  onRemove,
+  onCancel,
+}: {
+  dateStr: string
+  existingSlots: any[]
+  onPick: (type: string) => void
+  onRemove: (slot: any) => void
+  onCancel: () => void
+}) {
   const d = new Date(dateStr + 'T12:00:00')
   const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const existingTypes = existingSlots.map(s => s.meal_type)
+  const availableTypes = MEAL_TYPES.filter(m => !existingTypes.includes(m.key))
+
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(30,38,32,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
       <div style={{ background: '#FAFAF5', borderRadius: '20px 20px 0 0', padding: '24px 24px 40px', width: '100%', maxWidth: 500 }}>
-        <p style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px' }}>Add a meal date</p>
+        <p style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px' }}>
+          {existingSlots.length > 0 ? 'Manage meal date' : 'Add a meal date'}
+        </p>
         <p style={{ fontFamily: "'Lora', serif", fontSize: 17, fontWeight: 500, color: '#1E2620', margin: '0 0 20px' }}>{label}</p>
-        <p style={{ fontSize: 13, color: '#6B7066', margin: '0 0 16px', fontWeight: 300 }}>What meal do you need covered?</p>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
-          {MEAL_TYPES.map(m => (
-            <button key={m.key} onClick={() => onPick(m.key)} style={{
-              background: m.light, border: `2px solid ${m.color}`, borderRadius: 14,
-              padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14,
-              fontFamily: "'DM Sans', sans-serif", textAlign: 'left',
-            }}>
-              <span style={{ fontSize: 26 }}>{m.emoji}</span>
-              <div>
-                <div style={{ fontSize: 16, fontWeight: 600, color: m.color }}>{m.label}</div>
-                <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>
-                  {m.key === 'breakfast' ? 'First Watch, Toasted Yolk, Harvest Kitchen' :
-                   m.key === 'lunch' ? 'Cava, Kebab Shop, Mod Fresh, Harvest Kitchen' :
-                   'Cava, Kebab Shop, Up Thai Kitchen'}
-                </div>
-              </div>
-            </button>
-          ))}
-        </div>
+
+        {/* Existing slots — tap to remove */}
+        {existingSlots.length > 0 && (
+          <>
+            <p style={{ fontSize: 12, color: '#6B7066', margin: '0 0 10px', fontWeight: 500 }}>TAP TO REMOVE</p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {existingSlots.map(slot => {
+                const m = MEAL_TYPES.find(x => x.key === slot.meal_type) || MEAL_TYPES[2]
+                const isLocked = slot.status === 'claimed' || slot.status === 'confirmed'
+                return (
+                  <button key={slot.id} onClick={() => !isLocked && onRemove(slot)} style={{
+                    background: m.light, border: `2px solid ${m.color}`, borderRadius: 14,
+                    padding: '14px 18px', cursor: isLocked ? 'default' : 'pointer',
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    fontFamily: "'DM Sans', sans-serif", opacity: isLocked ? 0.6 : 1,
+                  }}>
+                    <span style={{ fontSize: 15, fontWeight: 600, color: m.color }}>{m.emoji} {m.label}</span>
+                    {isLocked
+                      ? <span style={{ fontSize: 11, color: m.color, fontWeight: 500 }}>{slot.status === 'claimed' ? 'PENDING' : 'CONFIRMED'}</span>
+                      : <span style={{ fontSize: 18, color: m.color }}>✕</span>
+                    }
+                  </button>
+                )
+              })}
+            </div>
+          </>
+        )}
+
+        {/* Available types to add */}
+        {availableTypes.length > 0 && (
+          <>
+            <p style={{ fontSize: 12, color: '#6B7066', margin: '0 0 10px', fontWeight: 500 }}>
+              {existingSlots.length > 0 ? 'ADD ANOTHER' : 'WHAT MEAL DO YOU NEED?'}
+            </p>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 16 }}>
+              {availableTypes.map(m => (
+                <button key={m.key} onClick={() => onPick(m.key)} style={{
+                  background: '#fff', border: `2px solid ${m.color}`, borderRadius: 14,
+                  padding: '16px 20px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14,
+                  fontFamily: "'DM Sans', sans-serif", textAlign: 'left',
+                }}>
+                  <span style={{ fontSize: 26 }}>{m.emoji}</span>
+                  <div>
+                    <div style={{ fontSize: 16, fontWeight: 600, color: m.color }}>{m.label}</div>
+                    <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>
+                      {m.key === 'breakfast' ? 'First Watch, Toasted Yolk, Harvest Kitchen' :
+                       m.key === 'lunch' ? 'Cava, Kebab Shop, Mod Fresh, Harvest Kitchen' :
+                       'Cava, Kebab Shop, Up Thai Kitchen'}
+                    </div>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </>
+        )}
+
         <button onClick={onCancel} style={{ width: '100%', padding: '13px', borderRadius: 10, border: '1.5px solid #DDE8E0', background: 'transparent', fontSize: 14, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-          Cancel
+          Done
         </button>
       </div>
     </div>
@@ -100,8 +153,12 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
 
   const todayStr = today.toISOString().split('T')[0]
 
-  const dateMap: Record<string, any> = {}
-  dates.forEach(d => { dateMap[d.date] = d })
+  // Group dates by date string — multiple slots per date now possible
+  const dateMap: Record<string, any[]> = {}
+  dates.forEach(d => {
+    if (!dateMap[d.date]) dateMap[d.date] = []
+    dateMap[d.date].push(d)
+  })
 
   const monthName = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   const firstDay = new Date(viewYear, viewMonth, 1).getDay()
@@ -119,27 +176,23 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
   const handleDayTap = (dayNum: number) => {
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
     if (dateStr < todayStr) return
-    const existing = dateMap[dateStr]
-    if (existing && (existing.status === 'claimed' || existing.status === 'confirmed')) return
-    if (existing && existing.status === 'available') {
-      handleRemoveDate(existing, dateStr)
-    } else {
-      setPendingDate(dateStr)
-    }
+    // Always open the picker — it handles both add and remove
+    setPendingDate(dateStr)
   }
 
-  const handleRemoveDate = async (existing: any, dateStr: string) => {
-    setLoading(dateStr)
+  const handleRemoveSlot = async (slot: any) => {
+    setPendingDate(null)
+    setLoading(slot.date)
     const res = await fetch('/api/calendar', {
       method: 'DELETE',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date_id: existing.id }),
+      body: JSON.stringify({ date_id: slot.id }),
     })
-    if (res.ok) setDates(prev => prev.filter(d => d.date !== dateStr))
+    if (res.ok) setDates(prev => prev.filter(d => d.id !== slot.id))
     setLoading(null)
   }
 
-  const handleAddDate = async (mealType: string) => {
+  const handleAddSlot = async (mealType: string) => {
     if (!pendingDate) return
     const dateStr = pendingDate
     setPendingDate(null)
@@ -164,22 +217,17 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
     const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
     const isPast = dateStr < todayStr
     const isToday = dateStr === todayStr
-    const record = dateMap[dateStr]
-    return { dateStr, isPast, isToday, record, status: record?.status || null, mealType: record?.meal_type || null }
+    const slots = dateMap[dateStr] || []
+    return { dateStr, isPast, isToday, slots }
   }
 
-  const getMealColor = (mealType: string | null) => {
-    return MEAL_TYPES.find(m => m.key === mealType) || MEAL_TYPES[2]
-  }
+  const getMealColor = (mealType: string) =>
+    MEAL_TYPES.find(m => m.key === mealType) || MEAL_TYPES[2]
 
-  const statusColor = (status: string | null, isPast: boolean, mealType: string | null) => {
-    if (isPast) return { bg: 'transparent', text: '#C8D5CA', dot: null }
-    if (!status) return { bg: 'transparent', text: '#1E2620', dot: null }
-    const meal = getMealColor(mealType)
-    if (status === 'available') return { bg: meal.light, text: meal.color, dot: meal.color }
-    if (status === 'claimed') return { bg: '#FFF4E0', text: '#B88B4A', dot: '#B88B4A' }
-    if (status === 'confirmed') return { bg: '#1E2620', text: '#fff', dot: '#6B9E7E' }
-    return { bg: 'transparent', text: '#1E2620', dot: null }
+  const getSlotStatusColor = (slot: any) => {
+    if (slot.status === 'confirmed') return '#1E2620'
+    if (slot.status === 'claimed') return '#B88B4A'
+    return getMealColor(slot.meal_type).color
   }
 
   const openCount = dates.filter(d => d.status === 'available').length
@@ -191,7 +239,9 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
       {pendingDate && (
         <MealTypePicker
           dateStr={pendingDate}
-          onPick={handleAddDate}
+          existingSlots={dateMap[pendingDate] || []}
+          onPick={handleAddSlot}
+          onRemove={handleRemoveSlot}
           onCancel={() => setPendingDate(null)}
         />
       )}
@@ -200,7 +250,7 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 16 }}>
           <div>
             <p style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px' }}>Your Calendar</p>
-            <p style={{ fontSize: 13, color: '#6B7066', margin: 0, fontWeight: 300 }}>Tap a date to open it for meal claims</p>
+            <p style={{ fontSize: 13, color: '#6B7066', margin: 0, fontWeight: 300 }}>Tap a date to add or manage meal slots</p>
           </div>
           <div style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
             <button onClick={prevMonth} style={{ background: '#EAF2ED', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 16, color: '#3D6B4F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
@@ -219,28 +269,35 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
           {cells.map((day, i) => {
             if (!day) return <div key={i} />
-            const { dateStr, isPast, isToday, status, mealType } = getDateState(day)
-            const colors = statusColor(status, isPast, mealType)
+            const { dateStr, isPast, isToday, slots } = getDateState(day)
             const isLoading = loading === dateStr
-            const isInteractive = !isPast && status !== 'claimed' && status !== 'confirmed'
+            const hasSlots = slots.length > 0
+
             return (
               <button
                 key={i}
-                onClick={() => handleDayTap(day)}
+                onClick={() => !isPast && handleDayTap(day)}
                 disabled={isPast || isLoading}
                 style={{
-                  background: isLoading ? '#EAF2ED' : colors.bg,
-                  border: isToday ? '2px solid #3D6B4F' : '1.5px solid transparent',
-                  borderRadius: 10, padding: '10px 2px', minHeight: 48,
-                  cursor: isInteractive ? 'pointer' : 'default',
+                  background: isLoading ? '#EAF2ED' : hasSlots ? '#F8FAF8' : 'transparent',
+                  border: isToday ? '2px solid #3D6B4F' : hasSlots ? '1.5px solid #DDE8E0' : '1.5px solid transparent',
+                  borderRadius: 10, padding: '8px 2px', minHeight: 52,
+                  cursor: isPast ? 'default' : 'pointer',
                   display: 'flex', flexDirection: 'column', alignItems: 'center',
-                  justifyContent: 'center', gap: 4, transition: 'all 0.1s',
+                  justifyContent: 'center', gap: 3, transition: 'all 0.1s',
                   fontFamily: "'DM Sans', sans-serif",
                   WebkitTapHighlightColor: 'transparent',
                 }}
               >
-                <span style={{ fontSize: 14, fontWeight: isToday ? 700 : 500, color: colors.text, lineHeight: 1 }}>{day}</span>
-                {colors.dot && <div style={{ width: 6, height: 6, borderRadius: '50%', background: colors.dot, flexShrink: 0 }} />}
+                <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: isPast ? '#C8D5CA' : '#1E2620', lineHeight: 1 }}>{day}</span>
+                {/* Up to 3 dots for meal slots */}
+                {slots.length > 0 && (
+                  <div style={{ display: 'flex', gap: 2, alignItems: 'center' }}>
+                    {slots.slice(0, 3).map((slot, si) => (
+                      <div key={si} style={{ width: 6, height: 6, borderRadius: '50%', background: getSlotStatusColor(slot), flexShrink: 0 }} />
+                    ))}
+                  </div>
+                )}
               </button>
             )
           })}
@@ -251,7 +308,7 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
             {MEAL_TYPES.map(m => (
               <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: m.color }} />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color }} />
                 <span style={{ fontSize: 11, color: '#6B7066', fontWeight: 500 }}>{m.emoji} {m.label}</span>
               </div>
             ))}
@@ -259,11 +316,11 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
               { dot: '#B88B4A', label: `${claimedCount} pending` },
-              { dot: '#6B9E7E', label: `${confirmedCount} confirmed` },
+              { dot: '#1E2620', label: `${confirmedCount} confirmed` },
               { dot: '#C8D5CA', label: `${openCount} open` },
             ].map(({ dot, label }) => (
               <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 10, height: 10, borderRadius: '50%', background: dot }} />
+                <div style={{ width: 8, height: 8, borderRadius: '50%', background: dot }} />
                 <span style={{ fontSize: 11, color: '#6B7066', fontWeight: 500 }}>{label}</span>
               </div>
             ))}
