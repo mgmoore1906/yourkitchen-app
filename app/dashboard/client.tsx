@@ -319,7 +319,9 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
     </div>
   ))}
 </div>
-
+      </>
+      )
+      }
 // ─── Dashboard Client ────────────────────────────────────────────────────────
 
 export default function DashboardClient({ kitchen, pendingProposals, calendarDates, userEmail }: any) {
