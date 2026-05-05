@@ -307,11 +307,11 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
         <div style={{ marginTop: 16, paddingTop: 14, borderTop: '1px solid #EAF2ED' }}>
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 8 }}>
             {MEAL_TYPES.map(m => (
-              <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color }} />
-                <span style={{ fontSize: 11, color: '#6B7066', fontWeight: 500 }}>{m.emoji} {m.label}</span>
-              </div>
-            ))}
+  <div key={m.key} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+    <div style={{ width: 8, height: 8, borderRadius: '50%', background: m.color, flexShrink: 0 }} />
+    <span style={{ fontSize: 11, color: '#6B7066', fontWeight: 500 }}>{m.label}</span>
+  </div>
+))}
           </div>
           <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
             {[
