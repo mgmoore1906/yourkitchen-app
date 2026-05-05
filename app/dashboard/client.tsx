@@ -313,16 +313,7 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
   </div>
 ))}
           </div>
-          <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap' }}>
-            {[
-              { dot: '#B88B4A', label: `${claimedCount} pending` },
-              { dot: '#1E2620', label: `${confirmedCount} confirmed` },
-              { dot: '#C8D5CA', label: `${openCount} open` },
-            ].map(({ dot, label }) => (
-              <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-                <div style={{ width: 8, height: 8, borderRadius: '50%', background: dot }} />
-                <span style={{ fontSize: 11, color: '#6B7066', fontWeight: 500 }}>{label}</span>
-              </div>
+          
             ))}
           </div>
         </div>
