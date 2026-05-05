@@ -26,6 +26,7 @@ export default async function KitchenPage({ params }: Props) {
 
   if (!kitchen) notFound()
 
+  const activeRestaurants = restaurants={activeRestaurants}?.filter((r: any) => r.is_active !== false) || []
   const availableDates = kitchen.calendar_dates
     ?.filter((d: any) => d.status === 'available')
     .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
