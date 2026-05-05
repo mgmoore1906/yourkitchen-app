@@ -1,59 +1,52 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import DashboardClient from './client'
+import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 
-export default async function Dashboard() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-  const { data: kitchen } = await supabase
-    .from('kitchens')
-    .select('*')
-    .eq('organizer_id', user.id)
-    .single()
+// POST — add a new restaurant to the kitchen
+export async function POST(request: Request) {
+  try {
+    const { kitchen_id, name, cuisine, doordash_store_id } = await request.json()
 
-  if (!kitchen) redirect('/onboarding/profile')
+    if (!kitchen_id || !name) {
+      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+    }
 
-  const { data: pendingProposals } = await supabase
-    .from('meal_proposals')
-    .select(`
-      *,
-      claims(*, calendar_dates(*), guest_coordinators(*)),
-      kitchen_restaurants(*),
-      menu_items(*)
-    `)
-    .eq('status', 'pending')
-    .order('proposed_at', { ascending: false })
+    const { data, error } = await supabase
+      .from('kitchen_restaurants')
+      .insert({ kitchen_id, name, cuisine, doordash_store_id, is_active: true })
+      .select()
+      .single()
 
-  // Fetch calendar dates — 3 months back through 6 months ahead
-  const from = new Date()
-  from.setMonth(from.getMonth() - 1)
-  const to = new Date()
-  to.setMonth(to.getMonth() + 6)
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  const { data: calendarDates } = await supabase
-    .from('calendar_dates')
-    .select('*')
-    .eq('kitchen_id', kitchen.id)
-    .gte('date', from.toISOString().split('T')[0])
-    .lte('date', to.toISOString().split('T')[0])
-    .order('date', { ascending: true })
+    return NextResponse.json({ success: true, restaurant: data })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
 
-  // Fetch kitchen restaurants
-  const { data: kitchenRestaurants } = await supabase
-    .from('kitchen_restaurants')
-    .select('*')
-    .eq('kitchen_id', kitchen.id)
-    .order('created_at', { ascending: true })
+// PATCH — toggle is_active on an existing restaurant
+export async function PATCH(request: Request) {
+  try {
+    const { restaurant_id, is_active } = await request.json()
 
-  return (
-    <DashboardClient
-      kitchen={kitchen}
-      pendingProposals={pendingProposals || []}
-      calendarDates={calendarDates || []}
-      kitchenRestaurants={kitchenRestaurants || []}
-      userEmail={user.email || ''}
-    />
-  )
+    if (!restaurant_id) {
+      return NextResponse.json({ error: 'Missing restaurant_id' }, { status: 400 })
+    }
+
+    const { error } = await supabase
+      .from('kitchen_restaurants')
+      .update({ is_active })
+      .eq('id', restaurant_id)
+
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
 }
