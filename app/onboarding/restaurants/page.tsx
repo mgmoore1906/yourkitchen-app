@@ -16,6 +16,13 @@ const RESTAURANTS = [
 export default function OnboardingRestaurants() {
   const router = useRouter()
   const [picked, setPicked] = useState<string[]>([])
+ 
+  useEffect(() => {
+  const saved = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
+  if (saved.restaurants?.length) {
+    setPicked(saved.restaurants.map((r: any) => r.id))
+  }
+}, [])
 
   const toggle = (id: string) => {
     setPicked(p =>
