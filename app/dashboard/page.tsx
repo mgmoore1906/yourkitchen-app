@@ -40,11 +40,19 @@ export default async function Dashboard() {
     .lte('date', to.toISOString().split('T')[0])
     .order('date', { ascending: true })
 
+  // Fetch kitchen restaurants
+  const { data: kitchenRestaurants } = await supabase
+    .from('kitchen_restaurants')
+    .select('*')
+    .eq('kitchen_id', kitchen.id)
+    .order('created_at', { ascending: true })
+
   return (
     <DashboardClient
       kitchen={kitchen}
       pendingProposals={pendingProposals || []}
       calendarDates={calendarDates || []}
+      kitchenRestaurants={kitchenRestaurants || []}
       userEmail={user.email || ''}
     />
   )
