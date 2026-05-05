@@ -7,9 +7,17 @@ export default function OnboardingCalendar() {
   const router = useRouter()
   const [selected, setSelected] = useState<string[]>([])
   const [deliveryStart, setDeliveryStart] = useState('17:30')
-  const [deliveryEnd, setDeliveryEnd] = useState('19:00')
+ const [deliveryEnd, setDeliveryEnd] = useState('19:00')
 
-  const generateDates = () => {
+// ← useEffect goes here
+useEffect(() => {
+  const saved = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
+  if (saved.calendar_dates?.length) setSelected(saved.calendar_dates)
+  if (saved.delivery_window_start) setDeliveryStart(saved.delivery_window_start)
+  if (saved.delivery_window_end) setDeliveryEnd(saved.delivery_window_end)
+}, [])
+
+const generateDates = () => {
     const dates = []
     const today = new Date()
     for (let i = 1; i <= 30; i++) {
