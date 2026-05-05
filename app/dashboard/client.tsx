@@ -305,23 +305,25 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
 
         {/* Legend */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 16, paddingTop: 14, borderTop: '1px solid #EAF2ED' }}>
-  {[
-    { dot: '#E8834A', label: 'Breakfast' },
-    { dot: '#4A8FA8', label: 'Lunch' },
-    { dot: '#3D6B4F', label: 'Dinner' },
-    { dot: '#B88B4A', label: `${claimedCount} pending` },
-    { dot: '#1E2620', label: `${confirmedCount} confirmed` },
-    { dot: '#C8D5CA', label: `${openCount} open` },
-  ].map(({ dot, label }) => (
-    <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-      <div style={{ width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0 }} />
-      <span style={{ fontSize: 11, color: '#6B7066', fontWeight: 500 }}>{label}</span>
-    </div>
-  ))}
-</div>
-      </>
-      )
-      }
+          {[
+            { dot: '#E8834A', label: 'Breakfast' },
+            { dot: '#4A8FA8', label: 'Lunch' },
+            { dot: '#3D6B4F', label: 'Dinner' },
+            { dot: '#B88B4A', label: `${claimedCount} pending` },
+            { dot: '#1E2620', label: `${confirmedCount} confirmed` },
+            { dot: '#C8D5CA', label: `${openCount} open` },
+          ].map(({ dot, label }) => (
+            <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div style={{ width: 8, height: 8, borderRadius: '50%', background: dot, flexShrink: 0 }} />
+              <span style={{ fontSize: 11, color: '#6B7066', fontWeight: 500 }}>{label}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    </>
+  )
+}
+
 // ─── Dashboard Client ────────────────────────────────────────────────────────
 
 export default function DashboardClient({ kitchen, pendingProposals, calendarDates, userEmail }: any) {
