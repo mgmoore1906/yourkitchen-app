@@ -1,14 +1,16 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 const RESTAURANTS = [
-  { id: '1', name: 'Peli Peli Kitchen', cuisine: 'South African', emoji: '🥘', rating: 4.8 },
-  { id: '2', name: 'Lupe Tortilla', cuisine: 'Tex-Mex', emoji: '🌮', rating: 4.7 },
-  { id: '3', name: "Fadi's Mediterranean", cuisine: 'Mediterranean', emoji: '🫙', rating: 4.9 },
-  { id: '4', name: 'Chick-fil-A', cuisine: 'American', emoji: '🐔', rating: 4.6 },
-  { id: '5', name: 'Olive Garden', cuisine: 'Italian', emoji: '🍝', rating: 4.3 },
+  { id: 'first-watch',    name: 'First Watch',              cuisine: 'American Breakfast & Brunch',    emoji: '🥞', rating: 4.7 },
+  { id: 'toasted-yolk',   name: 'The Toasted Yolk Cafe',    cuisine: 'American Breakfast & Brunch',    emoji: '🍳', rating: 4.8 },
+  { id: 'harvest',        name: 'Harvest Kitchen & Bakery', cuisine: 'Farm-to-Table Brunch',           emoji: '🌿', rating: 4.9 },
+  { id: 'cava',           name: 'Cava',                     cuisine: 'Mediterranean',                  emoji: '🫙', rating: 4.7 },
+  { id: 'kebab-shop',     name: 'The Kebab Shop',           cuisine: 'Mediterranean',                  emoji: '🥙', rating: 4.5 },
+  { id: 'mod-fresh',      name: 'Mod Fresh',                cuisine: 'Healthy Fast-Casual',            emoji: '🥗', rating: 4.6 },
+  { id: 'up-thai',        name: 'Up Thai Kitchen',          cuisine: 'Thai',                           emoji: '🍜', rating: 4.8 },
 ]
 
 export default function OnboardingRestaurants() {
