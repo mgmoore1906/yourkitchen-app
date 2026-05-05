@@ -148,10 +148,11 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
                 {availableDates.map((d: any) => {
                   const mealColors = MEAL_TYPE_COLORS[d.meal_type] || MEAL_TYPE_COLORS.dinner
+                  const isSelected = selectedDate?.id === d.id
                   return (
                     <button key={d.id} onClick={() => setSelectedDate(d)} style={{
-                      background: selectedDate?.id === d.id ? '#EAF2ED' : '#fff',
-                      border: `2px solid ${selectedDate?.id === d.id ? '#3D6B4F' : '#DDE8E0'}`,
+                      background: isSelected ? mealColors.bg : '#fff',
+                      border: `2px solid ${isSelected ? mealColors.color : '#DDE8E0'}`,
                       borderRadius: 14, padding: '16px 18px', cursor: 'pointer',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
                       fontFamily: "'DM Sans', sans-serif",
@@ -162,7 +163,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
                         </div>
                         <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
                           {d.meal_type && (
-                            <span style={{ background: mealColors.bg, color: mealColors.color, borderRadius: 20, fontSize: 11, fontWeight: 600, padding: '3px 10px' }}>
+                            <span style={{ background: mealColors.bg, color: mealColors.color, borderRadius: 20, fontSize: 11, fontWeight: 600, padding: '3px 10px', border: `1px solid ${mealColors.color}` }}>
                               {MEAL_TYPE_LABELS[d.meal_type] || d.meal_type}
                             </span>
                           )}
@@ -171,7 +172,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
                           </span>
                         </div>
                       </div>
-                      {selectedDate?.id === d.id && <span style={{ color: '#3D6B4F', fontSize: 20 }}>✓</span>}
+                      {isSelected && <span style={{ color: mealColors.color, fontSize: 20 }}>✓</span>}
                     </button>
                   )
                 })}
