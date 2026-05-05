@@ -15,16 +15,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing kitchen_id or date' }, { status: 400 })
     }
 
-    // Check if date already exists for this kitchen
+    // Check if this exact meal_type already exists for this date
     const { data: existing } = await supabase
       .from('calendar_dates')
       .select('id')
       .eq('kitchen_id', kitchen_id)
       .eq('date', date)
+      .eq('meal_type', meal_type || 'dinner')
       .single()
 
     if (existing) {
-      return NextResponse.json({ error: 'Date already exists' }, { status: 409 })
+      return NextResponse.json({ error: 'This meal type is already added for this date' }, { status: 409 })
     }
 
     const { data, error } = await supabase
