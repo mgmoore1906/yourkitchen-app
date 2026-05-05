@@ -1,6 +1,24 @@
 'use client'
-
 import { useState } from 'react'
+
+// Meal type → which restaurants are appropriate
+const MEAL_TYPE_RESTAURANTS: Record<string, string[]> = {
+  breakfast: ['First Watch', 'The Toasted Yolk Cafe', 'Harvest Kitchen & Bakery'],
+  lunch:     ['Cava', 'The Kebab Shop', 'Mod Fresh', 'Harvest Kitchen & Bakery'],
+  dinner:    ['Cava', 'The Kebab Shop', 'Up Thai Kitchen'],
+}
+
+const MEAL_TYPE_LABELS: Record<string, string> = {
+  breakfast: '🌅 Breakfast',
+  lunch:     '☀️ Lunch',
+  dinner:    '🌙 Dinner',
+}
+
+const MEAL_TYPE_COLORS: Record<string, { color: string, bg: string }> = {
+  breakfast: { color: '#E8834A', bg: '#FFF0E8' },
+  lunch:     { color: '#4A8FA8', bg: '#E8F4F8' },
+  dinner:    { color: '#3D6B4F', bg: '#EAF2ED' },
+}
 
 export default function CoordKitchenClient({ kitchen, availableDates, restaurants }: any) {
   const [step, setStep] = useState(1)
@@ -14,36 +32,41 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
   const [loading, setLoading] = useState(false)
   const [submitted, setSubmitted] = useState(false)
   const [errorMsg, setErrorMsg] = useState('')
+
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T12:00:00')
     return d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-  }                                              // ← line 22, existing closing brace
+  }
 
-  const formatTime = (timeStr: string) => {     // ← add starting here
+  const formatTime = (timeStr: string) => {
     if (!timeStr) return ''
     const [hours, minutes] = timeStr.split(':').map(Number)
     const period = hours >= 12 ? 'PM' : 'AM'
     const h = hours % 12 || 12
     return `${h}:${String(minutes).padStart(2, '0')} ${period}`
-  }                                              // ← end here
+  }
+
+  // Filter restaurants based on selected date's meal type
+  const filteredRestaurants = selectedDate?.meal_type
+    ? restaurants.filter((r: any) =>
+        (MEAL_TYPE_RESTAURANTS[selectedDate.meal_type] || []).includes(r.name)
+      )
+    : restaurants
+
   const handleSubmit = async () => {
     setLoading(true)
     setErrorMsg('')
-
     const res = await fetch('/api/proposal', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        name,
-        email,
-        phone,
+        name, email, phone,
         calendar_date_id: selectedDate.id,
         restaurant_id: selectedRestaurant.id,
         menu_item_id: selectedItem.id,
         note,
       }),
     })
-
     const data = await res.json()
     if (!res.ok) {
       setErrorMsg('Error: ' + data.error)
@@ -86,6 +109,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
     <div style={{ minHeight: '100vh', background: '#FAFAF5', fontFamily: "'DM Sans', sans-serif", padding: '0 0 40px' }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
+      {/* Header */}
       <div style={{ background: '#1E2620', padding: '20px 24px', textAlign: 'center' }}>
         <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
         <div style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: '#fff' }}>Kitchen</div>
@@ -102,6 +126,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
         )}
       </div>
 
+      {/* Progress */}
       <div style={{ display: 'flex', gap: 6, padding: '20px 24px 0', maxWidth: 500, margin: '0 auto' }}>
         {[1, 2, 3, 4].map(i => (
           <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i <= step ? '#3D6B4F' : '#DDE8E0' }} />
@@ -110,6 +135,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
 
       <div style={{ padding: '24px', maxWidth: 500, margin: '0 auto' }}>
 
+        {/* Step 1 — Pick a date */}
         {step === 1 && (
           <>
             <h2 style={h2Style}>Pick a date</h2>
@@ -120,24 +146,35 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
               </div>
             ) : (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-                {availableDates.map((d: any) => (
-                  <button
-                    key={d.id}
-                    onClick={() => setSelectedDate(d)}
-                    style={{
+                {availableDates.map((d: any) => {
+                  const mealColors = MEAL_TYPE_COLORS[d.meal_type] || MEAL_TYPE_COLORS.dinner
+                  return (
+                    <button key={d.id} onClick={() => setSelectedDate(d)} style={{
                       background: selectedDate?.id === d.id ? '#EAF2ED' : '#fff',
                       border: `2px solid ${selectedDate?.id === d.id ? '#3D6B4F' : '#DDE8E0'}`,
                       borderRadius: 14, padding: '16px 18px', cursor: 'pointer',
                       display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                      fontFamily: "'DM Sans', sans-serif"
+                      fontFamily: "'DM Sans', sans-serif",
                     }}>
-                    <div>
-                      <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: '#1E2620' }}>📅 {formatDate(d.date)}</div>
-                      <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>Delivery {formatTime(d.delivery_window_start)} – {formatTime(d.delivery_window_end)}</div>
-                    </div>
-                    {selectedDate?.id === d.id && <span style={{ color: '#3D6B4F', fontSize: 20 }}>✓</span>}
-                  </button>
-                ))}
+                      <div>
+                        <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: '#1E2620' }}>
+                          📅 {formatDate(d.date)}
+                        </div>
+                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginTop: 6 }}>
+                          {d.meal_type && (
+                            <span style={{ background: mealColors.bg, color: mealColors.color, borderRadius: 20, fontSize: 11, fontWeight: 600, padding: '3px 10px' }}>
+                              {MEAL_TYPE_LABELS[d.meal_type] || d.meal_type}
+                            </span>
+                          )}
+                          <span style={{ fontSize: 12, color: '#6B7066', fontWeight: 300 }}>
+                            {formatTime(d.delivery_window_start)} – {formatTime(d.delivery_window_end)}
+                          </span>
+                        </div>
+                      </div>
+                      {selectedDate?.id === d.id && <span style={{ color: '#3D6B4F', fontSize: 20 }}>✓</span>}
+                    </button>
+                  )
+                })}
               </div>
             )}
             <button onClick={() => setStep(2)} disabled={!selectedDate} style={btnStyle(!selectedDate)}>
@@ -146,22 +183,24 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
           </>
         )}
 
+        {/* Step 2 — Choose restaurant */}
         {step === 2 && (
           <>
             <h2 style={h2Style}>Choose a restaurant</h2>
-            <p style={subStyle}>{kitchen.name.split("'")[0]}&apos;s preferred restaurants — all delivered via DoorDash.</p>
+            <p style={subStyle}>
+              {selectedDate?.meal_type
+                ? `${MEAL_TYPE_LABELS[selectedDate.meal_type]} options for ${kitchen.name.split("'")[0]}.`
+                : `${kitchen.name.split("'")[0]}'s preferred restaurants — all delivered via DoorDash.`}
+            </p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-              {restaurants.map((r: any) => (
-                <button
-                  key={r.id}
-                  onClick={() => setSelectedRestaurant(r)}
-                  style={{
-                    background: selectedRestaurant?.id === r.id ? '#EAF2ED' : '#fff',
-                    border: `2px solid ${selectedRestaurant?.id === r.id ? '#3D6B4F' : '#DDE8E0'}`,
-                    borderRadius: 16, padding: '14px 16px', cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', gap: 14,
-                    fontFamily: "'DM Sans', sans-serif"
-                  }}>
+              {filteredRestaurants.map((r: any) => (
+                <button key={r.id} onClick={() => setSelectedRestaurant(r)} style={{
+                  background: selectedRestaurant?.id === r.id ? '#EAF2ED' : '#fff',
+                  border: `2px solid ${selectedRestaurant?.id === r.id ? '#3D6B4F' : '#DDE8E0'}`,
+                  borderRadius: 16, padding: '14px 16px', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', gap: 14,
+                  fontFamily: "'DM Sans', sans-serif",
+                }}>
                   <div style={{ flex: 1, textAlign: 'left' }}>
                     <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: '#1E2620' }}>{r.name}</div>
                     <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>{r.cuisine} · DoorDash</div>
@@ -171,7 +210,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setStep(1)} style={backStyle}>← Back</button>
+              <button onClick={() => { setStep(1); setSelectedRestaurant(null) }} style={backStyle}>← Back</button>
               <button onClick={() => setStep(3)} disabled={!selectedRestaurant} style={{ ...btnStyle(!selectedRestaurant), flex: 1 }}>
                 Next: Select a Meal →
               </button>
@@ -179,24 +218,24 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
           </>
         )}
 
+        {/* Step 3 — Select a meal */}
         {step === 3 && (
           <>
             <h2 style={h2Style}>Select a meal</h2>
             <p style={subStyle}>⭐ starred items are {kitchen.name.split("'")[0]}&apos;s favorites.</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
               {selectedRestaurant?.menu_items?.map((item: any) => (
-                <button
-                  key={item.id}
-                  onClick={() => setSelectedItem(item)}
-                  style={{
-                    background: selectedItem?.id === item.id ? '#EAF2ED' : '#fff',
-                    border: `2px solid ${selectedItem?.id === item.id ? '#3D6B4F' : '#DDE8E0'}`,
-                    borderRadius: 14, padding: '14px 16px', cursor: 'pointer',
-                    textAlign: 'left', display: 'flex', gap: 12, alignItems: 'flex-start',
-                    fontFamily: "'DM Sans', sans-serif"
-                  }}>
+                <button key={item.id} onClick={() => setSelectedItem(item)} style={{
+                  background: selectedItem?.id === item.id ? '#EAF2ED' : '#fff',
+                  border: `2px solid ${selectedItem?.id === item.id ? '#3D6B4F' : '#DDE8E0'}`,
+                  borderRadius: 14, padding: '14px 16px', cursor: 'pointer',
+                  textAlign: 'left', display: 'flex', gap: 12, alignItems: 'flex-start',
+                  fontFamily: "'DM Sans', sans-serif",
+                }}>
                   <div style={{ flex: 1 }}>
-                    <div style={{ fontFamily: "'Lora', serif", fontSize: 14, fontWeight: 600, color: '#1E2620' }}>{item.is_favorite ? '⭐ ' : ''}{item.name}</div>
+                    <div style={{ fontFamily: "'Lora', serif", fontSize: 14, fontWeight: 600, color: '#1E2620' }}>
+                      {item.is_favorite ? '⭐ ' : ''}{item.name}
+                    </div>
                     <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>{item.description}</div>
                   </div>
                   <div style={{ fontSize: 14, fontWeight: 600, color: '#3D6B4F', flexShrink: 0 }}>${item.price}</div>
@@ -204,7 +243,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
               ))}
             </div>
             <div style={{ display: 'flex', gap: 10 }}>
-              <button onClick={() => setStep(2)} style={backStyle}>← Back</button>
+              <button onClick={() => { setStep(2); setSelectedItem(null) }} style={backStyle}>← Back</button>
               <button onClick={() => setStep(4)} disabled={!selectedItem} style={{ ...btnStyle(!selectedItem), flex: 1 }}>
                 Next: Your Info →
               </button>
@@ -212,11 +251,11 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
           </>
         )}
 
+        {/* Step 4 — Your info */}
         {step === 4 && (
           <>
             <h2 style={h2Style}>Almost done!</h2>
             <p style={subStyle}>Let {kitchen.name.split("'")[0]} know who&apos;s sending dinner.</p>
-
             <div style={{ background: '#EAF2ED', borderRadius: 14, padding: '16px', marginBottom: 20 }}>
               {[
                 ['Meal', selectedItem?.name],
@@ -231,38 +270,20 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
             </div>
 
             <label style={labelStyle}>Your name</label>
-            <input
-              value={name}
-              onChange={e => setName(e.target.value)}
-              placeholder="Marcus"
-              style={inputStyle}
-            />
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Marcus" style={inputStyle} />
 
             <label style={labelStyle}>Your email</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="you@example.com"
-              style={inputStyle}
-            />
+            <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
 
             <label style={labelStyle}>Your phone</label>
-            <input
-              type="tel"
-              value={phone}
-              onChange={e => setPhone(e.target.value)}
-              placeholder="(555) 123-4567"
-              style={inputStyle}
-            />
+            <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="(555) 123-4567" style={inputStyle} />
             <p style={{ fontSize: 12, color: '#6B7066', marginTop: -16, marginBottom: 20, fontWeight: 300 }}>
               We&apos;ll text you when your meal is delivered.
             </p>
 
             <label style={labelStyle}>Personal note (optional)</label>
             <textarea
-              value={note}
-              onChange={e => setNote(e.target.value)}
+              value={note} onChange={e => setNote(e.target.value)}
               placeholder="Thinking of you! Hope you enjoy dinner tonight 🧡"
               style={{ ...inputStyle, minHeight: 90, resize: 'none' }}
             />
@@ -287,17 +308,16 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
             </div>
           </>
         )}
-
       </div>
     </div>
   )
 }
 
 const h2Style: React.CSSProperties = {
-  fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 500, color: '#1E2620', margin: '0 0 6px'
+  fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 500, color: '#1E2620', margin: '0 0 6px',
 }
 const subStyle: React.CSSProperties = {
-  fontSize: 14, color: '#6B7066', margin: '0 0 20px', fontWeight: 300
+  fontSize: 14, color: '#6B7066', margin: '0 0 20px', fontWeight: 300,
 }
 const btnStyle = (disabled: boolean): React.CSSProperties => ({
   width: '100%', padding: '14px', borderRadius: 10, border: 'none',
@@ -305,20 +325,20 @@ const btnStyle = (disabled: boolean): React.CSSProperties => ({
   color: disabled ? '#6B7066' : '#fff',
   fontSize: 14, fontWeight: 500,
   cursor: disabled ? 'default' : 'pointer',
-  fontFamily: "'DM Sans', sans-serif"
+  fontFamily: "'DM Sans', sans-serif",
 })
 const backStyle: React.CSSProperties = {
   padding: '14px 20px', borderRadius: 10, border: '1.5px solid #DDE8E0',
-  background: 'transparent', fontSize: 14, color: '#6B7066', cursor: 'pointer',
-  fontFamily: "'DM Sans', sans-serif"
+  background: 'transparent', fontSize: 14, color: '#6B7066',
+  cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
 }
 const labelStyle: React.CSSProperties = {
   fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5,
-  textTransform: 'uppercase', display: 'block', marginBottom: 8
+  textTransform: 'uppercase', display: 'block', marginBottom: 8,
 }
 const inputStyle: React.CSSProperties = {
   width: '100%', padding: '13px 16px', borderRadius: 10,
-  border: '1.5px solid #DDE8E0', fontSize: 14, background: '#fff',
-  outline: 'none', boxSizing: 'border-box', marginBottom: 20,
-  fontFamily: "'DM Sans', sans-serif", color: '#1E2620'
+  border: '1.5px solid #DDE8E0', fontSize: 16,
+  background: '#fff', outline: 'none', boxSizing: 'border-box',
+  marginBottom: 20, fontFamily: "'DM Sans', sans-serif", color: '#1E2620',
 }
