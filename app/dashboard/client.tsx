@@ -324,9 +324,125 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
   )
 }
 
+// ─── Available Restaurants (full list) ───────────────────────────────────────
+
+const ALL_RESTAURANTS = [
+  { id: 'first-watch',    name: 'First Watch',              cuisine: 'American Breakfast & Brunch', emoji: '🥞', doordash_store_id: '927672' },
+  { id: 'toasted-yolk',   name: 'The Toasted Yolk Cafe',    cuisine: 'American Breakfast & Brunch', emoji: '🍳', doordash_store_id: '1109805' },
+  { id: 'harvest',        name: 'Harvest Kitchen & Bakery', cuisine: 'Farm-to-Table Brunch',        emoji: '🌿', doordash_store_id: '30324131' },
+  { id: 'cava',           name: 'Cava',                     cuisine: 'Mediterranean',               emoji: '🫙', doordash_store_id: '23050039' },
+  { id: 'kebab-shop',     name: 'The Kebab Shop',           cuisine: 'Mediterranean',               emoji: '🥙', doordash_store_id: '32660157' },
+  { id: 'mod-fresh',      name: 'Mod Fresh',                cuisine: 'Healthy Fast-Casual',         emoji: '🥗', doordash_store_id: '26020728' },
+  { id: 'up-thai',        name: 'Up Thai Kitchen',          cuisine: 'Thai',                        emoji: '🍜', doordash_store_id: '1538370' },
+]
+
+function RestaurantSection({ kitchenRestaurants: initialRestaurants, kitchenId }: { kitchenRestaurants: any[], kitchenId: string }) {
+  const [restaurants, setRestaurants] = useState<any[]>(initialRestaurants)
+  const [loading, setLoading] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
+
+  const activeNames = new Set(restaurants.filter(r => r.is_active !== false).map((r: any) => r.name))
+
+  const handleToggle = async (r: typeof ALL_RESTAURANTS[0]) => {
+    setLoading(r.id)
+    const isActive = activeNames.has(r.name)
+    const existing = restaurants.find((kr: any) => kr.name === r.name)
+
+    if (isActive && existing) {
+      // Remove — set is_active false
+      const res = await fetch('/api/restaurants', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurant_id: existing.id, is_active: false }),
+      })
+      if (res.ok) {
+        setRestaurants(prev => prev.map((kr: any) =>
+          kr.id === existing.id ? { ...kr, is_active: false } : kr
+        ))
+      }
+    } else if (existing) {
+      // Re-enable
+      const res = await fetch('/api/restaurants', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ restaurant_id: existing.id, is_active: true }),
+      })
+      if (res.ok) {
+        setRestaurants(prev => prev.map((kr: any) =>
+          kr.id === existing.id ? { ...kr, is_active: true } : kr
+        ))
+      }
+    } else {
+      // Add new
+      const res = await fetch('/api/restaurants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kitchen_id: kitchenId,
+          name: r.name,
+          cuisine: r.cuisine,
+          doordash_store_id: r.doordash_store_id,
+        }),
+      })
+      if (res.ok) {
+        const data = await res.json()
+        setRestaurants(prev => [...prev, data.restaurant])
+      }
+    }
+    setLoading(null)
+  }
+
+  const activeCount = ALL_RESTAURANTS.filter(r => activeNames.has(r.name)).length
+
+  return (
+    <div style={{ background: '#fff', border: '1px solid #DDE8E0', borderRadius: 16, padding: '20px', marginBottom: 16 }}>
+      <button
+        onClick={() => setExpanded(e => !e)}
+        style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 0, fontFamily: "'DM Sans', sans-serif" }}
+      >
+        <div>
+          <p style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px', textAlign: 'left' }}>My Restaurants</p>
+          <p style={{ fontSize: 13, color: '#6B7066', margin: 0, fontWeight: 300, textAlign: 'left' }}>{activeCount} of {ALL_RESTAURANTS.length} active</p>
+        </div>
+        <span style={{ fontSize: 18, color: '#6B7066' }}>{expanded ? '↑' : '↓'}</span>
+      </button>
+
+      {expanded && (
+        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {ALL_RESTAURANTS.map(r => {
+            const isActive = activeNames.has(r.name)
+            const isLoading = loading === r.id
+            return (
+              <button key={r.id} onClick={() => handleToggle(r)} disabled={isLoading} style={{
+                background: isActive ? '#EAF2ED' : '#fff',
+                border: `2px solid ${isActive ? '#3D6B4F' : '#DDE8E0'}`,
+                borderRadius: 14, padding: '14px 16px', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', gap: 14,
+                transition: 'all 0.15s', fontFamily: "'DM Sans', sans-serif",
+                opacity: isLoading ? 0.6 : 1,
+              }}>
+                <div style={{ width: 40, height: 40, borderRadius: 10, background: isActive ? '#3D6B4F' : '#EAF2ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
+                  {r.emoji}
+                </div>
+                <div style={{ flex: 1, textAlign: 'left' }}>
+                  <div style={{ fontFamily: "'Lora', serif", fontSize: 14, fontWeight: 600, color: '#1E2620' }}>{r.name}</div>
+                  <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>{r.cuisine}</div>
+                </div>
+                <div style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${isActive ? '#3D6B4F' : '#DDE8E0'}`, background: isActive ? '#3D6B4F' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, flexShrink: 0 }}>
+                  {isLoading ? '…' : isActive ? '✓' : ''}
+                </div>
+              </button>
+            )
+          })}
+        </div>
+      )}
+    </div>
+  )
+}
+
 // ─── Dashboard Client ────────────────────────────────────────────────────────
 
-export default function DashboardClient({ kitchen, pendingProposals, calendarDates, userEmail }: any) {
+export default function DashboardClient({ kitchen, pendingProposals, calendarDates, kitchenRestaurants, userEmail }: any) {
   const router = useRouter()
   const [proposals, setProposals] = useState(pendingProposals)
   const [loading, setLoading] = useState<string | null>(null)
@@ -458,6 +574,9 @@ export default function DashboardClient({ kitchen, pendingProposals, calendarDat
 
         {/* Calendar */}
         <CalendarSection calendarDates={calendarDates} kitchenId={kitchen.id} />
+
+        {/* Restaurants */}
+        <RestaurantSection kitchenRestaurants={kitchenRestaurants} kitchenId={kitchen.id} />
 
         {/* Status cards */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
