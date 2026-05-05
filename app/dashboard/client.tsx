@@ -119,7 +119,7 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
       </div>
 
       {/* Calendar grid */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 4 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
         {cells.map((day, i) => {
           if (!day) return <div key={i} />
           const { dateStr, isPast, isToday, status } = getDateState(day)
@@ -136,19 +136,22 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
                 background: isLoading ? '#EAF2ED' : colors.bg,
                 border: isToday ? '2px solid #3D6B4F' : '1.5px solid transparent',
                 borderRadius: 10,
-                padding: '8px 4px',
+                padding: '10px 2px',
+                minHeight: 48,
                 cursor: isInteractive ? 'pointer' : 'default',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: 3,
+                justifyContent: 'center',
+                gap: 4,
                 transition: 'all 0.1s',
                 fontFamily: "'DM Sans', sans-serif",
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
-              <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: colors.text }}>{day}</span>
+              <span style={{ fontSize: 14, fontWeight: isToday ? 700 : 500, color: colors.text, lineHeight: 1 }}>{day}</span>
               {colors.dot && (
-                <div style={{ width: 6, height: 6, borderRadius: '50%', background: colors.dot }} />
+                <div style={{ width: 6, height: 6, borderRadius: '50%', background: colors.dot, flexShrink: 0 }} />
               )}
             </button>
           )
