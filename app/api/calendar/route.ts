@@ -9,7 +9,7 @@ const supabase = createClient(
 // POST — add a date to the calendar
 export async function POST(request: Request) {
   try {
-    const { kitchen_id, date, delivery_window_start, delivery_window_end } = await request.json()
+    const { kitchen_id, date, delivery_window_start, delivery_window_end, meal_type } = await request.json()
 
     if (!kitchen_id || !date) {
       return NextResponse.json({ error: 'Missing kitchen_id or date' }, { status: 400 })
@@ -33,6 +33,7 @@ export async function POST(request: Request) {
         kitchen_id,
         date,
         status: 'available',
+        meal_type: meal_type || 'dinner',
         delivery_window_start: delivery_window_start || '17:30',
         delivery_window_end: delivery_window_end || '19:00',
       })
