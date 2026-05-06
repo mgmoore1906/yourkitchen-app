@@ -163,28 +163,19 @@ export async function POST(request: Request) {
       let doordashTrackingUrl: string | null = null
       let doordashDeliveryId: string | null = null
 
-      if (restaurantAddress && kitchenAddress) {
-        try {
-          const nameParts = (recipientProfile?.full_name || 'Guest').split(' ')
-          const delivery = await doordash.createDelivery({
-            external_delivery_id: proposal.id,
-            pickup_address: restaurantAddress,
-            pickup_business_name: restaurantName,
-            pickup_phone_number: restaurantPhone || process.env.DOORDASH_SUPPORT_PHONE!,
-            pickup_instructions: 'Order placed via YourKitchen.',
-            dropoff_address: kitchenAddress,
-            dropoff_phone_number: recipientProfile?.phone || process.env.DOORDASH_SUPPORT_PHONE!,
-            dropoff_contact_given_name: nameParts[0],
-            dropoff_contact_family_name: nameParts.slice(1).join(' ') || 'Recipient',
-            dropoff_instructions: 'Please leave at the door.',
-            order_value: totalCents,
-          })
-          doordashTrackingUrl = (delivery.data as any)?.tracking_url || null
-          doordashDeliveryId = (delivery.data as any)?.external_delivery_id || proposal.id
-        } catch (ddErr: any) {
-          console.error('DoorDash createDelivery failed:', ddErr.message)
-        }
-      }
+     // Parse address string into components for DoorDash
+function parseUSAddress(address: string) {
+  const parts = address.split(',').map(p => p.trim())
+  if (parts.length < 3) return null
+  const stateZip = parts[2].trim().split(/\s+/)
+  return {
+    street: parts[0],
+    city: parts[1],
+    state: stateZip[0] || '',
+    zip_code: stateZip[1] || '',
+    country: 'US',
+  }
+}
 
       await supabase.from('meal_proposals').update({
         doordash_delivery_id: doordashDeliveryId,
