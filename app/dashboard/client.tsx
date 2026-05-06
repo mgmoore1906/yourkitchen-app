@@ -3,17 +3,17 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 // ─── Share Link ────────────────────────────────────────────────────────────────
-function <ShareLink slug={kitchen.slug} kitchenName={kitchen.name} />
+function ShareLink({ slug, kitchenName }: { slug: string, kitchenName: string }) {
   const [copied, setCopied] = useState(false)
   const url = typeof window !== 'undefined' ? `${window.location.origin}/k/${slug}` : `/k/${slug}`
-  const [promoCode, setPromoCode] = useState('')
+
   const handleCopy = () => {
     if (navigator.share) {
       navigator.share({
-  title: `${kitchenName}'s Kitchen`,
-  text: `Send me a meal through ${kitchenName}'s Kitchen — pick a date, choose a restaurant and menu item, and dinner is on its way 🧡`,
-  url,
-})
+        title: `${kitchenName}'s Kitchen`,
+        text: `Send me a meal through ${kitchenName}'s Kitchen — pick a date, choose a restaurant and menu item, and dinner is on its way 🧡`,
+        url,
+      })
     } else {
       navigator.clipboard.writeText(url).then(() => {
         setCopied(true)
@@ -44,7 +44,7 @@ function <ShareLink slug={kitchen.slug} kitchenName={kitchen.name} />
 const MEAL_TYPES = [
   { key: 'breakfast', label: 'Breakfast', emoji: '🌅', color: '#E8834A', light: '#FFF0E8' },
   { key: 'lunch',     label: 'Lunch',     emoji: '☀️',  color: '#4A8FA8', light: '#E8F4F8' },
-  { key: 'dinner',    label: 'Dinner',    emoji: '🌙', color: '#3D6B4F', light: '#EAF2ED' },
+  { key: 'dinner',    label: 'Dinner',    emoji: '🌙',  color: '#3D6B4F', light: '#EAF2ED' },
 ]
 
 function MealTypePicker({
@@ -56,9 +56,9 @@ function MealTypePicker({
   onRemove: (slot: any) => void
   onCancel: () => void
 }) {
-  const d = new Date(dateStr + 'T12:00:00')
+  const d     = new Date(dateStr + 'T12:00:00')
   const label = d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-  const existingTypes = existingSlots.map(s => s.meal_type)
+  const existingTypes  = existingSlots.map(s => s.meal_type)
   const availableTypes = MEAL_TYPES.filter(m => !existingTypes.includes(m.key))
 
   return (
@@ -74,7 +74,7 @@ function MealTypePicker({
             <p style={{ fontSize: 12, color: '#6B7066', margin: '0 0 10px', fontWeight: 500 }}>TAP TO REMOVE</p>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
               {existingSlots.map(slot => {
-                const m = MEAL_TYPES.find(x => x.key === slot.meal_type) || MEAL_TYPES[2]
+                const m        = MEAL_TYPES.find(x => x.key === slot.meal_type) || MEAL_TYPES[2]
                 const isLocked = slot.status === 'claimed' || slot.status === 'confirmed'
                 return (
                   <button key={slot.id} onClick={() => !isLocked && onRemove(slot)} style={{
@@ -137,21 +137,18 @@ function MealTypePicker({
 // ─── Calendar Section ──────────────────────────────────────────────────────────
 function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarDates: any[], kitchenId: string }) {
   const today = new Date()
-  const [viewYear, setViewYear]   = useState(today.getFullYear())
-  const [viewMonth, setViewMonth] = useState(today.getMonth())
-  const [dates, setDates]         = useState<any[]>(initialDates)
-  const [loading, setLoading]     = useState<string | null>(null)
+  const [viewYear, setViewYear]       = useState(today.getFullYear())
+  const [viewMonth, setViewMonth]     = useState(today.getMonth())
+  const [dates, setDates]             = useState<any[]>(initialDates)
+  const [loading, setLoading]         = useState<string | null>(null)
   const [pendingDate, setPendingDate] = useState<string | null>(null)
   const todayStr = today.toISOString().split('T')[0]
 
   const dateMap: Record<string, any[]> = {}
-  dates.forEach(d => {
-    if (!dateMap[d.date]) dateMap[d.date] = []
-    dateMap[d.date].push(d)
-  })
+  dates.forEach(d => { if (!dateMap[d.date]) dateMap[d.date] = []; dateMap[d.date].push(d) })
 
-  const monthName  = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-  const firstDay   = new Date(viewYear, viewMonth, 1).getDay()
+  const monthName   = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const firstDay    = new Date(viewYear, viewMonth, 1).getDay()
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
 
   const prevMonth = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) } else setViewMonth(m => m - 1) }
@@ -185,10 +182,6 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
   for (let i = 0; i < firstDay; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
 
-  const getDateState = (dayNum: number) => {
-    const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(dayNum).padStart(2, '0')}`
-    return { dateStr, isPast: dateStr < todayStr, isToday: dateStr === todayStr, slots: dateMap[dateStr] || [] }
-  }
   const getMealColor       = (mealType: string) => MEAL_TYPES.find(m => m.key === mealType) || MEAL_TYPES[2]
   const getSlotStatusColor = (slot: any) => {
     if (slot.status === 'confirmed') return '#1E2620'
@@ -234,9 +227,12 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
           {cells.map((day, i) => {
             if (!day) return <div key={i} />
-            const { isPast, isToday, slots } = getDateState(day)
-            const isLoading = loading === `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+            const dateStr   = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+            const isPast    = dateStr < todayStr
+            const isToday   = dateStr === todayStr
+            const slots     = dateMap[dateStr] || []
             const hasSlots  = slots.length > 0
+            const isLoading = loading === dateStr
             return (
               <button key={i} onClick={() => !isPast && handleDayTap(day)} disabled={isPast || isLoading} style={{
                 background: isLoading ? '#EAF2ED' : hasSlots ? '#F8FAF8' : 'transparent',
@@ -369,9 +365,10 @@ export default function DashboardClient({
   userEmail,
 }: any) {
   const router = useRouter()
-  const [proposals, setProposals]         = useState(pendingProposals)
-  const [loading, setLoading]             = useState<string | null>(null)
+  const [proposals, setProposals]           = useState(pendingProposals)
+  const [loading, setLoading]               = useState<string | null>(null)
   const [upgradeLoading, setUpgradeLoading] = useState<string | null>(null)
+  const [promoCode, setPromoCode]           = useState('')
 
   const formatDate = (dateStr: string) => {
     const d = new Date(dateStr + 'T12:00:00')
@@ -390,23 +387,23 @@ export default function DashboardClient({
     setLoading(null)
   }
 
- const handleUpgrade = async (plan: string) => {
-  setUpgradeLoading(plan)
-  const res = await fetch('/api/stripe-subscription', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({
-      plan,
-      kitchen_id: kitchen?.id,
-      user_id: kitchen?.organizer_id,
-      promo_code: promoCode || undefined,
-    }),
-  })
-  const data = await res.json()
-  if (data.url) window.location.href = data.url
-  else console.error('Upgrade error:', data.error)
-  setUpgradeLoading(null)
-}
+  const handleUpgrade = async (plan: string) => {
+    setUpgradeLoading(plan)
+    const res  = await fetch('/api/stripe-subscription', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        plan,
+        kitchen_id: kitchen?.id,
+        user_id:    kitchen?.organizer_id,
+        promo_code: promoCode || undefined,
+      }),
+    })
+    const data = await res.json()
+    if (data.url) window.location.href = data.url
+    else console.error('Upgrade error:', data.error)
+    setUpgradeLoading(null)
+  }
 
   const isSubscribed = ['active', 'trialing', 'lifetime'].includes(kitchen?.subscription_status)
   const isTrialing   = kitchen?.subscription_status === 'trialing'
@@ -495,23 +492,23 @@ export default function DashboardClient({
                     </div>
                   </div>
                 </div>
-                {[
+                {([
                   ['Date',        formatDate(p.claims?.calendar_dates?.date)],
                   ['Delivery ID', p.doordash_delivery_id],
-                ].map(([l, v]) => v ? (
+                ] as [string, string][]).map(([l, v]) => v ? (
                   <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '7px 0', borderBottom: '1px solid #C8DDD0' }}>
                     <span style={{ fontSize: 12, color: '#6B7066', fontWeight: 300 }}>{l}</span>
                     <span style={{ fontSize: 12, color: '#1E2620', fontWeight: 500 }}>{v}</span>
                   </div>
                 ) : null)}
-               {p.doordash_tracking_url && (
-                <button
-                onClick={() => window.open(p.doordash_tracking_url, '_blank')}
-                style={{ display: 'block', marginTop: 14, width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#3D6B4F', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'center' }}
-              >
-                🚗 Track My Delivery
-              </button>
-            )}
+                {p.doordash_tracking_url && (
+                  <button
+                    onClick={() => window.open(p.doordash_tracking_url, '_blank')}
+                    style={{ display: 'block', marginTop: 14, width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#3D6B4F', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'center' }}
+                  >
+                    🚗 Track My Delivery
+                  </button>
+                )}
               </div>
             ))}
           </>
@@ -526,7 +523,7 @@ export default function DashboardClient({
         </p>
 
         {/* Share link */}
-        <ShareLink slug={kitchen.slug} />
+        <ShareLink slug={kitchen.slug} kitchenName={kitchen.name} />
 
         {/* Calendar */}
         <CalendarSection calendarDates={calendarDates} kitchenId={kitchen.id} />
@@ -537,10 +534,10 @@ export default function DashboardClient({
         {/* Status cards */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
           {[
-            { label: 'Status',    value: '✅ Active',                             bg: '#EAF2ED', color: '#3D6B4F' },
-            { label: 'Tier',      value: tierLabel,                               bg: '#EAF2ED', color: '#3D6B4F' },
-            { label: 'Address',   value: kitchen.address?.split(',')[0] || '—',  bg: '#fff',    color: '#1E2620' },
-            { label: 'Household', value: `${kitchen.household_size || '—'} people`, bg: '#fff', color: '#1E2620' },
+            { label: 'Status',    value: '✅ Active',                              bg: '#EAF2ED', color: '#3D6B4F' },
+            { label: 'Tier',      value: tierLabel,                                bg: '#EAF2ED', color: '#3D6B4F' },
+            { label: 'Address',   value: kitchen.address?.split(',')[0] || '—',   bg: '#fff',    color: '#1E2620' },
+            { label: 'Household', value: `${kitchen.household_size || '—'} people`, bg: '#fff',  color: '#1E2620' },
           ].map(c => (
             <div key={c.label} style={{ background: c.bg, border: '1px solid #DDE8E0', borderRadius: 14, padding: '16px' }}>
               <div style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1, textTransform: 'uppercase', marginBottom: 6 }}>{c.label}</div>
@@ -555,21 +552,21 @@ export default function DashboardClient({
             <div style={{ fontSize: 10, fontWeight: 600, letterSpacing: 2, color: '#3D6B4F', textTransform: 'uppercase', marginBottom: 6 }}>Upgrade to Care+</div>
             <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 500, color: '#1E2620', marginBottom: 6 }}>Unlimited scheduling, home cook deliveries, and more.</div>
             <div style={{ fontSize: 13, color: '#6B7066', marginBottom: 18, fontWeight: 300, lineHeight: 1.6 }}>14-day free trial on monthly and annual plans. Cancel anytime.</div>
+
+            {/* Promo code */}
+            <div style={{ marginBottom: 16 }}>
+              <label style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+                Promo code
+              </label>
+              <input
+                value={promoCode}
+                onChange={e => setPromoCode(e.target.value.toUpperCase())}
+                placeholder="ENTER CODE"
+                style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 14, background: '#fff', outline: 'none', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif", color: '#1E2620', letterSpacing: 1 }}
+              />
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {/* Promo code */}
-{promoCode !== undefined && (
-  <div style={{ marginBottom: 16 }}>
-    <label style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
-      Promo code
-    </label>
-    <input
-      value={promoCode}
-      onChange={e => setPromoCode(e.target.value.toUpperCase())}
-      placeholder="ENTER CODE"
-      style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 14, background: '#fff', outline: 'none', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif", color: '#1E2620', letterSpacing: 1 }}
-    />
-  </div>
-)}
               <button onClick={() => handleUpgrade('monthly')} disabled={upgradeLoading === 'monthly'} style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: 'none', background: '#3D6B4F', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
                 {upgradeLoading === 'monthly' ? 'Redirecting…' : '✨ Care+ Monthly — $9.99/mo · 14-day free trial'}
               </button>
