@@ -19,6 +19,20 @@ const doordash = new DoorDashClient({
   signing_secret: process.env.DOORDASH_SIGNING_SECRET!,
 })
 
+// Parse "123 Main St, City, ST 12345" into DoorDash address components
+function parseUSAddress(address: string) {
+  const parts = address.split(',').map(p => p.trim())
+  if (parts.length < 3) return null
+  const stateZip = parts[2].trim().split(/\s+/)
+  return {
+    street: parts[0],
+    city: parts[1],
+    state: stateZip[0] || '',
+    zip_code: stateZip[1] || '',
+    country: 'US',
+  }
+}
+
 export async function POST(request: Request) {
   const body = await request.text()
   const sig = request.headers.get('stripe-signature')!
@@ -163,19 +177,41 @@ export async function POST(request: Request) {
       let doordashTrackingUrl: string | null = null
       let doordashDeliveryId: string | null = null
 
-     // Parse address string into components for DoorDash
-function parseUSAddress(address: string) {
-  const parts = address.split(',').map(p => p.trim())
-  if (parts.length < 3) return null
-  const stateZip = parts[2].trim().split(/\s+/)
-  return {
-    street: parts[0],
-    city: parts[1],
-    state: stateZip[0] || '',
-    zip_code: stateZip[1] || '',
-    country: 'US',
-  }
-}
+      if (restaurantAddress && kitchenAddress) {
+        try {
+          const nameParts = (recipientProfile?.full_name || 'Guest').split(' ')
+          const addressComponents = parseUSAddress(kitchenAddress)
+
+          // dropoff_time: delivery date at 7:00 PM Central Time
+          const deliveryDate = proposal.claims?.calendar_dates?.date
+          const dropoffTime = deliveryDate
+            ? new Date(`${deliveryDate}T19:00:00-05:00`).toISOString()
+            : undefined
+
+          const deliveryPayload: any = {
+            external_delivery_id: proposal.id,
+            pickup_address: restaurantAddress,
+            pickup_business_name: restaurantName,
+            pickup_phone_number: restaurantPhone || process.env.DOORDASH_SUPPORT_PHONE!,
+            pickup_instructions: 'Order placed via YourKitchen.',
+            dropoff_address: kitchenAddress,
+            dropoff_phone_number: recipientProfile?.phone || process.env.DOORDASH_SUPPORT_PHONE!,
+            dropoff_contact_given_name: nameParts[0],
+            dropoff_contact_family_name: nameParts.slice(1).join(' ') || 'Recipient',
+            dropoff_instructions: 'Please leave at the door.',
+            contactless_dropoff: true,
+            order_value: totalCents,
+            ...(addressComponents && { dropoff_address_components: addressComponents }),
+            ...(dropoffTime && { dropoff_time: dropoffTime }),
+          }
+
+          const delivery = await doordash.createDelivery(deliveryPayload)
+          doordashTrackingUrl = (delivery.data as any)?.tracking_url || null
+          doordashDeliveryId = (delivery.data as any)?.external_delivery_id || proposal.id
+        } catch (ddErr: any) {
+          console.error('DoorDash createDelivery failed:', ddErr.message)
+        }
+      }
 
       await supabase.from('meal_proposals').update({
         doordash_delivery_id: doordashDeliveryId,
