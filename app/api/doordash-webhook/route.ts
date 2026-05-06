@@ -1,4 +1,5 @@
 import { createClient } from '@supabase/supabase-js'
+import Stripe from 'stripe'
 import twilio from 'twilio'
 import { NextResponse } from 'next/server'
 
@@ -6,132 +7,175 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
-
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID!,
   process.env.TWILIO_AUTH_TOKEN!
 )
 
 export async function POST(request: Request) {
-  // Validate DoorDash webhook auth
-  const authHeader = request.headers.get('DOORDASH_WEBHOOK_SECRET')
-  const expectedToken = process.env.DOORDASH_WEBHOOK_SECRET
-  if (!authHeader || authHeader !== expectedToken) {
-    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  }
-
-  let payload: any
   try {
-    payload = await request.json()
-  } catch {
-    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
-  }
+    const body = await request.json()
+    const eventType: string = body.event_type || ''
+    const data = body.data || {}
+    const externalDeliveryId: string = data.external_delivery_id || ''
 
-  const eventName = payload.event_name || payload.delivery_status || ''
-  const externalDeliveryId = payload.external_delivery_id || payload.data?.external_delivery_id
+    if (!externalDeliveryId) return NextResponse.json({ received: true })
 
-  if (!externalDeliveryId) return NextResponse.json({ received: true })
+    // Update doordash_status on every event
+    await supabase
+      .from('meal_proposals')
+      .update({ doordash_status: eventType.toLowerCase() })
+      .eq('id', externalDeliveryId)
 
-  const { data: proposal } = await supabase
-    .from('meal_proposals')
-    .select(`
-      id,
-      menu_items(name),
-      kitchen_restaurants(name),
-      claims(
-        guest_coordinators(full_name, phone, email),
-        calendar_dates(date, kitchens(id, recipient_id, name))
-      )
-    `)
-    .eq('doordash_delivery_id', externalDeliveryId)
-    .single()
+    // ── Delivery completed ───────────────────────────────────────────────────
+    if (
+      eventType === 'DASHER_DROPPED_OFF' ||
+      eventType === 'DELIVERED' ||
+      eventType === 'DELIVERY_COMPLETE'
+    ) {
+      const { data: proposal } = await supabase
+        .from('meal_proposals')
+        .select(`
+          *,
+          claims(
+            calendar_date_id,
+            guest_coordinators(full_name, phone),
+            calendar_dates(date, kitchens(id, recipient_id, name))
+          ),
+          kitchen_restaurants(name),
+          menu_items(name)
+        `)
+        .eq('id', externalDeliveryId)
+        .single()
 
-  if (!proposal) return NextResponse.json({ received: true })
+      if (proposal) {
+        const kitchenId     = proposal.claims?.calendar_dates?.kitchens?.id
+        const kitchenName   = proposal.claims?.calendar_dates?.kitchens?.name
+        const coordinatorName  = proposal.claims?.guest_coordinators?.full_name
+        const coordinatorPhone = proposal.claims?.guest_coordinators?.phone
+        const mealName      = proposal.menu_items?.name
+        const restaurantName = proposal.kitchen_restaurants?.name
+        const recipientId   = proposal.claims?.calendar_dates?.kitchens?.recipient_id
 
-  const p = proposal as any
-  const kitchenId = p.claims?.calendar_dates?.kitchens?.id
-  const recipientId = p.claims?.calendar_dates?.kitchens?.recipient_id
-  const coordinator = p.claims?.guest_coordinators
-  const mealName = p.menu_items?.name
-  const restaurantName = p.kitchen_restaurants?.name
-  const dateStr = p.claims?.calendar_dates?.date
+        const { data: recipientProfile } = await supabase
+          .from('profiles')
+          .select('phone')
+          .eq('id', recipientId)
+          .single()
 
-  const dateFormatted = dateStr
-    ? new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US',
-        { weekday: 'long', month: 'long', day: 'numeric' })
-    : 'today'
+        // Thank-you SMS to coordinator
+        if (coordinatorPhone) {
+          try {
+            await twilioClient.messages.create({
+              body: `🧡 Your meal was delivered! ${mealName} from ${restaurantName} arrived safely for ${kitchenName}. Thank you for showing up — YourKitchen`,
+              from: process.env.TWILIO_PHONE_NUMBER!,
+              to: coordinatorPhone,
+            })
+          } catch (e: any) { console.error('Coordinator delivered SMS failed:', e.message) }
+        }
 
-  const { data: recipientProfile } = await supabase
-    .from('profiles')
-    .select('phone, full_name')
-    .eq('id', recipientId)
-    .single()
+        await supabase.from('notifications').insert({
+          kitchen_id: kitchenId,
+          type: 'meal_delivered',
+          channel: 'sms',
+          content: `${mealName} from ${restaurantName} delivered`,
+        })
+      }
+    }
 
-  const isPickup = /PICKUP|PICKED_UP/i.test(eventName)
-  const isDelivered = /DROPPED_OFF|DELIVERED/i.test(eventName)
-  const isCancelled = /CANCELLED|CANCELED|FAILED/i.test(eventName)
+    // ── Delivery cancelled ───────────────────────────────────────────────────
+    if (
+      eventType === 'DELIVERY_CANCELLED' ||
+      eventType === 'DASHER_CANCELLED' ||
+      eventType === 'DELIVERY_FAILED'
+    ) {
+      const { data: proposal } = await supabase
+        .from('meal_proposals')
+        .select(`
+          *,
+          claims(
+            calendar_date_id,
+            guest_coordinators(full_name, phone),
+            calendar_dates(date, kitchens(id, recipient_id, name))
+          ),
+          kitchen_restaurants(name),
+          menu_items(name)
+        `)
+        .eq('id', externalDeliveryId)
+        .single()
 
-  let internalStatus: string | null = null
-  if (isPickup) internalStatus = 'pickup'
-  else if (isDelivered) internalStatus = 'delivered'
-  else if (isCancelled) internalStatus = 'failed'
+      if (!proposal) return NextResponse.json({ received: true })
 
-  if (internalStatus) {
-    await supabase.from('meal_proposals')
-      .update({ delivery_status: internalStatus })
-      .eq('id', p.id)
-  }
+      const kitchenId      = proposal.claims?.calendar_dates?.kitchens?.id
+      const kitchenName    = proposal.claims?.calendar_dates?.kitchens?.name
+      const calDateId      = proposal.claims?.calendar_date_id
+      const coordinatorName  = proposal.claims?.guest_coordinators?.full_name
+      const coordinatorPhone = proposal.claims?.guest_coordinators?.phone
+      const mealName       = proposal.menu_items?.name
+      const restaurantName = proposal.kitchen_restaurants?.name
+      const recipientId    = proposal.claims?.calendar_dates?.kitchens?.recipient_id
 
-  if (isPickup && recipientProfile?.phone) {
-    try {
-      await twilioClient.messages.create({
-        body: `🚗 Your ${mealName} from ${restaurantName} is on the way!`,
-        from: process.env.TWILIO_PHONE_NUMBER!,
-        to: recipientProfile.phone,
+      const { data: recipientProfile } = await supabase
+        .from('profiles')
+        .select('phone')
+        .eq('id', recipientId)
+        .single()
+
+      // 1. Refund coordinator via Stripe
+      if (proposal.payment_intent_id) {
+        try {
+          await stripe.refunds.create({ payment_intent: proposal.payment_intent_id })
+        } catch (refundErr: any) {
+          console.error('Stripe refund failed:', refundErr.message)
+        }
+      }
+
+      // 2. Update proposal + reopen calendar date
+      await Promise.all([
+        supabase
+          .from('meal_proposals')
+          .update({ status: 'delivery_failed', doordash_status: 'cancelled' })
+          .eq('id', externalDeliveryId),
+        supabase
+          .from('calendar_dates')
+          .update({ status: 'available' })
+          .eq('id', calDateId),
+      ])
+
+      // 3. SMS to recipient
+      if (recipientProfile?.phone) {
+        try {
+          await twilioClient.messages.create({
+            body: `We're sorry — your delivery from ${restaurantName} was cancelled by DoorDash. You have not been charged. Your date has been reopened so someone can claim it again. — YourKitchen`,
+            from: process.env.TWILIO_PHONE_NUMBER!,
+            to: recipientProfile.phone,
+          })
+        } catch (e: any) { console.error('Recipient cancellation SMS failed:', e.message) }
+      }
+
+      // 4. SMS to coordinator
+      if (coordinatorPhone) {
+        try {
+          await twilioClient.messages.create({
+            body: `Hi ${coordinatorName} — unfortunately DoorDash cancelled the delivery of ${mealName} for ${kitchenName}. Your card has been fully refunded. We're sorry for the inconvenience. — YourKitchen`,
+            from: process.env.TWILIO_PHONE_NUMBER!,
+            to: coordinatorPhone,
+          })
+        } catch (e: any) { console.error('Coordinator cancellation SMS failed:', e.message) }
+      }
+
+      await supabase.from('notifications').insert({
+        kitchen_id: kitchenId,
+        type: 'delivery_cancelled',
+        channel: 'sms',
+        content: `Delivery of ${mealName} cancelled — refund issued`,
       })
-    } catch (e: any) { console.error('Pickup SMS failed:', e.message) }
+    }
+
+    return NextResponse.json({ received: true })
+  } catch (err: any) {
+    console.error('DoorDash webhook error:', err.message)
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
-
-  if (isDelivered) {
-    if (recipientProfile?.phone) {
-      try {
-        await twilioClient.messages.create({
-          body: `🧡 Your ${mealName} has arrived. Enjoy! — YourKitchen`,
-          from: process.env.TWILIO_PHONE_NUMBER!,
-          to: recipientProfile.phone,
-        })
-      } catch (e: any) { console.error('Delivered recipient SMS failed:', e.message) }
-    }
-
-    if (coordinator?.phone) {
-      try {
-        await twilioClient.messages.create({
-          body: `Thank you for sending ${recipientProfile?.full_name || 'them'} dinner. ${mealName} from ${restaurantName} was just delivered on ${dateFormatted}. — YourKitchen`,
-          from: process.env.TWILIO_PHONE_NUMBER!,
-          to: coordinator.phone,
-        })
-      } catch (e: any) { console.error('Coordinator thank-you failed:', e.message) }
-    }
-
-    await supabase.from('notifications').insert({
-      kitchen_id: kitchenId,
-      type: 'meal_confirmed',
-      channel: 'sms',
-      content: `Delivered: ${mealName} from ${restaurantName} on ${dateFormatted}`,
-    })
-  }
-
-  if (isCancelled) {
-    const cancelMsg = `⚠️ Issue with ${mealName} from ${restaurantName}. We are looking into it. — YourKitchen`
-    if (recipientProfile?.phone) {
-      try { await twilioClient.messages.create({ body: cancelMsg, from: process.env.TWILIO_PHONE_NUMBER!, to: recipientProfile.phone }) }
-      catch (e: any) { console.error(e.message) }
-    }
-    if (coordinator?.phone) {
-      try { await twilioClient.messages.create({ body: cancelMsg, from: process.env.TWILIO_PHONE_NUMBER!, to: coordinator.phone }) }
-      catch (e: any) { console.error(e.message) }
-    }
-  }
-
-  return NextResponse.json({ received: true })
 }
