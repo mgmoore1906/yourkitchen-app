@@ -3,10 +3,10 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 // ─── Share Link ────────────────────────────────────────────────────────────────
-function ShareLink({ slug, kitchenName }: { slug: string, kitchenName: string }) {
+function <ShareLink slug={kitchen.slug} kitchenName={kitchen.name} />
   const [copied, setCopied] = useState(false)
   const url = typeof window !== 'undefined' ? `${window.location.origin}/k/${slug}` : `/k/${slug}`
-
+  const [promoCode, setPromoCode] = useState('')
   const handleCopy = () => {
     if (navigator.share) {
       navigator.share({
@@ -390,14 +390,23 @@ export default function DashboardClient({
     setLoading(null)
   }
 
-  const handleUpgrade = async (plan: string) => {
-    setUpgradeLoading(plan)
-    const res  = await fetch('/api/stripe-subscription', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ plan, kitchen_id: kitchen?.id, user_id: kitchen?.organizer_id }) })
-    const data = await res.json()
-    if (data.url) window.location.href = data.url
-    else console.error('Upgrade error:', data.error)
-    setUpgradeLoading(null)
-  }
+ const handleUpgrade = async (plan: string) => {
+  setUpgradeLoading(plan)
+  const res = await fetch('/api/stripe-subscription', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      plan,
+      kitchen_id: kitchen?.id,
+      user_id: kitchen?.organizer_id,
+      promo_code: promoCode || undefined,
+    }),
+  })
+  const data = await res.json()
+  if (data.url) window.location.href = data.url
+  else console.error('Upgrade error:', data.error)
+  setUpgradeLoading(null)
+}
 
   const isSubscribed = ['active', 'trialing', 'lifetime'].includes(kitchen?.subscription_status)
   const isTrialing   = kitchen?.subscription_status === 'trialing'
@@ -547,6 +556,20 @@ export default function DashboardClient({
             <div style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 500, color: '#1E2620', marginBottom: 6 }}>Unlimited scheduling, home cook deliveries, and more.</div>
             <div style={{ fontSize: 13, color: '#6B7066', marginBottom: 18, fontWeight: 300, lineHeight: 1.6 }}>14-day free trial on monthly and annual plans. Cancel anytime.</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              {/* Promo code */}
+{promoCode !== undefined && (
+  <div style={{ marginBottom: 16 }}>
+    <label style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
+      Promo code
+    </label>
+    <input
+      value={promoCode}
+      onChange={e => setPromoCode(e.target.value.toUpperCase())}
+      placeholder="ENTER CODE"
+      style={{ width: '100%', padding: '12px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 14, background: '#fff', outline: 'none', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif", color: '#1E2620', letterSpacing: 1 }}
+    />
+  </div>
+)}
               <button onClick={() => handleUpgrade('monthly')} disabled={upgradeLoading === 'monthly'} style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: 'none', background: '#3D6B4F', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
                 {upgradeLoading === 'monthly' ? 'Redirecting…' : '✨ Care+ Monthly — $9.99/mo · 14-day free trial'}
               </button>
