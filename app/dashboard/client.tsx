@@ -495,16 +495,14 @@ export default function DashboardClient({
                     <span style={{ fontSize: 12, color: '#1E2620', fontWeight: 500 }}>{v}</span>
                   </div>
                 ) : null)}
-                {p.doordash_tracking_url && (
-                  
-                    href={p.doordash_tracking_url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    style={{ display: 'block', marginTop: 14, width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#3D6B4F', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'center', textDecoration: 'none' }}
-                  >
-                    🚗 Track My Delivery
-                  </a>
-                )}
+               {p.doordash_tracking_url && (
+                <button
+                onClick={() => window.open(p.doordash_tracking_url, '_blank')}
+                style={{ display: 'block', marginTop: 14, width: '100%', padding: '12px', borderRadius: 10, border: 'none', background: '#3D6B4F', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'center' }}
+              >
+                🚗 Track My Delivery
+              </button>
+            )}
               </div>
             ))}
           </>
