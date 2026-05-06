@@ -26,7 +26,22 @@ export default async function Dashboard() {
     .eq('status', 'pending')
     .order('proposed_at', { ascending: false })
 
-  // Fetch calendar dates — 3 months back through 6 months ahead
+  // Confirmed proposals with tracking links — last 14 days
+  const twoWeeksAgo = new Date()
+  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
+  const { data: confirmedProposals } = await supabase
+    .from('meal_proposals')
+    .select(`
+      *,
+      claims(*, calendar_dates(*), guest_coordinators(*)),
+      kitchen_restaurants(*),
+      menu_items(*)
+    `)
+    .eq('status', 'confirmed')
+    .not('doordash_tracking_url', 'is', null)
+    .gte('responded_at', twoWeeksAgo.toISOString())
+    .order('responded_at', { ascending: false })
+
   const from = new Date()
   from.setMonth(from.getMonth() - 1)
   const to = new Date()
@@ -40,7 +55,6 @@ export default async function Dashboard() {
     .lte('date', to.toISOString().split('T')[0])
     .order('date', { ascending: true })
 
-  // Fetch kitchen restaurants
   const { data: kitchenRestaurants } = await supabase
     .from('kitchen_restaurants')
     .select('*')
@@ -51,6 +65,7 @@ export default async function Dashboard() {
     <DashboardClient
       kitchen={kitchen}
       pendingProposals={pendingProposals || []}
+      confirmedProposals={confirmedProposals || []}
       calendarDates={calendarDates || []}
       kitchenRestaurants={kitchenRestaurants || []}
       userEmail={user.email || ''}
