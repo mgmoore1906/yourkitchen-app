@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     // 2. Create claims + proposals for each slot
     const proposalIds: string[] = []
-    const lineItems: Stripe.Checkout.SessionCreateParams.LineItem[] = []
+    const lineItems: any[] = []
 
     for (const p of proposals) {
       const [{ data: menuItem }, { data: restaurant }, { data: calDate }] = await Promise.all([
