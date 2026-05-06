@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 
 // ─── Share Link ────────────────────────────────────────────────────────────────
-function ShareLink({ slug }: { slug: string }) {
+function ShareLink({ slug, kitchenName }: { slug: string, kitchenName: string }) {
   const [copied, setCopied] = useState(false)
   const url = typeof window !== 'undefined' ? `${window.location.origin}/k/${slug}` : `/k/${slug}`
 
