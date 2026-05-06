@@ -10,9 +10,8 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 export async function POST(request: Request) {
   try {
-    const { name, email, phone, note, proposals, kitchen_slug } = await request.json()
+    const { name, email, phone, note, proposals, kitchen_slug, tip_amount } = await request.json()
 
-    // 1. Save guest coordinator
     const { data: guest, error: guestError } = await supabase
       .from('guest_coordinators')
       .insert({ full_name: name, email, phone: phone || null })
@@ -20,9 +19,8 @@ export async function POST(request: Request) {
       .single()
     if (guestError) return NextResponse.json({ error: guestError.message }, { status: 400 })
 
-    // 2. Create claims + proposals for each slot
     const proposalIds: string[] = []
-    const lineItems: any[] = []
+    const lineItems: any[]      = []
 
     for (const p of proposals) {
       const [{ data: menuItem }, { data: restaurant }, { data: calDate }] = await Promise.all([
@@ -34,11 +32,11 @@ export async function POST(request: Request) {
       const { data: claim, error: claimError } = await supabase
         .from('claims')
         .insert({
-          calendar_date_id: p.calendar_date_id,
+          calendar_date_id:    p.calendar_date_id,
           guest_coordinator_id: guest.id,
-          claim_type: 'one_time',
-          status: 'active',
-          expires_at: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
+          claim_type:          'one_time',
+          status:              'active',
+          expires_at:          new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
         })
         .select('id')
         .single()
@@ -47,12 +45,12 @@ export async function POST(request: Request) {
       const { data: proposal, error: proposalError } = await supabase
         .from('meal_proposals')
         .insert({
-          claim_id: claim.id,
+          claim_id:             claim.id,
           kitchen_restaurant_id: p.restaurant_id,
-          menu_item_id: p.menu_item_id,
-          coordinator_note: note || null,
-          status: 'pending',
-          // payment_intent_id set by webhook after Stripe checkout completes
+          menu_item_id:         p.menu_item_id,
+          coordinator_note:     note || null,
+          tip_amount:           tip_amount || 0,
+          status:               'pending',
         })
         .select('id')
         .single()
@@ -79,18 +77,33 @@ export async function POST(request: Request) {
       })
     }
 
-    // 3. Stripe Checkout — authorize now, capture when Danielle says Y
+    // Add tip as a separate line item if provided
+    const tipCents = tip_amount || 0
+    if (tipCents > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'Dasher Tip',
+            description: 'Tip for your DoorDash driver',
+          },
+          unit_amount: tipCents,
+        },
+        quantity: 1,
+      })
+    }
+
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items: lineItems,
-      mode: 'payment',
-      payment_intent_data: { capture_method: 'manual' },
-      customer_email: email,
-      success_url: `${process.env.NEXT_PUBLIC_SITE_URL}/payment-success?type=proposal`,
-      cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
+      payment_method_types:  ['card'],
+      line_items:             lineItems,
+      mode:                  'payment',
+      payment_intent_data:   { capture_method: 'manual' },
+      customer_email:        email,
+      success_url:           `${process.env.NEXT_PUBLIC_SITE_URL}/payment-success?type=proposal`,
+      cancel_url:            `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
       metadata: {
-        type: 'proposal',
-        proposal_ids: JSON.stringify(proposalIds),
+        type:             'proposal',
+        proposal_ids:     JSON.stringify(proposalIds),
         coordinator_name: name,
       },
     })
