@@ -10,10 +10,10 @@ function ShareLink({ slug, kitchenName }: { slug: string, kitchenName: string })
   const handleCopy = () => {
     if (navigator.share) {
       navigator.share({
-        title: 'My YourKitchen',
-        text: 'Send me a meal through my YourKitchen — pick a date, choose a restaurant, and dinner is on its way 🧡',
-        url,
-      })
+  title: `${kitchenName}'s Kitchen`,
+  text: `Send me a meal through ${kitchenName}'s Kitchen — pick a date, choose a restaurant and menu item, and dinner is on its way 🧡`,
+  url,
+})
     } else {
       navigator.clipboard.writeText(url).then(() => {
         setCopied(true)
