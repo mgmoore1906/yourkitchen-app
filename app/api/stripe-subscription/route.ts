@@ -11,7 +11,7 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
-    const { plan, kitchen_id, user_id } = await request.json()
+    const { plan, kitchen_id, user_id, promo_code } = await request.json()
 
     if (!plan || !kitchen_id || !user_id) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
@@ -33,7 +33,9 @@ export async function POST(request: Request) {
     const sessionConfig: any = {
       mode: isLifetime ? 'payment' : 'subscription',
       line_items: [{ price: priceId, quantity: 1 }],
-      allow_promotion_codes: true,                    // ← enables promo + gift codes at checkout
+     ...(promo_code
+  ? { discounts: [{ coupon: promo_code }] }
+  : { allow_promotion_codes: true }),                   // ← enables promo + gift codes at checkout
       success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
       cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
       metadata: {
