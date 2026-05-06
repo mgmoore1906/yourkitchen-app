@@ -194,15 +194,40 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
   }
 
   const handleSubmit = async () => {
-    setLoading(true)
-    setErrorMsg('')
-    const proposals = groups.flatMap(g => g.slots.map(slot => ({ calendar_date_id: slot.id, restaurant_id: g.restaurant.id, menu_item_id: g.menuItem.id })))
-    const results = await Promise.all(proposals.map(p => fetch('/api/proposal', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, email, phone, note, ...p }) })))
-    const failed = results.filter(r => !r.ok)
-    if (failed.length > 0) { setErrorMsg(`${failed.length} proposal(s) failed. Please try again.`); setLoading(false); return }
-    setSubmitted(true)
+  setLoading(true)
+  setErrorMsg('')
+  const proposals = groups.flatMap(g =>
+    g.slots.map(slot => ({
+      calendar_date_id: slot.id,
+      restaurant_id: g.restaurant.id,
+      menu_item_id: g.menuItem.id,
+    }))
+  )
+  try {
+    const res = await fetch('/api/proposal', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name,
+        email,
+        phone,
+        note,
+        proposals,
+        kitchen_slug: kitchen.slug,
+      }),
+    })
+    const data = await res.json()
+    if (!res.ok) {
+      setErrorMsg(data.error || 'Something went wrong.')
+      setLoading(false)
+      return
+    }
+    window.location.href = data.checkout_url
+  } catch (err: any) {
+    setErrorMsg('Network error. Please try again.')
     setLoading(false)
   }
+}
 
   const totalDates = groups.reduce((sum, g) => sum + g.slots.length, 0)
 
