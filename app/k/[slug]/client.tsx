@@ -441,7 +441,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
             </div>
 
             <label style={labelStyle}>Your name</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Marcus" style={inputStyle} />
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Marques" style={inputStyle} />
 
             <label style={labelStyle}>Your email</label>
             <input type="email" value={email} onChange={e => setEmail(e.target.value)} placeholder="you@example.com" style={inputStyle} />
