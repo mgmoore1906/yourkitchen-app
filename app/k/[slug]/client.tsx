@@ -41,9 +41,9 @@ function CoordCalendar({
   const today = new Date()
   const [viewYear, setViewYear]   = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
-  const todayStr   = today.toISOString().split('T')[0]
-  const monthName  = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-  const firstDay   = new Date(viewYear, viewMonth, 1).getDay()
+  const todayStr    = today.toISOString().split('T')[0]
+  const monthName   = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const firstDay    = new Date(viewYear, viewMonth, 1).getDay()
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
 
   const prevMonth = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) } else setViewMonth(m => m - 1) }
@@ -63,23 +63,20 @@ function CoordCalendar({
         <p style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 500, color: '#1E2620', margin: 0 }}>{monthName}</p>
         <button onClick={nextMonth} style={{ background: '#EAF2ED', border: 'none', borderRadius: 8, width: 32, height: 32, cursor: 'pointer', fontSize: 16, color: '#3D6B4F', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>›</button>
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 3 }}>
         {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
           <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 600, color: '#6B7066', padding: '3px 0' }}>{d}</div>
         ))}
       </div>
-
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
         {cells.map((day, i) => {
           if (!day) return <div key={i} />
-          const dateStr      = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-          const isPast       = dateStr < todayStr
-          const isToday      = dateStr === todayStr
-          const slots        = dateMap[dateStr] || []
-          const hasSlots     = slots.length > 0
+          const dateStr       = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
+          const isPast        = dateStr < todayStr
+          const isToday       = dateStr === todayStr
+          const slots         = dateMap[dateStr] || []
+          const hasSlots      = slots.length > 0
           const isAnySelected = slots.some((s: any) => selectedIds.has(s.id))
-
           return (
             <button key={i}
               onClick={() => { if (!hasSlots || isPast) return; slots.forEach((s: any) => onToggle(s)) }}
@@ -106,7 +103,6 @@ function CoordCalendar({
           )
         })}
       </div>
-
       <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 14, paddingTop: 12, borderTop: '1px solid #EAF2ED' }}>
         {[{ dot: '#E8834A', label: 'Breakfast' }, { dot: '#4A8FA8', label: 'Lunch' }, { dot: '#3D6B4F', label: 'Dinner' }, { dot: '#C8D5CA', label: 'Not selected' }].map(({ dot, label }) => (
           <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
@@ -128,9 +124,9 @@ function SelectedDatesSummary({ selectedSlots, onRemove }: { selectedSlots: any[
       </p>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {selectedSlots.map((slot: any) => {
-          const d  = new Date(slot.date + 'T12:00:00')
+          const d     = new Date(slot.date + 'T12:00:00')
           const label = d.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-          const mc = MEAL_TYPE_COLORS[slot.meal_type] || MEAL_TYPE_COLORS.dinner
+          const mc    = MEAL_TYPE_COLORS[slot.meal_type] || MEAL_TYPE_COLORS.dinner
           return (
             <div key={slot.id} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -175,19 +171,19 @@ function GroupProgress({ groups, currentIndex, subStep }: { groups: Group[], cur
 }
 
 export default function CoordKitchenClient({ kitchen, availableDates, restaurants }: any) {
-  const [step, setStep]                   = useState<1 | 2 | 3>(1)
-  const [selectedIds, setSelectedIds]     = useState<Set<string>>(new Set())
-  const [groups, setGroups]               = useState<Group[]>([])
+  const [step, setStep]                           = useState<1 | 2 | 3>(1)
+  const [selectedIds, setSelectedIds]             = useState<Set<string>>(new Set())
+  const [groups, setGroups]                       = useState<Group[]>([])
   const [currentGroupIndex, setCurrentGroupIndex] = useState(0)
-  const [groupSubStep, setGroupSubStep]   = useState<'restaurant' | 'meal'>('restaurant')
-  const [name, setName]                   = useState('')
-  const [email, setEmail]                 = useState('')
-  const [phone, setPhone]                 = useState('')
-  const [note, setNote]                   = useState('')
-  const [tipAmount, setTipAmount]         = useState(300) // default $3
-  const [loading, setLoading]             = useState(false)
-  const [submitted, setSubmitted]         = useState(false)
-  const [errorMsg, setErrorMsg]           = useState('')
+  const [groupSubStep, setGroupSubStep]           = useState<'restaurant' | 'meal'>('restaurant')
+  const [name, setName]                           = useState('')
+  const [email, setEmail]                         = useState('')
+  const [phone, setPhone]                         = useState('')
+  const [note, setNote]                           = useState('')
+  const [tipAmount, setTipAmount]                 = useState(300)
+  const [loading, setLoading]                     = useState(false)
+  const [submitted, setSubmitted]                 = useState(false)
+  const [errorMsg, setErrorMsg]                   = useState('')
 
   const selectedSlots = availableDates.filter((d: any) => selectedIds.has(d.id))
 
@@ -215,10 +211,9 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
     ? restaurants.filter((r: any) => (MEAL_TYPE_RESTAURANTS[currentGroup.mealType] || []).includes(r.name))
     : []
 
-  const updateGroup = (index: number, update: Partial<Group>) => {
+  const updateGroup        = (index: number, update: Partial<Group>) => {
     setGroups(prev => prev.map((g, i) => i === index ? { ...g, ...update } : g))
   }
-
   const handleRestaurantSelect = (restaurant: any) => { updateGroup(currentGroupIndex, { restaurant, menuItem: null }); setGroupSubStep('meal') }
   const handleMealSelect       = (menuItem: any)   => { updateGroup(currentGroupIndex, { menuItem }) }
   const handleGroupNext        = () => {
@@ -229,6 +224,16 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
     if (groupSubStep === 'meal') setGroupSubStep('restaurant')
     else if (currentGroupIndex > 0) { setCurrentGroupIndex(i => i - 1); setGroupSubStep('meal') }
     else setStep(1)
+  }
+
+  // Smart note placeholder based on selected meal types
+  const getNotePlaceholder = () => {
+    const types = [...new Set(selectedSlots.map((s: any) => s.meal_type))]
+    if (types.includes('breakfast') && types.includes('dinner')) return "Starting your day and ending it with a little love 🧡 Hope these meals bring you comfort."
+    if (types.includes('breakfast')) return "Hope this breakfast starts your day with a little warmth from someone who cares 🌅"
+    if (types.includes('lunch')) return "Thinking of you today — hope this lunch gives you a moment to breathe ☀️"
+    if (types.includes('dinner')) return "Hope dinner tonight is one less thing to worry about. You've got people in your corner 🧡"
+    return "Thinking of you! Hope you enjoy this meal 🧡"
   }
 
   const handleSubmit = async () => {
@@ -329,7 +334,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
 
       <div style={{ padding: '24px', maxWidth: 500, margin: '0 auto' }}>
 
-        {/* ── Step 1: Choose dates ── */}
+        {/* Step 1 — Dates */}
         {step === 1 && (
           <>
             <h2 style={h2Style}>Choose your dates</h2>
@@ -348,10 +353,11 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
           </>
         )}
 
-        {/* ── Step 2: Restaurant + Meal ── */}
+        {/* Step 2 — Restaurant + Meal */}
         {step === 2 && currentGroup && (
           <>
             <GroupProgress groups={groups} currentIndex={currentGroupIndex} subStep={groupSubStep} />
+
             {groupSubStep === 'restaurant' && (
               <>
                 <h2 style={h2Style}>{groups.length > 1 ? `Choose a ${currentGroup.mealType} restaurant` : 'Choose a restaurant'}</h2>
@@ -413,13 +419,12 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
           </>
         )}
 
-        {/* ── Step 3: Contact + Tip ── */}
+        {/* Step 3 — Info + Note + Tip */}
         {step === 3 && (
           <>
             <h2 style={h2Style}>Almost done!</h2>
             <p style={subStyle}>Let {kitchen.name.split("'")[0]} know who&apos;s sending dinner.</p>
 
-            {/* Order summary */}
             <div style={{ background: '#EAF2ED', borderRadius: 14, padding: '16px', marginBottom: 20 }}>
               {groups.map((g, i) => {
                 const mc = MEAL_TYPE_COLORS[g.mealType] || MEAL_TYPE_COLORS.dinner
@@ -448,11 +453,13 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
             </p>
 
             <label style={labelStyle}>Personal note (optional)</label>
-            <textarea value={note} onChange={e => setNote(e.target.value)}
-              placeholder="Thinking of you! Hope you enjoy dinner tonight 🧡"
-              style={{ ...inputStyle, minHeight: 90, resize: 'none' }} />
+            <textarea
+              value={note}
+              onChange={e => setNote(e.target.value)}
+              placeholder={getNotePlaceholder()}
+              style={{ ...inputStyle, minHeight: 90, resize: 'none' }}
+            />
 
-            {/* Tip selector */}
             <label style={labelStyle}>Add a tip for your Dasher</label>
             <div style={{ display: 'flex', gap: 8, marginBottom: 8 }}>
               {TIP_OPTIONS.map(opt => (
