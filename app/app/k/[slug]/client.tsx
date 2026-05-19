@@ -202,10 +202,10 @@ export default function CoordKitchenClient({ kitchen, availableDates, restaurant
             </div>
 
             <label style={labelStyle}>Your name</label>
-            <input value={name} onChange={e => setName(e.target.value)} placeholder="Marcus" style={inputStyle} />
+            <input value={name} onChange={e => setName(e.target.value)} placeholder="Marques" style={inputStyle} />
 
             <label style={labelStyle}>Your email</label>
-            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="marcus@example.com" type="email" style={inputStyle} />
+            <input value={email} onChange={e => setEmail(e.target.value)} placeholder="Marques@example.com" type="email" style={inputStyle} />
 
             <label style={labelStyle}>Personal note (optional)</label>
             <textarea value={note} onChange={e => setNote(e.target.value)} placeholder="Thinking of you! Hope you enjoy dinner tonight 🧡" style={{ ...inputStyle, minHeight: 90, resize: 'none' }} />
