@@ -15,7 +15,7 @@ export async function POST(request: Request) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'YourKitchen <onboarding@resend.dev>',
+        from: 'YourKitchen <noreply@yourkitchen.app>',
         to: ['marques@yourkitchen.app'],
         subject: `🍽 Restaurant Request: ${restaurant_name} — ${city}`,
         html: `
