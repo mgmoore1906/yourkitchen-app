@@ -420,9 +420,9 @@ export default function DashboardClient({
           <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 500, color: '#fff' }}>Kitchen</div>
         </div>
-        <div style={{ width: 38, height: 38, borderRadius: 12, background: '#3D6B4F', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14 }}>
-          {kitchen.name?.charAt(0) || 'K'}
-        </div>
+       <a href="/dashboard/settings" style={{ width: 38, height: 38, borderRadius: 12, background: '#3D6B4F', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontWeight: 700, fontSize: 14, textDecoration: 'none' }}>
+  ⚙️
+</a>
       </div>
 
       <div style={{ padding: '28px 24px', maxWidth: 500, margin: '0 auto' }}>
