@@ -276,20 +276,28 @@ function CalendarSection({ calendarDates: initialDates, kitchenId }: { calendarD
 }
 
 // ─── Restaurant Section ────────────────────────────────────────────────────────
+// Replace the entire RestaurantSection function in app/dashboard/client.tsx
+
 const ALL_RESTAURANTS = [
-  { id: 'first-watch',  name: 'First Watch',              cuisine: 'American Breakfast & Brunch', emoji: '🥞', doordash_store_id: '927672'   },
-  { id: 'toasted-yolk', name: 'The Toasted Yolk Cafe',    cuisine: 'American Breakfast & Brunch', emoji: '🍳', doordash_store_id: '1109805'  },
-  { id: 'harvest',      name: 'Harvest Kitchen & Bakery', cuisine: 'Farm-to-Table Brunch',        emoji: '🌿', doordash_store_id: '30324131' },
-  { id: 'cava',         name: 'Cava',                     cuisine: 'Mediterranean',               emoji: '🫙', doordash_store_id: '23050039' },
-  { id: 'kebab-shop',   name: 'The Kebab Shop',           cuisine: 'Mediterranean',               emoji: '🥙', doordash_store_id: '32660157' },
-  { id: 'mod-fresh',    name: 'Mod Fresh',                cuisine: 'Healthy Fast-Casual',         emoji: '🥗', doordash_store_id: '26020728' },
-  { id: 'up-thai',      name: 'Up Thai Kitchen',          cuisine: 'Thai',                        emoji: '🍜', doordash_store_id: '1538370'  },
+  { id: 'first-watch',    name: 'First Watch',              cuisine: 'American Breakfast & Brunch', emoji: '🥞', doordash_store_id: '927672' },
+  { id: 'toasted-yolk',   name: 'The Toasted Yolk Cafe',    cuisine: 'American Breakfast & Brunch', emoji: '🍳', doordash_store_id: '1109805' },
+  { id: 'harvest',        name: 'Harvest Kitchen & Bakery', cuisine: 'Farm-to-Table Brunch',        emoji: '🌿', doordash_store_id: '30324131' },
+  { id: 'cava',           name: 'Cava',                     cuisine: 'Mediterranean',               emoji: '🫙', doordash_store_id: '23050039' },
+  { id: 'kebab-shop',     name: 'The Kebab Shop',           cuisine: 'Mediterranean',               emoji: '🥙', doordash_store_id: '32660157' },
+  { id: 'mod-fresh',      name: 'Mod Fresh',                cuisine: 'Healthy Fast-Casual',         emoji: '🥗', doordash_store_id: '26020728' },
+  { id: 'up-thai',        name: 'Up Thai Kitchen',          cuisine: 'Thai',                        emoji: '🍜', doordash_store_id: '1538370' },
 ]
 
-function RestaurantSection({ kitchenRestaurants: initialRestaurants, kitchenId }: { kitchenRestaurants: any[], kitchenId: string }) {
+function RestaurantSection({ kitchenRestaurants: initialRestaurants, kitchenId, kitchen }: { kitchenRestaurants: any[], kitchenId: string, kitchen: any }) {
   const [restaurants, setRestaurants] = useState<any[]>(initialRestaurants)
-  const [loading, setLoading]         = useState<string | null>(null)
-  const [expanded, setExpanded]       = useState(false)
+  const [loading, setLoading] = useState<string | null>(null)
+  const [expanded, setExpanded] = useState(false)
+  const [showRequestForm, setShowRequestForm] = useState(false)
+  const [requestName, setRequestName] = useState('')
+  const [requestCity, setRequestCity] = useState('')
+  const [requestNotes, setRequestNotes] = useState('')
+  const [requestLoading, setRequestLoading] = useState(false)
+  const [requestSuccess, setRequestSuccess] = useState(false)
 
   const activeNames = new Set(restaurants.filter(r => r.is_active !== false).map((r: any) => r.name))
 
@@ -297,7 +305,6 @@ function RestaurantSection({ kitchenRestaurants: initialRestaurants, kitchenId }
     setLoading(r.id)
     const isActive = activeNames.has(r.name)
     const existing = restaurants.find((kr: any) => kr.name === r.name)
-
     if (isActive && existing) {
       const res = await fetch('/api/restaurants', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurant_id: existing.id, is_active: false }) })
       if (res.ok) setRestaurants(prev => prev.map((kr: any) => kr.id === existing.id ? { ...kr, is_active: false } : kr))
@@ -311,49 +318,136 @@ function RestaurantSection({ kitchenRestaurants: initialRestaurants, kitchenId }
     setLoading(null)
   }
 
+  const handleRequest = async () => {
+    if (!requestName) return
+    setRequestLoading(true)
+    const res = await fetch('/api/request-restaurant', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_name: kitchen?.name?.replace("'s Kitchen", '') || '',
+        kitchen_slug: kitchen?.slug || '',
+        restaurant_name: requestName,
+        city: requestCity,
+        notes: requestNotes,
+      }),
+    })
+    if (res.ok) {
+      setRequestSuccess(true)
+      setRequestName('')
+      setRequestCity('')
+      setRequestNotes('')
+    }
+    setRequestLoading(false)
+  }
+
   const activeCount = ALL_RESTAURANTS.filter(r => activeNames.has(r.name)).length
 
   return (
-    <div style={{ background: '#fff', border: '1px solid #DDE8E0', borderRadius: 16, padding: '20px', marginBottom: 16 }}>
-      <button onClick={() => setExpanded(e => !e)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
-        <div>
-          <p style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px', textAlign: 'left' }}>My Restaurants</p>
-          <p style={{ fontSize: 13, color: '#6B7066', margin: 0, fontWeight: 300, textAlign: 'left' }}>{activeCount} of {ALL_RESTAURANTS.length} active</p>
-        </div>
-        <span style={{ fontSize: 18, color: '#6B7066' }}>{expanded ? '↑' : '↓'}</span>
-      </button>
+    <>
+      {/* Request form bottom sheet */}
+      {showRequestForm && (
+        <div style={{ position: 'fixed', inset: 0, background: 'rgba(30,38,32,0.5)', zIndex: 100, display: 'flex', alignItems: 'flex-end', justifyContent: 'center' }}>
+          <div style={{ background: '#FAFAF5', borderRadius: '20px 20px 0 0', padding: '24px 24px 40px', width: '100%', maxWidth: 500 }}>
+            {requestSuccess ? (
+              <>
+                <div style={{ textAlign: 'center', padding: '16px 0 24px' }}>
+                  <div style={{ fontSize: 48, marginBottom: 12 }}>🧡</div>
+                  <p style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: '#1E2620', margin: '0 0 8px' }}>Request sent!</p>
+                  <p style={{ fontSize: 14, color: '#6B7066', fontWeight: 300, lineHeight: 1.6, margin: 0 }}>
+                    We'll add your restaurant within 24 hours and notify you when it's ready.
+                  </p>
+                </div>
+                <button onClick={() => { setShowRequestForm(false); setRequestSuccess(false) }} style={{ width: '100%', padding: '13px', borderRadius: 10, border: 'none', background: '#3D6B4F', color: '#fff', fontSize: 14, fontWeight: 500, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                  Done
+                </button>
+              </>
+            ) : (
+              <>
+                <p style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px' }}>Request a restaurant</p>
+                <p style={{ fontFamily: "'Lora', serif", fontSize: 17, fontWeight: 500, color: '#1E2620', margin: '0 0 20px' }}>Don't see your favorite?</p>
+                <p style={{ fontSize: 13, color: '#6B7066', margin: '0 0 20px', fontWeight: 300, lineHeight: 1.6 }}>
+                  We'll add it within 24 hours once we verify it's available on DoorDash.
+                </p>
 
-      {expanded && (
-        <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {ALL_RESTAURANTS.map(r => {
-            const isActive  = activeNames.has(r.name)
-            const isLoading = loading === r.id
-            return (
-              <button key={r.id} onClick={() => handleToggle(r)} disabled={isLoading} style={{
-                background: isActive ? '#EAF2ED' : '#fff',
-                border: `2px solid ${isActive ? '#3D6B4F' : '#DDE8E0'}`,
-                borderRadius: 14, padding: '14px 16px', cursor: 'pointer',
-                display: 'flex', alignItems: 'center', gap: 14,
-                transition: 'all 0.15s', fontFamily: "'DM Sans', sans-serif", opacity: isLoading ? 0.6 : 1,
-              }}>
-                <div style={{ width: 40, height: 40, borderRadius: 10, background: isActive ? '#3D6B4F' : '#EAF2ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>
-                  {r.emoji}
+                <label style={rLabelStyle}>Restaurant name</label>
+                <input value={requestName} onChange={e => setRequestName(e.target.value)} placeholder="e.g. Chick-fil-A" style={rInputStyle} />
+
+                <label style={rLabelStyle}>City</label>
+                <input value={requestCity} onChange={e => setRequestCity(e.target.value)} placeholder="e.g. Cypress, TX" style={rInputStyle} />
+
+                <label style={rLabelStyle}>Anything else? (optional)</label>
+                <input value={requestNotes} onChange={e => setRequestNotes(e.target.value)} placeholder="e.g. Near 290 and Fry Rd" style={{ ...rInputStyle, marginBottom: 20 }} />
+
+                <div style={{ display: 'flex', gap: 10 }}>
+                  <button onClick={() => setShowRequestForm(false)} style={{ flex: 1, padding: '13px', borderRadius: 10, border: '1.5px solid #DDE8E0', background: 'transparent', fontSize: 14, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                    Cancel
+                  </button>
+                  <button onClick={handleRequest} disabled={!requestName || requestLoading} style={{ flex: 2, padding: '13px', borderRadius: 10, border: 'none', background: !requestName || requestLoading ? '#DDE8E0' : '#3D6B4F', color: !requestName || requestLoading ? '#6B7066' : '#fff', fontSize: 14, fontWeight: 500, cursor: !requestName || requestLoading ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+                    {requestLoading ? 'Sending…' : 'Send Request'}
+                  </button>
                 </div>
-                <div style={{ flex: 1, textAlign: 'left' }}>
-                  <div style={{ fontFamily: "'Lora', serif", fontSize: 14, fontWeight: 600, color: '#1E2620' }}>{r.name}</div>
-                  <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>{r.cuisine}</div>
-                </div>
-                <div style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${isActive ? '#3D6B4F' : '#DDE8E0'}`, background: isActive ? '#3D6B4F' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, flexShrink: 0 }}>
-                  {isLoading ? '…' : isActive ? '✓' : ''}
-                </div>
-              </button>
-            )
-          })}
+              </>
+            )}
+          </div>
         </div>
       )}
-    </div>
+
+      <div style={{ background: '#fff', border: '1px solid #DDE8E0', borderRadius: 16, padding: '20px', marginBottom: 16 }}>
+        <button onClick={() => setExpanded(e => !e)} style={{ width: '100%', background: 'none', border: 'none', cursor: 'pointer', display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', margin: '0 0 4px', textAlign: 'left' }}>My Restaurants</p>
+            <p style={{ fontSize: 13, color: '#6B7066', margin: 0, fontWeight: 300, textAlign: 'left' }}>{activeCount} of {ALL_RESTAURANTS.length} active</p>
+          </div>
+          <span style={{ fontSize: 18, color: '#6B7066' }}>{expanded ? '↑' : '↓'}</span>
+        </button>
+
+        {expanded && (
+          <div style={{ marginTop: 16, display: 'flex', flexDirection: 'column', gap: 10 }}>
+            {ALL_RESTAURANTS.map(r => {
+              const isActive = activeNames.has(r.name)
+              const isLoading = loading === r.id
+              return (
+                <button key={r.id} onClick={() => handleToggle(r)} disabled={isLoading} style={{ background: isActive ? '#EAF2ED' : '#fff', border: `2px solid ${isActive ? '#3D6B4F' : '#DDE8E0'}`, borderRadius: 14, padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.15s', fontFamily: "'DM Sans', sans-serif", opacity: isLoading ? 0.6 : 1 }}>
+                  <div style={{ width: 40, height: 40, borderRadius: 10, background: isActive ? '#3D6B4F' : '#EAF2ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>{r.emoji}</div>
+                  <div style={{ flex: 1, textAlign: 'left' }}>
+                    <div style={{ fontFamily: "'Lora', serif", fontSize: 14, fontWeight: 600, color: '#1E2620' }}>{r.name}</div>
+                    <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>{r.cuisine}</div>
+                  </div>
+                  <div style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${isActive ? '#3D6B4F' : '#DDE8E0'}`, background: isActive ? '#3D6B4F' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 12, flexShrink: 0 }}>
+                    {isLoading ? '…' : isActive ? '✓' : ''}
+                  </div>
+                </button>
+              )
+            })}
+
+            {/* Request a restaurant button */}
+            <button onClick={() => setShowRequestForm(true)} style={{ padding: '14px 16px', borderRadius: 14, border: '1.5px dashed #6B9E7E', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'DM Sans', sans-serif' }}>
+              <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EAF2ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>+</div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <div style={{ fontSize: 14, fontWeight: 600, color: '#3D6B4F' }}>Request a restaurant</div>
+                <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>Don't see your favorite? We'll add it.</div>
+              </div>
+            </button>
+          </div>
+        )}
+      </div>
+    </>
   )
 }
+
+const rLabelStyle: React.CSSProperties = {
+  fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5,
+  textTransform: 'uppercase', display: 'block', marginBottom: 8,
+}
+const rInputStyle: React.CSSProperties = {
+  width: '100%', padding: '13px 16px', borderRadius: 10,
+  border: '1.5px solid #DDE8E0', fontSize: 16,
+  background: '#fff', color: '#1E2620', outline: 'none',
+  boxSizing: 'border-box', marginBottom: 16,
+  fontFamily: "'DM Sans', sans-serif",
+}
+
 
 // ─── Dashboard Client ──────────────────────────────────────────────────────────
 export default function DashboardClient({
