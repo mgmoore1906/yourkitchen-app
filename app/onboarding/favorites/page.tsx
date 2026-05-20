@@ -103,6 +103,24 @@ export default function OnboardingFavorites() {
       return
     }
 
+    // Fire welcome email — do this before navigating away
+    try {
+      await fetch('/api/send-email', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          to: user.email,
+          type: 'welcome',
+          name: onboarding.full_name,
+          slug: data.slug,
+          kitchen_name: `${onboarding.full_name}'s Kitchen`,
+        }),
+      })
+    } catch (emailErr) {
+      // Don't block navigation if email fails
+      console.error('Welcome email failed:', emailErr)
+    }
+
     localStorage.removeItem('yk_onboarding')
     router.push('/dashboard')
     setLoading(false)
@@ -136,8 +154,7 @@ export default function OnboardingFavorites() {
       {/* Progress */}
       <div style={{ display: 'flex', gap: 6, padding: '20px 24px 0' }}>
         {[0,1,2,3].map(i => (
-          <div key={i} style={{ flex: 1, height: 4, borderRadius: 4,
-                                background: '#3D6B4F' }} />
+          <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: '#3D6B4F' }} />
         ))}
       </div>
 
