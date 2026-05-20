@@ -422,7 +422,7 @@ function RestaurantSection({ kitchenRestaurants: initialRestaurants, kitchenId, 
             })}
 
             {/* Request a restaurant button */}
-            <button onClick={() => setShowRequestForm(true)} style={{ padding: '14px 16px', borderRadius: 14, border: '1.5px dashed #6B9E7E', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'DM Sans', sans-serif' }}>
+            <button onClick={() => setShowRequestForm(true)} style={{ padding: '14px 16px', borderRadius: 14, border: '1.5px dashed #6B9E7E', background: 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'DM Sans', sans-serif" }}>
               <div style={{ width: 40, height: 40, borderRadius: 10, background: '#EAF2ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>+</div>
               <div style={{ flex: 1, textAlign: 'left' }}>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#3D6B4F' }}>Request a restaurant</div>
