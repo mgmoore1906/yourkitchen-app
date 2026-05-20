@@ -529,8 +529,7 @@ export default function DashboardClient({
         <CalendarSection calendarDates={calendarDates} kitchenId={kitchen.id} />
 
         {/* Restaurants */}
-        <RestaurantSection kitchenRestaurants={kitchenRestaurants} kitchenId={kitchen.id} />
-
+        <RestaurantSection kitchenRestaurants={kitchenRestaurants} kitchenId={kitchen.id} kitchen={kitchen} />
         {/* Status cards */}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
           {[
