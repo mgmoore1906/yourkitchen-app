@@ -7,27 +7,35 @@ export default function OnboardingCalendar() {
   const router = useRouter()
   const [selected, setSelected] = useState<string[]>([])
   const [deliveryStart, setDeliveryStart] = useState('17:30')
- const [deliveryEnd, setDeliveryEnd] = useState('19:00')
+  const [deliveryEnd, setDeliveryEnd] = useState('19:00')
 
-// ← useEffect goes here
-useEffect(() => {
-  const saved = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
-  if (saved.calendar_dates?.length) setSelected(saved.calendar_dates)
-  if (saved.delivery_window_start) setDeliveryStart(saved.delivery_window_start)
-  if (saved.delivery_window_end) setDeliveryEnd(saved.delivery_window_end)
-}, [])
+  // Pre-populate from localStorage when navigating back
+  useEffect(() => {
+    const saved = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
+    if (saved.calendar_dates?.length) setSelected(saved.calendar_dates)
+    if (saved.delivery_window_start) setDeliveryStart(saved.delivery_window_start)
+    if (saved.delivery_window_end) setDeliveryEnd(saved.delivery_window_end)
+  }, [])
 
-const generateDates = () => {
+  // Auto-save to localStorage whenever selection changes
+  useEffect(() => {
+    const existing = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
+    localStorage.setItem('yk_onboarding', JSON.stringify({
+      ...existing,
+      calendar_dates: selected,
+      delivery_window_start: deliveryStart,
+      delivery_window_end: deliveryEnd,
+    }))
+  }, [selected, deliveryStart, deliveryEnd])
+
+  // Generate next 30 days — all days including weekends
+  const generateDates = () => {
     const dates = []
     const today = new Date()
     for (let i = 1; i <= 30; i++) {
       const d = new Date(today)
       d.setDate(today.getDate() + i)
-      const day = d.getDay()
-      if (day !== 0 && day !== 6) {
-        dates.push(d.toISOString().split('T')[0])
-      }
-      if (dates.length >= 14) break
+      dates.push(d.toISOString().split('T')[0])
     }
     return dates
   }
@@ -46,13 +54,6 @@ const generateDates = () => {
   }
 
   const handleNext = () => {
-    const existing = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
-    localStorage.setItem('yk_onboarding', JSON.stringify({
-      ...existing,
-      calendar_dates: selected,
-      delivery_window_start: deliveryStart,
-      delivery_window_end: deliveryEnd,
-    }))
     router.push('/onboarding/restaurants')
   }
 
@@ -96,7 +97,7 @@ const generateDates = () => {
           Which days do you need meals?
         </h1>
         <p style={{ fontSize: 14, color: '#6B7066', margin: '0 0 24px', fontWeight: 300 }}>
-          Select the dates your village can claim. You can add more any time.
+          Select the dates your village can claim. You can add more from your dashboard any time.
         </p>
 
         {/* Date grid */}
