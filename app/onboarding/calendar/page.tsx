@@ -32,7 +32,7 @@ export default function OnboardingCalendar() {
   const generateDates = () => {
     const dates = []
     const today = new Date()
-    for (let i = 1; i <= 14; i++) {
+    for (let i = 1; i <= 30; i++) {
       const d = new Date(today)
       d.setDate(today.getDate() + i)
       dates.push(d.toISOString().split('T')[0])
@@ -64,7 +64,7 @@ export default function OnboardingCalendar() {
 
       {/* Header */}
       <div style={{ background: '#fff', borderBottom: '1px solid #DDE8E0',
-                    padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+                    padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <button onClick={() => router.back()}
           style={{ background: '#EAF2ED', border: 'none', borderRadius: 10,
                    width: 36, height: 36, cursor: 'pointer', fontSize: 18,
@@ -77,6 +77,11 @@ export default function OnboardingCalendar() {
           <div style={{ fontFamily: "'Lora', serif", fontSize: 20,
                         fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
         </div>
+        <form action="/auth/signout" method="post">
+          <button type="submit" style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+            Sign out
+          </button>
+        </form>
       </div>
 
       {/* Progress */}
