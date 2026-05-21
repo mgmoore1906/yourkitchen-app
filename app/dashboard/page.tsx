@@ -1,74 +1,77 @@
-import { redirect } from 'next/navigation'
-import { createClient } from '@/lib/supabase/server'
-import DashboardClient from './client'
+import { createClient } from '@supabase/supabase-js'
+import { NextResponse } from 'next/server'
 
-export default async function Dashboard() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/login')
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
 
-  const { data: kitchen } = await supabase
-    .from('kitchens')
-    .select('*')
-    .eq('organizer_id', user.id)
-    .single()
+export async function POST(request: Request) {
+  try {
+    const { user_id } = await request.json()
+    if (!user_id) return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
 
-  if (!kitchen) redirect('/onboarding/profile')
+    // Get kitchen
+    const { data: kitchen } = await supabase
+      .from('kitchens')
+      .select('id')
+      .eq('organizer_id', user_id)
+      .single()
 
-  const { data: pendingProposals } = await supabase
-    .from('meal_proposals')
-    .select(`
-      *,
-      claims(*, calendar_dates(*), guest_coordinators(*)),
-      kitchen_restaurants(*),
-      menu_items(*)
-    `)
-    .eq('status', 'pending')
-    .order('proposed_at', { ascending: false })
+    if (kitchen) {
+      // Delete in order to respect foreign keys
+      const { data: dates } = await supabase
+        .from('calendar_dates')
+        .select('id')
+        .eq('kitchen_id', kitchen.id)
 
-  // Confirmed proposals with tracking links — last 14 days
-  const twoWeeksAgo = new Date()
-  twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14)
-  const { data: confirmedProposals } = await supabase
-    .from('meal_proposals')
-    .select(`
-      *,
-      claims(*, calendar_dates(*), guest_coordinators(*)),
-      kitchen_restaurants(*),
-      menu_items(*)
-    `)
-    .eq('status', 'confirmed')
-    .not('doordash_tracking_url', 'is', null)
-    .gte('responded_at', twoWeeksAgo.toISOString())
-    .order('responded_at', { ascending: false })
+      if (dates?.length) {
+        const dateIds = dates.map(d => d.id)
 
-  const from = new Date()
-  from.setMonth(from.getMonth() - 1)
-  const to = new Date()
-  to.setMonth(to.getMonth() + 6)
+        // Delete claims and proposals linked to those dates
+        const { data: claims } = await supabase
+          .from('claims')
+          .select('id')
+          .in('calendar_date_id', dateIds)
 
-  const { data: calendarDates } = await supabase
-    .from('calendar_dates')
-    .select('*')
-    .eq('kitchen_id', kitchen.id)
-    .gte('date', from.toISOString().split('T')[0])
-    .lte('date', to.toISOString().split('T')[0])
-    .order('date', { ascending: true })
+        if (claims?.length) {
+          const claimIds = claims.map(c => c.id)
+          await supabase.from('meal_proposals').delete().in('claim_id', claimIds)
+          await supabase.from('claims').delete().in('id', claimIds)
+        }
 
-  const { data: kitchenRestaurants } = await supabase
-    .from('kitchen_restaurants')
-    .select('*')
-    .eq('kitchen_id', kitchen.id)
-    .order('created_at', { ascending: true })
+        await supabase.from('calendar_dates').delete().eq('kitchen_id', kitchen.id)
+      }
 
-  return (
-    <DashboardClient
-      kitchen={kitchen}
-      pendingProposals={pendingProposals || []}
-      confirmedProposals={confirmedProposals || []}
-      calendarDates={calendarDates || []}
-      kitchenRestaurants={kitchenRestaurants || []}
-      userEmail={user.email || ''}
-    />
-  )
+      // Delete menu items and restaurants
+      const { data: restaurants } = await supabase
+        .from('kitchen_restaurants')
+        .select('id')
+        .eq('kitchen_id', kitchen.id)
+
+      if (restaurants?.length) {
+        const restIds = restaurants.map(r => r.id)
+        await supabase.from('menu_items').delete().in('kitchen_restaurant_id', restIds)
+        await supabase.from('kitchen_restaurants').delete().eq('kitchen_id', kitchen.id)
+      }
+
+      // Delete kitchen
+      await supabase.from('kitchens').delete().eq('id', kitchen.id)
+    }
+
+    // Delete profile
+    await supabase.from('profiles').delete().eq('id', user_id)
+
+    // Delete auth user
+    const { error: authError } = await supabase.auth.admin.deleteUser(user_id)
+    if (authError) {
+      console.error('Auth delete error:', authError)
+      return NextResponse.json({ error: authError.message }, { status: 500 })
+    }
+
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    console.error('Delete account error:', err.message)
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
 }
