@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -47,19 +47,24 @@ export default function OnboardingProfile() {
   }
 
   return (
-    <div style={{ minHeight: '100vh', background: '#FAFAF5', 
+    <div style={{ minHeight: '100vh', background: '#FAFAF5',
                   fontFamily: "'DM Sans', sans-serif", padding: '0 0 40px' }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-      
+
       {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #DDE8E0', 
-                    padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #DDE8E0',
+                    padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, 
+          <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5,
                         color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
-          <div style={{ fontFamily: "'Lora', serif", fontSize: 20, 
+          <div style={{ fontFamily: "'Lora', serif", fontSize: 20,
                         fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
         </div>
+        <form action="/auth/signout" method="post">
+          <button type="submit" style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+            Sign out
+          </button>
+        </form>
       </div>
 
       {/* Progress */}
@@ -71,7 +76,7 @@ export default function OnboardingProfile() {
       </div>
 
       <div style={{ padding: '24px 24px 0', maxWidth: 500, margin: '0 auto' }}>
-        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: 3, 
+        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: 3,
                     color: '#3D6B4F', textTransform: 'uppercase', margin: '0 0 8px' }}>
           Step 1 of 4
         </p>
@@ -83,7 +88,6 @@ export default function OnboardingProfile() {
           This helps your village know what you need.
         </p>
 
-        {/* Full name */}
         <label style={labelStyle}>Your name</label>
         <input
           value={form.full_name}
@@ -92,7 +96,6 @@ export default function OnboardingProfile() {
           style={inputStyle}
         />
 
-        {/* Address */}
         <label style={labelStyle}>Delivery address</label>
         <input
           value={form.address}
@@ -101,7 +104,6 @@ export default function OnboardingProfile() {
           style={inputStyle}
         />
 
-        {/* Household size */}
         <label style={labelStyle}>Household size</label>
         <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
           {['1-2', '3-4', '5-6', '7+'].map(s => (
@@ -116,7 +118,6 @@ export default function OnboardingProfile() {
           ))}
         </div>
 
-        {/* Dietary restrictions */}
         <label style={labelStyle}>Dietary restrictions</label>
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 32 }}>
           {DIETARY_OPTIONS.map(d => (
@@ -134,7 +135,8 @@ export default function OnboardingProfile() {
           style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none',
                    background: !form.full_name || !form.address ? '#DDE8E0' : '#3D6B4F',
                    color: !form.full_name || !form.address ? '#6B7066' : '#fff',
-                   fontSize: 14, fontWeight: 500, cursor: !form.full_name || !form.address ? 'default' : 'pointer',
+                   fontSize: 14, fontWeight: 500,
+                   cursor: !form.full_name || !form.address ? 'default' : 'pointer',
                    fontFamily: "'DM Sans', sans-serif" }}>
           {loading ? 'Saving…' : 'Next: Set My Calendar →'}
         </button>
