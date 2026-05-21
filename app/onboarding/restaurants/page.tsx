@@ -4,33 +4,29 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 
 const RESTAURANTS = [
-  { id: 'first-watch',    name: 'First Watch',              cuisine: 'American Breakfast & Brunch',    emoji: '🥞', rating: 4.7 },
-  { id: 'toasted-yolk',   name: 'The Toasted Yolk Cafe',    cuisine: 'American Breakfast & Brunch',    emoji: '🍳', rating: 4.8 },
-  { id: 'harvest',        name: 'Harvest Kitchen & Bakery', cuisine: 'Farm-to-Table Brunch',           emoji: '🌿', rating: 4.9 },
-  { id: 'cava',           name: 'Cava',                     cuisine: 'Mediterranean',                  emoji: '🫙', rating: 4.7 },
-  { id: 'kebab-shop',     name: 'The Kebab Shop',           cuisine: 'Mediterranean',                  emoji: '🥙', rating: 4.5 },
-  { id: 'mod-fresh',      name: 'Mod Fresh',                cuisine: 'Healthy Fast-Casual',            emoji: '🥗', rating: 4.6 },
-  { id: 'up-thai',        name: 'Up Thai Kitchen',          cuisine: 'Thai',                           emoji: '🍜', rating: 4.8 },
+  { id: 'first-watch', name: 'First Watch', cuisine: 'American Breakfast & Brunch', emoji: '🥞', rating: 4.7 },
+  { id: 'toasted-yolk', name: 'The Toasted Yolk Cafe', cuisine: 'American Breakfast & Brunch', emoji: '🍳', rating: 4.8 },
+  { id: 'harvest', name: 'Harvest Kitchen & Bakery', cuisine: 'Farm-to-Table Brunch', emoji: '🌿', rating: 4.9 },
+  { id: 'cava', name: 'Cava', cuisine: 'Mediterranean', emoji: '🫙', rating: 4.7 },
+  { id: 'kebab-shop', name: 'The Kebab Shop', cuisine: 'Mediterranean', emoji: '🥙', rating: 4.5 },
+  { id: 'mod-fresh', name: 'Mod Fresh', cuisine: 'Healthy Fast-Casual', emoji: '🥗', rating: 4.6 },
+  { id: 'up-thai', name: 'Up Thai Kitchen', cuisine: 'Thai', emoji: '🍜', rating: 4.8 },
 ]
 
 export default function OnboardingRestaurants() {
   const router = useRouter()
   const [picked, setPicked] = useState<string[]>([])
- 
+
   useEffect(() => {
-  const saved = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
-  if (saved.restaurants?.length) {
-    setPicked(saved.restaurants.map((r: any) => r.id))
-  }
-}, [])
+    const saved = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
+    if (saved.restaurants?.length) {
+      setPicked(saved.restaurants.map((r: any) => r.id))
+    }
+  }, [])
 
   const toggle = (id: string) => {
     setPicked(p =>
-      p.includes(id)
-        ? p.filter(x => x !== id)
-        : p.length < 5
-          ? [...p, id]
-          : p
+      p.includes(id) ? p.filter(x => x !== id) : p.length < 5 ? [...p, id] : p
     )
   }
 
@@ -57,12 +53,17 @@ export default function OnboardingRestaurants() {
                    display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3D6B4F' }}>
           ‹
         </button>
-        <div>
+        <div style={{ flex: 1 }}>
           <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5,
                         color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 20,
                         fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
         </div>
+        <form action="/auth/signout" method="post">
+          <button type="submit" style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+            Sign out
+          </button>
+        </form>
       </div>
 
       {/* Progress */}
