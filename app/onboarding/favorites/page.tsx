@@ -149,6 +149,11 @@ export default function OnboardingFavorites() {
           <div style={{ fontFamily: "'Lora', serif", fontSize: 20,
                         fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
         </div>
+        <form action="/auth/signout" method="post">
+          <button type="submit" style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+            Sign out
+          </button>
+        </form>
       </div>
 
       {/* Progress */}
