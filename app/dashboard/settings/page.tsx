@@ -175,7 +175,7 @@ export default function SettingsPage() {
         <input
           value={form.address}
           onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-          placeholder="16142 Cottontail Burrow Lane, Hockley, TX 77447"
+          placeholder=""
           style={inputStyle}
         />
 
