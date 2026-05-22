@@ -182,13 +182,21 @@ export default function OnboardingPage() {
         : [...prev.dietary_restrictions, d],
     }))
 
-  async function finish() {
-    setLoading(true)
-    setError('')
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { setLoading(false); return }
+ async function finish() {
+  setLoading(true)
+  setError('')
 
-    const { error: insertError } = await supabase.from('profiles').insert({
+  const { data: { user } } = await supabase.auth.getUser()
+  if (!user) {
+    setError('Session expired. Please sign in again.')
+    setLoading(false)
+    return
+  }
+
+  const response = await fetch('/api/profile/create', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
       id: user.id,
       full_name: form.full_name,
       phone: form.phone,
@@ -200,15 +208,19 @@ export default function OnboardingPage() {
       state: form.state,
       zip: form.zip,
       tier: selectedTier,
-    })
+    }),
+  })
 
-    if (!insertError) {
-      router.push('/dashboard')
-    } else {
-      setError('Something went wrong. Please try again.')
-      setLoading(false)
-    }
+  const result = await response.json()
+
+  if (result.success) {
+    router.push('/dashboard')
+  } else {
+    console.error('Profile create failed:', result.error)
+    setError('Something went wrong. Please try again.')
+    setLoading(false)
   }
+}
 
   const steps: Step[] = ['profile', 'address', 'plan']
   const stepIndex = steps.indexOf(step)
