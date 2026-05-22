@@ -19,6 +19,17 @@ export async function POST(request: Request) {
       .single()
     if (guestError) return NextResponse.json({ error: guestError.message }, { status: 400 })
 
+    // Fetch kitchen so we can use the recipient's name in the success URL
+    const { data: kitchen } = await supabase
+      .from('kitchens')
+      .select('name')
+      .eq('slug', kitchen_slug)
+      .single()
+
+    const recipientFirst = kitchen?.name
+      ? kitchen.name.split("'")[0]
+      : 'your recipient'
+
     const proposalIds: string[] = []
     const lineItems: any[]      = []
 
@@ -32,11 +43,11 @@ export async function POST(request: Request) {
       const { data: claim, error: claimError } = await supabase
         .from('claims')
         .insert({
-          calendar_date_id:    p.calendar_date_id,
+          calendar_date_id:     p.calendar_date_id,
           guest_coordinator_id: guest.id,
-          claim_type:          'one_time',
-          status:              'active',
-          expires_at:          new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
+          claim_type:           'one_time',
+          status:               'active',
+          expires_at:           new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
         })
         .select('id')
         .single()
@@ -45,12 +56,12 @@ export async function POST(request: Request) {
       const { data: proposal, error: proposalError } = await supabase
         .from('meal_proposals')
         .insert({
-          claim_id:             claim.id,
+          claim_id:              claim.id,
           kitchen_restaurant_id: p.restaurant_id,
-          menu_item_id:         p.menu_item_id,
-          coordinator_note:     note || null,
-          tip_amount:           tip_amount || 0,
-          status:               'pending',
+          menu_item_id:          p.menu_item_id,
+          coordinator_note:      note || null,
+          tip_amount:            tip_amount || 0,
+          status:                'pending',
         })
         .select('id')
         .single()
@@ -77,7 +88,7 @@ export async function POST(request: Request) {
       })
     }
 
-    // Add tip as a separate line item if provided
+    // Tip line item
     const tipCents = tip_amount || 0
     if (tipCents > 0) {
       lineItems.push({
@@ -93,16 +104,32 @@ export async function POST(request: Request) {
       })
     }
 
+    // 3% platform fee as a line item
+    const mealTotal = lineItems
+      .filter(li => li.price_data.product_data.name !== 'Dasher Tip')
+      .reduce((sum, li) => sum + li.price_data.unit_amount, 0)
+    const platformFee = Math.round(mealTotal * 0.03)
+    if (platformFee > 0) {
+      lineItems.push({
+        price_data: {
+          currency: 'usd',
+          product_data: {
+            name: 'YourKitchen service fee (3%)',
+            description: 'Covers coordination, SMS notifications, and delivery integration',
+          },
+          unit_amount: platformFee,
+        },
+        quantity: 1,
+      })
+    }
+
     const session = await stripe.checkout.sessions.create({
-      payment_method_types:  ['card'],
-      line_items:             lineItems,
+      payment_method_types: ['card'],
+      line_items:            lineItems,
       mode:                  'payment',
       payment_intent_data:   { capture_method: 'manual' },
       customer_email:        email,
-      // Find where you have the kitchen name, e.g. kitchen.name or recipientName
-const recipientFirst = kitchen.name.split("'")[0]
-
-success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}`
+      success_url:           `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}`,
       cancel_url:            `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
       metadata: {
         type:             'proposal',
