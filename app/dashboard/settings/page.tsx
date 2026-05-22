@@ -155,7 +155,7 @@ export default function SettingsPage() {
         <input
           value={form.full_name}
           onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-          placeholder="Danielle Moore"
+          placeholder="Danielle Moor"
           style={inputStyle}
         />
 
@@ -175,7 +175,7 @@ export default function SettingsPage() {
         <input
           value={form.address}
           onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-          placeholder=""
+          placeholder="1234 Johnson Lane, Hockley, TX 77447"
           style={inputStyle}
         />
 
