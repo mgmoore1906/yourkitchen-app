@@ -1,4 +1,11 @@
-export default function PaymentSuccess() {
+'use client'
+import { useSearchParams } from 'next/navigation'
+import { Suspense } from 'react'
+
+function PaymentSuccessContent() {
+  const params = useSearchParams()
+  const name = params.get('recipient') || 'your recipient'
+
   return (
     <div style={{ minHeight: '100vh', background: '#FAFAF5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -8,14 +15,22 @@ export default function PaymentSuccess() {
           Proposal sent!
         </h1>
         <p style={{ fontSize: 15, color: '#6B7066', lineHeight: 1.7, fontWeight: 300, marginBottom: 24 }}>
-          Your card has been authorized — but nothing is charged yet. Once Danielle confirms, your card is charged and the order goes straight to DoorDash. Thank you for showing up. 🧡
+          Your card has been authorized — but nothing is charged yet. Once {name} confirms, your card is charged and the order goes straight to DoorDash. Thank you for showing up. 🧡
         </p>
         <div style={{ background: '#EAF2ED', borderRadius: 16, padding: '16px 20px' }}>
           <p style={{ fontSize: 13, color: '#3D6B4F', margin: 0, lineHeight: 1.6 }}>
-            💳 The hold releases automatically if Danielle declines or the proposal expires.
+            💳 The hold releases automatically if {name} declines or the proposal expires.
           </p>
         </div>
       </div>
     </div>
+  )
+}
+
+export default function PaymentSuccess() {
+  return (
+    <Suspense fallback={<div style={{ minHeight: '100vh', background: '#FAFAF5' }} />}>
+      <PaymentSuccessContent />
+    </Suspense>
   )
 }
