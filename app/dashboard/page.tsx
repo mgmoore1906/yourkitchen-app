@@ -76,7 +76,8 @@ export default function SettingsPage() {
     })
     const data = await res.json()
     if (!res.ok) { setError(data.error || 'Something went wrong.') }
-    else { setSuccess('Settings saved successfully.') }
+   // fixed — saves then returns to dashboard
+else { router.push('/dashboard') }
     setSaving(false)
   }
 
