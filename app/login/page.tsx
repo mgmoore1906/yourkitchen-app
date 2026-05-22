@@ -27,12 +27,16 @@ export default function LoginPage() {
 
   const handleGoogleLogin = async () => {
     setGoogleLoading(true)
-    const { error } = await supabase.auth.signInWithOAuth({
-      provider: 'google',
-      options: {
-        redirectTo: `${window.location.origin}/auth/callback`,
-      },
-    })
+    const { error } = // app/login/page.tsx (or wherever Google sign-in is triggered)
+await supabase.auth.signInWithOAuth({
+  provider: 'google',
+  options: {
+    queryParams: {
+      prompt: 'select_account',  // ← forces account picker every time
+    },
+    redirectTo: `${window.location.origin}/auth/callback`,
+  },
+})
     if (error) {
       setError(error.message)
       setGoogleLoading(false)
