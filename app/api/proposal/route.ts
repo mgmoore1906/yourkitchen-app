@@ -99,7 +99,10 @@ export async function POST(request: Request) {
       mode:                  'payment',
       payment_intent_data:   { capture_method: 'manual' },
       customer_email:        email,
-      success_url:           `${process.env.NEXT_PUBLIC_SITE_URL}/payment-success?type=proposal`,
+      // Find where you have the kitchen name, e.g. kitchen.name or recipientName
+const recipientFirst = kitchen.name.split("'")[0]
+
+success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}`
       cancel_url:            `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
       metadata: {
         type:             'proposal',
