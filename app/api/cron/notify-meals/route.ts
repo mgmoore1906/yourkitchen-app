@@ -11,7 +11,6 @@ const twilioClient = twilio(
   process.env.TWILIO_AUTH_TOKEN!
 )
 
-// Confirm deadlines by meal type (shown in SMS to recipient)
 const DEADLINES: Record<string, string> = {
   breakfast: '8:30 AM',
   lunch:     '11:00 AM',
@@ -31,7 +30,6 @@ async function sendSMS(to: string, body: string) {
 }
 
 export async function GET(request: Request) {
-  // Verify this is called by Vercel cron (or manually with the secret)
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -39,18 +37,13 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url)
   const mealType = searchParams.get('meal_type') || 'dinner'
-
-  // Today's date in YYYY-MM-DD (UTC — adjust if your DB stores local dates)
   const today = new Date().toISOString().split('T')[0]
 
-  // Find all pending proposals for today's meal type
-  // Join chain: meal_proposals → claims → calendar_dates → kitchens → profiles
-  const { data: proposals, error } = await supabase
+  const { data, error } = await supabase
     .from('meal_proposals')
     .select(`
       id,
       status,
-      coordinator_note,
       claims (
         id,
         calendar_date_id,
@@ -75,8 +68,10 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
 
-  // Filter to proposals where date = today AND meal_type matches
-  const todayProposals = (proposals || []).filter((p: any) => {
+  // Cast to any[] to avoid TypeScript inference issues with deep Supabase joins
+  const proposals = (data || []) as any[]
+
+  const todayProposals = proposals.filter((p: any) => {
     const calDate = p.claims?.calendar_dates
     return calDate?.date === today && calDate?.meal_type === mealType
   })
@@ -93,41 +88,38 @@ export async function GET(request: Request) {
 
   for (const proposal of todayProposals) {
     const recipientId = proposal.claims?.calendar_dates?.kitchens?.recipient_id
-    const coordinatorName = proposal.claims?.guest_coordinators?.full_name || 'Someone'
-    const mealName = proposal.menu_items?.name || 'a meal'
-    const restaurantName = proposal.kitchen_restaurants?.name || 'a restaurant'
+    const kitchenId   = proposal.claims?.calendar_dates?.kitchens?.id
+    const coordName   = proposal.claims?.guest_coordinators?.full_name || 'Someone'
+    const mealName    = proposal.menu_items?.name || 'a meal'
+    const restName    = proposal.kitchen_restaurants?.name || 'a restaurant'
 
     if (!recipientId) continue
 
-    // Get recipient phone
     const { data: profile } = await supabase
       .from('profiles')
-      .select('phone, full_name')
+      .select('phone')
       .eq('id', recipientId)
       .single()
 
     if (!profile?.phone) continue
 
-    const mealLabel = mealType === 'breakfast'
-      ? 'breakfast'
-      : mealType === 'lunch'
-      ? 'lunch'
+    const mealLabel = mealType === 'breakfast' ? 'breakfast'
+      : mealType === 'lunch' ? 'lunch'
       : 'dinner'
 
-    const smsBody =
-      `${coordinatorName} wants to send you ${mealLabel} today — ` +
-      `${mealName} from ${restaurantName}.\n\n` +
+    await sendSMS(
+      profile.phone,
+      `${coordName} wants to send you ${mealLabel} today — ` +
+      `${mealName} from ${restName}.\n\n` +
       `Reply Y to confirm or N to decline by ${deadline}.\n\n` +
       `— YourKitchen`
+    )
 
-    await sendSMS(profile.phone, smsBody)
-
-    // Log notification
     await supabase.from('notifications').insert({
-      kitchen_id: proposal.claims?.calendar_dates?.kitchens?.id,
-      type: 'morning_reminder',
-      channel: 'sms',
-      content: `Morning-of ${mealType} reminder sent for proposal ${proposal.id}`,
+      kitchen_id: kitchenId,
+      type:       'morning_reminder',
+      channel:    'sms',
+      content:    `Morning-of ${mealType} reminder sent for proposal ${proposal.id}`,
     })
 
     sent++
@@ -138,7 +130,7 @@ export async function GET(request: Request) {
   return NextResponse.json({
     sent,
     meal_type: mealType,
-    date: today,
-    message: `Sent ${sent} ${mealType} reminder${sent !== 1 ? 's' : ''}`,
+    date:      today,
+    message:   `Sent ${sent} ${mealType} reminder${sent !== 1 ? 's' : ''}`,
   })
 }
