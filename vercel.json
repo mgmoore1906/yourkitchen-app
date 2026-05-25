@@ -1,0 +1,16 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/notify-meals?meal_type=breakfast",
+      "schedule": "30 11 * * *"
+    },
+    {
+      "path": "/api/cron/notify-meals?meal_type=lunch",
+      "schedule": "0 14 * * *"
+    },
+    {
+      "path": "/api/cron/notify-meals?meal_type=dinner",
+      "schedule": "0 19 * * *"
+    }
+  ]
+}
