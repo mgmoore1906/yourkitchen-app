@@ -119,6 +119,28 @@ export default function SignUpPage() {
               style={inputStyle}
             />
           </div>
+          const [showPassword, setShowPassword] = useState(false)
+
+// In your JSX, wrap the input in a relative div
+<div className="relative">
+  <input
+    type={showPassword ? 'text' : 'password'}
+    name="password"
+    placeholder="Password"
+    className="w-full border rounded-xl px-4 py-3 pr-12 ..."
+  />
+  <button
+    type="button"
+    onClick={() => setShowPassword(p => !p)}
+    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
+  >
+    {showPassword ? (
+      <EyeOff size={18} />  // lucide-react
+    ) : (
+      <Eye size={18} />
+    )}
+  </button>
+</div>
 
           <div>
             <label style={{ fontSize: 12, fontWeight: 500, color: '#6B7066', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
