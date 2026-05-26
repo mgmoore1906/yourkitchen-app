@@ -1,5 +1,7 @@
 'use client'
-
+// Also add AppFooter at the bottom of the onboarding page.
+// Add this import at the top:
+//   import AppFooter from '@/components/AppFooter'
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -361,7 +363,13 @@ export default function OnboardingPage() {
         </div>
       )
     })}
+    <AppFooter />
+// just before it:
+//
+//   </div>  {/* closes onb-body */}
+//   <AppFooter />
   </div>
+  
 
   {/* ── NEW: sign out button — routes to /signup, not a broken endpoint ── */}
   <button
