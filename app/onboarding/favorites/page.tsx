@@ -67,10 +67,6 @@ export default function OnboardingFavorites() {
 
   const toggleFav = (id: string) => setFavorites(f => f.includes(id) ? f.filter(x => x !== id) : [...f, id])
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/signup')
-  }
 
   const handleFinish = async () => {
     setLoading(true); setError('')
@@ -111,8 +107,6 @@ export default function OnboardingFavorites() {
           <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
         </div>
-        {/* FIXED: was <form action="/auth/signout" method="post"> — caused 405 */}
-        <button onClick={handleSignOut} style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", marginLeft: 'auto' }}>Sign out</button>
       </div>
 
       {/* Progress */}
