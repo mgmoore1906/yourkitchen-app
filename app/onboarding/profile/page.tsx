@@ -1,4 +1,7 @@
 'use client'
+// FILE: app/onboarding/profile/page.tsx
+// Fix: replaced <form action="/auth/signout" method="post"> with client-side signOut()
+// That form was POSTing to a non-existent route, causing HTTP 405.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -46,73 +49,53 @@ export default function OnboardingProfile() {
     setLoading(false)
   }
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut()
+    router.push('/signup')
+  }
+
   return (
-    <div style={{ minHeight: '100vh', background: '#FAFAF5',
-                  fontFamily: "'DM Sans', sans-serif", padding: '0 0 40px' }}>
+    <div style={{ minHeight: '100vh', background: '#FAFAF5', fontFamily: "'DM Sans', sans-serif", padding: '0 0 40px' }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
       {/* Header */}
-      <div style={{ background: '#fff', borderBottom: '1px solid #DDE8E0',
-                    padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      <div style={{ background: '#fff', borderBottom: '1px solid #DDE8E0', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5,
-                        color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
-          <div style={{ fontFamily: "'Lora', serif", fontSize: 20,
-                        fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
+          <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
+          <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
         </div>
-        <form action="/auth/signout" method="post">
-          <button type="submit" style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-            Sign out
-          </button>
-        </form>
+        {/* FIXED: was <form action="/auth/signout" method="post"> — caused 405 */}
+        <button
+          onClick={handleSignOut}
+          style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
+        >
+          Sign out
+        </button>
       </div>
 
       {/* Progress */}
       <div style={{ display: 'flex', gap: 6, padding: '20px 24px 0' }}>
         {[0,1,2,3].map(i => (
-          <div key={i} style={{ flex: 1, height: 4, borderRadius: 4,
-                                background: i === 0 ? '#3D6B4F' : '#DDE8E0' }} />
+          <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i === 0 ? '#3D6B4F' : '#DDE8E0' }} />
         ))}
       </div>
 
       <div style={{ padding: '24px 24px 0', maxWidth: 500, margin: '0 auto' }}>
-        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: 3,
-                    color: '#3D6B4F', textTransform: 'uppercase', margin: '0 0 8px' }}>
-          Step 1 of 4
-        </p>
-        <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 500,
-                     color: '#1E2620', margin: '0 0 6px', letterSpacing: -0.5 }}>
-          Tell us about your household
-        </h1>
-        <p style={{ fontSize: 14, color: '#6B7066', margin: '0 0 28px', fontWeight: 300 }}>
-          This helps your village know what you need.
-        </p>
+        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: 3, color: '#3D6B4F', textTransform: 'uppercase', margin: '0 0 8px' }}>Step 1 of 4</p>
+        <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 500, color: '#1E2620', margin: '0 0 6px', letterSpacing: -0.5 }}>Tell us about your household</h1>
+        <p style={{ fontSize: 14, color: '#6B7066', margin: '0 0 28px', fontWeight: 300 }}>This helps your village know what you need.</p>
 
         <label style={labelStyle}>Your name</label>
-        <input
-          value={form.full_name}
-          onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-          placeholder="Danielle Moore"
-          style={inputStyle}
-        />
+        <input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Danielle Moore" style={inputStyle} />
 
         <label style={labelStyle}>Delivery address</label>
-        <input
-          value={form.address}
-          onChange={e => setForm(f => ({ ...f, address: e.target.value }))}
-          placeholder="1422 Oak Creek Dr, Waller, TX 77484"
-          style={inputStyle}
-        />
+        <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="1422 Oak Creek Dr, Waller, TX 77484" style={inputStyle} />
 
         <label style={labelStyle}>Household size</label>
         <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
           {['1-2', '3-4', '5-6', '7+'].map(s => (
             <button key={s} onClick={() => setForm(f => ({ ...f, household_size: s }))}
-              style={{ flex: 1, padding: '11px 4px', borderRadius: 10, border: 'none',
-                       background: form.household_size === s ? '#3D6B4F' : '#EAF2ED',
-                       color: form.household_size === s ? '#fff' : '#3D6B4F',
-                       fontSize: 13, fontWeight: 600, cursor: 'pointer',
-                       fontFamily: "'DM Sans', sans-serif" }}>
+              style={{ flex: 1, padding: '11px 4px', borderRadius: 10, border: 'none', background: form.household_size === s ? '#3D6B4F' : '#EAF2ED', color: form.household_size === s ? '#fff' : '#3D6B4F', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
               {s}
             </button>
           ))}
@@ -122,22 +105,14 @@ export default function OnboardingProfile() {
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 32 }}>
           {DIETARY_OPTIONS.map(d => (
             <button key={d} onClick={() => toggleDiet(d)}
-              style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer',
-                       background: form.dietary_restrictions.includes(d) ? '#3D6B4F' : '#EAF2ED',
-                       color: form.dietary_restrictions.includes(d) ? '#fff' : '#3D6B4F',
-                       fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
+              style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', background: form.dietary_restrictions.includes(d) ? '#3D6B4F' : '#EAF2ED', color: form.dietary_restrictions.includes(d) ? '#fff' : '#3D6B4F', fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>
               {d}
             </button>
           ))}
         </div>
 
         <button onClick={handleNext} disabled={!form.full_name || !form.address || loading}
-          style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none',
-                   background: !form.full_name || !form.address ? '#DDE8E0' : '#3D6B4F',
-                   color: !form.full_name || !form.address ? '#6B7066' : '#fff',
-                   fontSize: 14, fontWeight: 500,
-                   cursor: !form.full_name || !form.address ? 'default' : 'pointer',
-                   fontFamily: "'DM Sans', sans-serif" }}>
+          style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: !form.full_name || !form.address ? '#DDE8E0' : '#3D6B4F', color: !form.full_name || !form.address ? '#6B7066' : '#fff', fontSize: 14, fontWeight: 500, cursor: !form.full_name || !form.address ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
           {loading ? 'Saving…' : 'Next: Set My Calendar →'}
         </button>
       </div>
@@ -145,14 +120,5 @@ export default function OnboardingProfile() {
   )
 }
 
-const labelStyle: React.CSSProperties = {
-  fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5,
-  textTransform: 'uppercase', display: 'block', marginBottom: 8
-}
-
-const inputStyle: React.CSSProperties = {
-  width: '100%', padding: '13px 16px', borderRadius: 10,
-  border: '1.5px solid #DDE8E0', fontSize: 14, background: '#fff',
-  outline: 'none', boxSizing: 'border-box', marginBottom: 20,
-  fontFamily: "'DM Sans', sans-serif", color: '#1E2620'
-}
+const labelStyle: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', display: 'block', marginBottom: 8 }
+const inputStyle: React.CSSProperties = { width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 14, background: '#fff', outline: 'none', boxSizing: 'border-box', marginBottom: 20, fontFamily: "'DM Sans', sans-serif", color: '#1E2620' }
