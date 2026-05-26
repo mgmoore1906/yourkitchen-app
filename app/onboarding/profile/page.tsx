@@ -39,10 +39,6 @@ export default function OnboardingProfile() {
     router.push('/onboarding/calendar')
   }
 
-  const handleSignOut = async () => {
-    await supabase.auth.signOut()
-    router.push('/signup')
-  }
 
   return (
     <div style={{ minHeight: '100vh', background: '#FAFAF5', fontFamily: "'DM Sans', sans-serif", padding: '0 0 40px' }}>
@@ -53,7 +49,6 @@ export default function OnboardingProfile() {
           <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
         </div>
-        <button onClick={handleSignOut} style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Sign out</button>
       </div>
 
       <div style={{ display: 'flex', gap: 6, padding: '20px 24px 0' }}>
