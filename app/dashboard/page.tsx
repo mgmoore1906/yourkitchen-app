@@ -1,12 +1,14 @@
 'use client'
 // FILE: app/dashboard/page.tsx
-// Change: removed "Copy Kitchen Link" from the Quick Actions grid (3 items now instead of 4).
-// The kitchen link is already available in the share section above the calendar.
-// All other logic preserved exactly as-is.
+// Changes from previous version:
+//   1. Sign out now routes to /signup (was /login) — fixes 405 during account creation
+//   2. Pending Orders added as 4th quick action with live count badge
+//   3. AppFooter added at the bottom of the page
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import AppFooter from '@/components/AppFooter'
 
 const S = {
   sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
@@ -158,7 +160,7 @@ export default function DashboardPage() {
   )
 
   return (
-    <div style={{ minHeight: '100vh', background: S.cream, fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: S.cream, fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
       {/* Nav */}
@@ -167,13 +169,14 @@ export default function DashboardPage() {
           <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase' }}>Your</span>
           <span style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.forest, letterSpacing: -0.5 }}>Kitchen</span>
         </div>
+        {/* ── FIX: routes to /signup not /login ── */}
         <button
-          onClick={async () => { await supabase.auth.signOut(); router.push('/login') }}
+          onClick={async () => { await supabase.auth.signOut(); router.push('/signup') }}
           style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 500, color: S.stone, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
         >Sign out</button>
       </nav>
 
-      <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 24px 80px' }}>
+      <div style={{ maxWidth: 680, margin: '0 auto', padding: '28px 24px 80px', flex: 1, width: '100%' }}>
 
         {/* Greeting */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 24 }}>
@@ -308,23 +311,45 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* ── Quick Actions — 3 items, "Copy Kitchen Link" removed ── */}
+          {/* ── Quick Actions — 4 items, Pending Orders added ── */}
           <p style={{ fontFamily: "'Lora', serif", fontSize: 17, fontWeight: 500, color: S.forest, margin: '4px 0 12px' }}>Quick Actions</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
               { icon: '🏪', label: 'My Restaurants', action: () => router.push('/kitchen/restaurants') },
               { icon: '📋', label: 'Order History', action: () => router.push('/kitchen/orders') },
               { icon: '⚙️', label: 'Settings', action: () => router.push('/settings') },
+              {
+                icon: '🔔',
+                label: 'Pending Orders',
+                action: () => {
+                  // Scroll to top where pending proposals are shown
+                  window.scrollTo({ top: 0, behavior: 'smooth' })
+                },
+                badge: proposals.length > 0 ? proposals.length : null,
+              },
             ].map(a => (
-              <button key={a.label} onClick={a.action} style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
+              <button
+                key={a.label}
+                onClick={a.action}
+                style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left', position: 'relative' }}
+              >
                 <span style={{ fontSize: 22 }}>{a.icon}</span>
                 <span style={{ fontSize: 13, fontWeight: 500, color: S.forest }}>{a.label}</span>
+                {/* Badge showing pending count */}
+                {'badge' in a && a.badge && (
+                  <span style={{ position: 'absolute', top: 10, right: 12, background: S.amber, color: S.white, borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
+                    {a.badge}
+                  </span>
+                )}
               </button>
             ))}
           </div>
 
         </>)}
       </div>
+
+      {/* ── Footer — matches yourkitchen.app ── */}
+      <AppFooter />
     </div>
   )
 }
