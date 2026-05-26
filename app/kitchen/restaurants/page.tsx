@@ -1,247 +1,93 @@
 'use client'
+// FILE: app/onboarding/restaurants/page.tsx
+// Fix: replaced <form action="/auth/signout" method="post"> with client-side signOut()
+
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
-const S = {
-  sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
-  cream: '#FAFAF5', forest: '#1E2620', stone: '#6B7066',
-  border: '#DDE8E0', white: '#FFFFFF', red: '#B94040',
-}
+const RESTAURANTS = [
+  { id: 'first-watch',  name: 'First Watch',                emoji: '🥞', cuisine: 'American Breakfast & Brunch',  rating: 4.7 },
+  { id: 'toasted-yolk', name: 'The Toasted Yolk Cafe',      emoji: '🍳', cuisine: 'American Breakfast & Brunch',  rating: 4.8 },
+  { id: 'harvest',      name: 'Harvest Kitchen & Bakery',   emoji: '🌿', cuisine: 'Farm-to-Table Brunch',         rating: 4.9 },
+  { id: 'cava',         name: 'Cava',                       emoji: '🫙', cuisine: 'Mediterranean',                rating: 4.7 },
+  { id: 'kebab-shop',   name: 'The Kebab Shop',             emoji: '🥙', cuisine: 'Mediterranean',                rating: 4.5 },
+  { id: 'mod-fresh',    name: 'Mod Fresh',                  emoji: '🥗', cuisine: 'Healthy Fast-Casual',          rating: 4.6 },
+  { id: 'up-thai',      name: 'Up Thai Kitchen',            emoji: '🍜', cuisine: 'Thai',                         rating: 4.8 },
+]
 
-type MenuItem = { id: string; name: string; description: string; price: number; is_favorite: boolean }
-type Restaurant = { id: string; name: string; cuisine: string; is_active: boolean; doordash_store_id: string; menu_items: MenuItem[] }
-
-export default function RestaurantsPage() {
-  const router = useRouter()
-  const supabase = createClient()
-  const [loading, setLoading] = useState(true)
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
-  const [kitchenId, setKitchenId] = useState('')
-  const [kitchenSlug, setKitchenSlug] = useState('')
-  const [userName, setUserName] = useState('')
-  const [expanded, setExpanded] = useState<string | null>(null)
-  const [toggling, setToggling] = useState<string | null>(null)
-
-  // Request form
-  const [showForm, setShowForm] = useState(false)
-  const [reqName, setReqName] = useState('')
-  const [reqCity, setReqCity] = useState('')
-  const [reqNotes, setReqNotes] = useState('')
-  const [reqLoading, setReqLoading] = useState(false)
-  const [reqSent, setReqSent] = useState(false)
-  const [reqError, setReqError] = useState('')
+export default function OnboardingRestaurants() {
+  const router  = useRouter()
+  const [picked, setPicked] = useState<string[]>([])
 
   useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-
-      const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
-      setUserName(profile?.full_name || '')
-
-      const { data: kitchen } = await supabase
-        .from('kitchens').select('id, slug').eq('organizer_id', user.id).single()
-      if (!kitchen) { router.push('/dashboard'); return }
-
-      setKitchenId(kitchen.id)
-      setKitchenSlug(kitchen.slug)
-
-      const { data: rests } = await supabase
-        .from('kitchen_restaurants')
-        .select('id, name, cuisine, is_active, doordash_store_id, menu_items(id, name, description, price, is_favorite)')
-        .eq('kitchen_id', kitchen.id)
-        .order('name')
-
-      setRestaurants(rests || [])
-      setLoading(false)
-    }
-    load()
+    const saved = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
+    if (saved.restaurants?.length) setPicked(saved.restaurants.map((r: any) => r.id))
   }, [])
 
-  const toggleActive = async (restId: string, current: boolean) => {
-    setToggling(restId)
-    await fetch('/api/restaurants', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ restaurant_id: restId, is_active: !current }),
-    })
-    setRestaurants(prev => prev.map(r => r.id === restId ? { ...r, is_active: !current } : r))
-    setToggling(null)
+  const toggle = (id: string) => {
+    setPicked(p => p.includes(id) ? p.filter(x => x !== id) : p.length < 5 ? [...p, id] : p)
   }
 
-  const submitRequest = async () => {
-    if (!reqName.trim() || !reqCity.trim()) return
-    setReqLoading(true); setReqError('')
-    const res = await fetch('/api/request-restaurant', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_name: userName,
-        kitchen_slug: kitchenSlug,
-        restaurant_name: reqName.trim(),
-        city: reqCity.trim(),
-        notes: reqNotes.trim(),
-      }),
-    })
-    if (res.ok) {
-      setReqSent(true); setReqName(''); setReqCity(''); setReqNotes('')
-      setTimeout(() => { setReqSent(false); setShowForm(false) }, 3500)
-    } else {
-      setReqError('Failed to send request. Please try again.')
-    }
-    setReqLoading(false)
+  const handleNext = () => {
+    const existing = JSON.parse(localStorage.getItem('yk_onboarding') || '{}')
+    localStorage.setItem('yk_onboarding', JSON.stringify({ ...existing, restaurants: RESTAURANTS.filter(r => picked.includes(r.id)) }))
+    router.push('/onboarding/favorites')
   }
 
-  const active = restaurants.filter(r => r.is_active)
-  const inactive = restaurants.filter(r => !r.is_active)
-
-  if (loading) return (
-    <div style={{ minHeight: '100vh', background: S.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
-      <p style={{ color: S.stone, fontSize: 14 }}>Loading restaurants…</p>
-    </div>
-  )
+  const handleSignOut = async () => {
+    const supabase = createClient()
+    await supabase.auth.signOut()
+    router.push('/signup')
+  }
 
   return (
-    <div style={{ minHeight: '100vh', background: S.cream, fontFamily: "'DM Sans', sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: '#FAFAF5', fontFamily: "'DM Sans', sans-serif", padding: '0 0 40px' }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-      <nav style={{ background: S.white, borderBottom: `0.5px solid ${S.border}`, padding: '14px 28px', display: 'flex', alignItems: 'center', gap: 14, position: 'sticky', top: 0, zIndex: 100 }}>
-        <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: `1.5px solid ${S.border}`, borderRadius: 9, width: 34, height: 34, cursor: 'pointer', fontSize: 16, color: S.stone, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>‹</button>
-        <div>
-          <div style={{ fontSize: 8, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase' }}>Your</div>
-          <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.forest, letterSpacing: -0.5 }}>Kitchen</div>
-        </div>
-      </nav>
-
-      <div style={{ maxWidth: 580, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: S.sage, margin: '0 0 6px' }}>My Kitchen</p>
-        <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 500, color: S.forest, margin: '0 0 4px', letterSpacing: -0.5 }}>My Restaurants</h1>
-        <p style={{ fontSize: 14, color: S.stone, fontWeight: 300, margin: '0 0 28px' }}>Your coordinators order from these. Toggle any off to hide it temporarily.</p>
-
-        {/* Active */}
-        {active.length > 0 && (
-          <>
-            <p style={sectionLabel}>Active ({active.length})</p>
-            {active.map(r => <RestaurantCard key={r.id} r={r} expanded={expanded} setExpanded={setExpanded} toggling={toggling} toggleActive={toggleActive} />)}
-          </>
-        )}
-
-        {/* Inactive */}
-        {inactive.length > 0 && (
-          <>
-            <p style={{ ...sectionLabel, marginTop: 20 }}>Hidden ({inactive.length})</p>
-            {inactive.map(r => <RestaurantCard key={r.id} r={r} expanded={expanded} setExpanded={setExpanded} toggling={toggling} toggleActive={toggleActive} />)}
-          </>
-        )}
-
-        {/* ── Concierge request card ── */}
-        <div
-          onClick={() => !showForm && setShowForm(true)}
-          style={{
-            border: `1.5px dashed ${showForm ? S.sage : S.border}`,
-            borderRadius: 14, padding: showForm ? '20px' : '18px 20px',
-            marginTop: 20, cursor: showForm ? 'default' : 'pointer',
-            background: showForm ? S.white : 'transparent',
-            transition: 'all 0.2s',
-          }}
-        >
-          {!showForm && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
-              <div style={{ width: 38, height: 38, borderRadius: 10, background: S.sageLight, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 18, flexShrink: 0 }}>🍽</div>
-              <div>
-                <div style={{ fontFamily: "'Lora', serif", fontSize: 14, fontWeight: 500, color: S.forest }}>Request a restaurant</div>
-                <div style={{ fontSize: 12, color: S.stone, fontWeight: 300, marginTop: 2 }}>Don't see your favorite? We'll add it within 24 hours.</div>
-              </div>
-              <div style={{ marginLeft: 'auto', fontSize: 18, color: S.stone }}>›</div>
-            </div>
-          )}
-
-          {showForm && (
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
-                <div>
-                  <p style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 500, color: S.forest, margin: '0 0 2px' }}>Request a restaurant</p>
-                  <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: 0 }}>We'll add it within 24 hours.</p>
-                </div>
-                <button onClick={() => { setShowForm(false); setReqError('') }}
-                  style={{ background: 'none', border: 'none', fontSize: 18, color: S.stone, cursor: 'pointer' }}>✕</button>
-              </div>
-
-              {reqSent ? (
-                <div style={{ background: S.sageLight, borderRadius: 10, padding: '14px 16px', textAlign: 'center' }}>
-                  <div style={{ fontSize: 22, marginBottom: 6 }}>✅</div>
-                  <p style={{ fontSize: 13, color: S.sage, fontWeight: 600, margin: '0 0 2px' }}>Request sent!</p>
-                  <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: 0 }}>We'll add it and let you know within 24 hours.</p>
-                </div>
-              ) : (
-                <>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={labelStyle}>Restaurant name</label>
-                    <input value={reqName} onChange={e => setReqName(e.target.value)} placeholder="e.g. Nobu Houston"
-                      style={inputStyle} />
-                  </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={labelStyle}>City</label>
-                    <input value={reqCity} onChange={e => setReqCity(e.target.value)} placeholder="e.g. Houston, TX"
-                      style={inputStyle} />
-                  </div>
-                  <div style={{ marginBottom: 14 }}>
-                    <label style={labelStyle}>Anything else? <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-                    <textarea value={reqNotes} onChange={e => setReqNotes(e.target.value)}
-                      placeholder="e.g. It's a Tex-Mex spot, my family loves the enchiladas"
-                      style={{ ...inputStyle, minHeight: 70, resize: 'none' as const }} />
-                  </div>
-                  {reqError && <p style={{ fontSize: 12, color: S.red, margin: '0 0 10px' }}>{reqError}</p>}
-                  <button onClick={submitRequest} disabled={!reqName.trim() || !reqCity.trim() || reqLoading}
-                    style={{ width: '100%', padding: '12px', background: !reqName.trim() || !reqCity.trim() || reqLoading ? S.border : S.forest, color: !reqName.trim() || !reqCity.trim() || reqLoading ? S.stone : S.white, border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 600, cursor: !reqName.trim() || !reqCity.trim() || reqLoading ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                    {reqLoading ? 'Sending…' : 'Send Request →'}
-                  </button>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function RestaurantCard({ r, expanded, setExpanded, toggling, toggleActive }: any) {
-  const isExpanded = expanded === r.id
-  return (
-    <div style={{ background: '#FFFFFF', border: `0.5px solid ${r.is_active ? '#DDE8E0' : '#EEE'}`, borderRadius: 14, marginBottom: 10, overflow: 'hidden', opacity: r.is_active ? 1 : 0.6 }}>
-      <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+      {/* Header */}
+      <div style={{ background: '#fff', borderBottom: '1px solid #DDE8E0', padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 12 }}>
+        <button onClick={() => router.back()} style={{ background: '#EAF2ED', border: 'none', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#3D6B4F' }}>‹</button>
         <div style={{ flex: 1 }}>
-          <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: '#1E2620' }}>{r.name}</div>
-          <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>{r.cuisine} · {r.menu_items?.length || 0} menu items</div>
+          <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
+          <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
         </div>
-        <button onClick={() => setExpanded(isExpanded ? null : r.id)}
-          style={{ background: '#EAF2ED', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 600, color: '#3D6B4F', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-          {isExpanded ? 'Hide' : 'Menu'}
-        </button>
-        <button onClick={() => toggleActive(r.id, r.is_active)} disabled={toggling === r.id}
-          style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: r.is_active ? '#3D6B4F' : '#DDE8E0', position: 'relative', transition: 'background 0.2s', flexShrink: 0 }}>
-          <div style={{ width: 18, height: 18, borderRadius: '50%', background: '#fff', position: 'absolute', top: 3, left: r.is_active ? 23 : 3, transition: 'left 0.2s' }} />
-        </button>
+        {/* FIXED: was <form action="/auth/signout" method="post"> — caused 405 */}
+        <button onClick={handleSignOut} style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Sign out</button>
       </div>
-      {isExpanded && (
-        <div style={{ borderTop: '0.5px solid #DDE8E0', padding: '12px 16px' }}>
-          {(r.menu_items || []).map((item: any) => (
-            <div key={item.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '8px 0', borderBottom: '0.5px solid #EAF2ED' }}>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 13, fontWeight: 500, color: '#1E2620' }}>{item.is_favorite ? '⭐ ' : ''}{item.name}</div>
-                <div style={{ fontSize: 11, color: '#6B7066', fontWeight: 300, marginTop: 2, lineHeight: 1.4 }}>{item.description}</div>
+
+      {/* Progress */}
+      <div style={{ display: 'flex', gap: 6, padding: '20px 24px 0' }}>
+        {[0,1,2,3].map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i <= 2 ? '#3D6B4F' : '#DDE8E0' }} />)}
+      </div>
+
+      <div style={{ padding: '24px 24px 0', maxWidth: 500, margin: '0 auto' }}>
+        <p style={{ fontSize: 10, fontWeight: 500, letterSpacing: 3, color: '#3D6B4F', textTransform: 'uppercase', margin: '0 0 8px' }}>Step 3 of 4</p>
+        <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 500, color: '#1E2620', margin: '0 0 6px', letterSpacing: -0.5 }}>Which restaurants do you love?</h1>
+        <p style={{ fontSize: 14, color: '#6B7066', margin: '0 0 8px', fontWeight: 300 }}>Your coordinators will order from these. All delivered via DoorDash.</p>
+        <p style={{ fontSize: 12, color: '#6B9E7E', margin: '0 0 24px', fontWeight: 500 }}>{picked.length}/5 selected</p>
+
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
+          {RESTAURANTS.map(r => (
+            <button key={r.id} onClick={() => toggle(r.id)}
+              style={{ background: picked.includes(r.id) ? '#EAF2ED' : '#fff', border: `2px solid ${picked.includes(r.id) ? '#3D6B4F' : '#DDE8E0'}`, borderRadius: 16, padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, transition: 'all 0.15s', fontFamily: "'DM Sans', sans-serif" }}>
+              <div style={{ width: 44, height: 44, borderRadius: 12, background: picked.includes(r.id) ? '#3D6B4F' : '#EAF2ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0 }}>{r.emoji}</div>
+              <div style={{ flex: 1, textAlign: 'left' }}>
+                <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: '#1E2620' }}>{r.name}</div>
+                <div style={{ fontSize: 12, color: '#6B7066', fontWeight: 300, marginTop: 2 }}>{r.cuisine} · ★ {r.rating} · DoorDash</div>
               </div>
-              <div style={{ fontSize: 13, fontWeight: 600, color: '#3D6B4F', flexShrink: 0, marginLeft: 12 }}>${item.price}</div>
-            </div>
+              <div style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${picked.includes(r.id) ? '#3D6B4F' : '#DDE8E0'}`, background: picked.includes(r.id) ? '#3D6B4F' : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 13, flexShrink: 0 }}>
+                {picked.includes(r.id) ? '✓' : ''}
+              </div>
+            </button>
           ))}
         </div>
-      )}
+
+        <button onClick={handleNext} disabled={picked.length === 0}
+          style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: picked.length === 0 ? '#DDE8E0' : '#3D6B4F', color: picked.length === 0 ? '#6B7066' : '#fff', fontSize: 14, fontWeight: 500, cursor: picked.length === 0 ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+          Next: Pick My Favorites →
+        </button>
+      </div>
     </div>
   )
 }
-
-const sectionLabel: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: '#6B7066', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }
-const labelStyle: React.CSSProperties = { fontSize: 10, fontWeight: 600, color: '#6B7066', letterSpacing: '0.08em', textTransform: 'uppercase', display: 'block', marginBottom: 6 }
-const inputStyle: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 9, border: '1.5px solid #DDE8E0', fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: '#1E2620', background: '#FAFAF5', outline: 'none', boxSizing: 'border-box' }
