@@ -320,30 +320,71 @@ export default function OnboardingPage() {
 
       <div className="onb-wrap">
         {/* Nav */}
-        <nav className="onb-nav">
-          <div className="onb-logo">
-            <span className="onb-your">Your</span>
-            <span className="onb-kitchen">Kitchen</span>
+       // FILE: app/onboarding/page.tsx
+// PATCH — add a sign out button to the onboarding nav.
+// The nav currently has the logo on the left and the progress steps on the right.
+// Add a sign out button between them (or after the progress steps).
+//
+// Find this section in the nav (around line 195):
+//
+//   <nav className="onb-nav">
+//     <div className="onb-logo">
+//       <span className="onb-your">Your</span>
+//       <span className="onb-kitchen">Kitchen</span>
+//     </div>
+//     <div className="prog-wrap">
+//       ...progress steps...
+//     </div>
+//   </nav>
+//
+// Replace with:
+
+<nav className="onb-nav">
+  <div className="onb-logo">
+    <span className="onb-your">Your</span>
+    <span className="onb-kitchen">Kitchen</span>
+  </div>
+  <div className="prog-wrap">
+    {(['profile', 'address', 'plan'] as Step[]).map((s, i) => {
+      const labels = ['Profile', 'Address', 'Plan']
+      const isDone = stepIndex > i
+      const isActive = stepIndex === i
+      return (
+        <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          {i > 0 && <div className="prog-line" />}
+          <div className="prog-step">
+            <div className={`prog-dot ${isDone ? 'prog-dot-done' : isActive ? 'prog-dot-active' : 'prog-dot-idle'}`}>
+              {isDone ? '✓' : i + 1}
+            </div>
+            <span className={`prog-label ${isActive ? 'prog-label-active' : 'prog-label-idle'}`}>{labels[i]}</span>
           </div>
-          <div className="prog-wrap">
-            {(['profile', 'address', 'plan'] as Step[]).map((s, i) => {
-              const labels = ['Profile', 'Address', 'Plan']
-              const isDone = stepIndex > i
-              const isActive = stepIndex === i
-              return (
-                <div key={s} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  {i > 0 && <div className="prog-line" />}
-                  <div className="prog-step">
-                    <div className={`prog-dot ${isDone ? 'prog-dot-done' : isActive ? 'prog-dot-active' : 'prog-dot-idle'}`}>
-                      {isDone ? '✓' : i + 1}
-                    </div>
-                    <span className={`prog-label ${isActive ? 'prog-label-active' : 'prog-label-idle'}`}>{labels[i]}</span>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </nav>
+        </div>
+      )
+    })}
+  </div>
+
+  {/* ── NEW: sign out button — routes to /signup, not a broken endpoint ── */}
+  <button
+    onClick={async () => {
+      await supabase.auth.signOut()
+      router.push('/signup')
+    }}
+    style={{
+      background: 'none',
+      border: 'none',
+      fontSize: 12,
+      fontWeight: 500,
+      color: '#6B7066',
+      cursor: 'pointer',
+      fontFamily: "'DM Sans', sans-serif",
+      marginLeft: 16,
+    }}
+  >
+    Sign out
+  </button>
+</nav>
+
+// 
 
         <div className="onb-body">
           <div className="onb-card">
