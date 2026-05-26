@@ -63,6 +63,7 @@ export default function DashboardPage() {
   const [proposals, setProposals]   = useState<Proposal[]>([])
   const [copied, setCopied]         = useState(false)
   const [kitchenUrl, setKitchenUrl] = useState('')
+  const [subscriptionTier, setSubscriptionTier] = useState('free')
 
   const today    = new Date()
   const todayStr = today.toISOString().split('T')[0]
@@ -95,8 +96,9 @@ export default function DashboardPage() {
       if (!user) { router.push('/login'); return }
 
       const { data: profile } = await supabase
-        .from('profiles').select('full_name').eq('id', user.id).single()
+        .from('profiles').select('full_name, subscription_tier').eq('id', user.id).single()
       setUserName(profile?.full_name?.split(' ')[0] || 'there')
+      setSubscriptionTier((profile as any)?.subscription_tier || 'free')
 
       const { data: k } = await supabase
         .from('kitchens').select('id, name, slug').eq('organizer_id', user.id).single()
@@ -191,6 +193,32 @@ export default function DashboardPage() {
           </div>
           <div style={{ width: 44, height: 44, borderRadius: 13, background: S.sage, display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white, fontWeight: 700, fontSize: 15 }}>{initials(userName)}</div>
         </div>
+
+
+        {/* ── Your Plan card ── */}
+        {(() => {
+          const TIER_META: Record<string, { badge: string; color: string; bg: string; tagline: string }> = {
+            free:     { badge: 'Free',             color: '#3D6B4F', bg: '#EAF2ED', tagline: '60-day calendar · 3 restaurants · Push only' },
+            care:     { badge: 'Care+',            color: '#3D6B4F', bg: '#EAF2ED', tagline: 'Unlimited calendar · 10 restaurants · SMS' },
+            annual:   { badge: 'Early Adopter',    color: '#6B9E7E', bg: '#EAF2ED', tagline: 'Care+ features · Locked annual rate' },
+            founding: { badge: 'Founding Member',  color: '#C17F47', bg: '#FBF0E4', tagline: 'Unlimited everything · Lifetime price lock' },
+          }
+          const tier = TIER_META[subscriptionTier] || TIER_META.free
+          return (
+            <div style={{ background: '#fff', border: `1.5px solid ${tier.color}`, borderRadius: 16, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <div>
+                <span style={{ background: tier.bg, color: tier.color, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20, letterSpacing: '0.05em', display: 'inline-block', marginBottom: 4 }}>{tier.badge}</span>
+                <p style={{ fontSize: 12, color: '#6B7066', margin: 0, fontWeight: 300 }}>{tier.tagline}</p>
+              </div>
+              <button
+                onClick={() => router.push('/settings')}
+                style={{ background: 'none', border: `1px solid ${tier.color}`, borderRadius: 10, padding: '7px 14px', fontSize: 12, color: tier.color, cursor: 'pointer', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}
+              >
+                {subscriptionTier === 'free' ? 'Upgrade' : 'Manage'}
+              </button>
+            </div>
+          )
+        })()}
 
         {/* No kitchen */}
         {!kitchen && (
@@ -319,7 +347,7 @@ export default function DashboardPage() {
               { icon: '🏪', label: 'My Restaurants',  action: () => router.push('/kitchen/restaurants'), badge: null },
               { icon: '📋', label: 'Order History',    action: () => router.push('/kitchen/orders'),      badge: null },
               { icon: '⚙️', label: 'Settings',         action: () => router.push('/settings'),            badge: null },
-              { icon: '🔔', label: 'Pending Orders',   action: () => window.scrollTo({ top: 0, behavior: 'smooth' }), badge: proposals.length || null },
+              { icon: '🔔', label: 'Pending Orders',   action: () => { if (proposals.length === 1) router.push(`/proposals/${proposals[0].id}`); else if (proposals.length > 1) window.scrollTo({ top: 0, behavior: 'smooth' }); else router.push('/kitchen/orders') }, badge: proposals.length || null },
             ].map(a => (
               <button key={a.label} onClick={a.action}
                 style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", textAlign: 'left', position: 'relative' }}>
