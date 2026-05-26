@@ -1,57 +1,82 @@
 'use client'
 // FILE: app/dashboard/page.tsx
-// Changes from previous version:
-//   1. Sign out now routes to /signup (was /login) — fixes 405 during account creation
-//   2. Pending Orders added as 4th quick action with live count badge
-//   3. AppFooter added at the bottom of the page
+// Footer is inlined at the bottom — no external component import needed.
 
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import AppFooter from '@/components/AppFooter'
 
 const S = {
   sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
   cream: '#FAFAF5', forest: '#1E2620', stone: '#6B7066',
-  border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47',
-  red: '#B94040',
+  border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47', red: '#B94040',
 }
 
 const MEAL_COLORS: Record<string, { color: string; bg: string; label: string; emoji: string }> = {
   breakfast: { color: '#E8834A', bg: '#FFF0E8', label: 'Breakfast', emoji: '🌅' },
-  lunch: { color: '#4A8FA8', bg: '#E8F4F8', label: 'Lunch', emoji: '☀️' },
-  dinner: { color: '#3D6B4F', bg: '#EAF2ED', label: 'Dinner', emoji: '🌙' },
+  lunch:     { color: '#4A8FA8', bg: '#E8F4F8', label: 'Lunch',     emoji: '☀️' },
+  dinner:    { color: '#3D6B4F', bg: '#EAF2ED', label: 'Dinner',    emoji: '🌙' },
 }
 
-type CalDate = { id: string; date: string; meal_type: string; status: string }
+type CalDate  = { id: string; date: string; meal_type: string; status: string }
 type Proposal = { id: string; coordinator_name: string; restaurant_name: string; meal_name: string; delivery_date: string; meal_type: string }
-type Kitchen = { id: string; name: string; slug: string }
+type Kitchen  = { id: string; name: string; slug: string }
+
+function InlineFooter() {
+  return (
+    <footer style={{ background: S.forest, padding: '52px 40px', textAlign: 'center', fontFamily: "'DM Sans', sans-serif" }}>
+      <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase', marginBottom: 2 }}>Your</div>
+      <div style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 500, color: S.white, letterSpacing: -0.5, marginBottom: 10 }}>Kitchen</div>
+      <p style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: 14, color: S.sageMid, margin: '0 0 24px' }}>"Your kitchen, covered."</p>
+      <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '6px 0', fontSize: 12, marginBottom: 20 }}>
+        {[
+          { label: 'yourkitchen.app',            href: 'https://yourkitchen.app' },
+          { label: 'marques@yourkitchen.app',    href: 'mailto:marques@yourkitchen.app' },
+          { label: 'FAQ',     href: '/faq' },
+          { label: 'Terms',   href: '/terms' },
+          { label: 'Privacy', href: '/privacy' },
+          { label: 'Hockley, TX', href: null },
+        ].map((link, i) => (
+          <span key={link.label}>
+            {i > 0 && <span style={{ color: 'rgba(255,255,255,0.3)', margin: '0 10px' }}>·</span>}
+            {link.href
+              ? <a href={link.href} style={{ color: 'rgba(255,255,255,0.3)', textDecoration: 'none' }}>{link.label}</a>
+              : <span style={{ color: 'rgba(255,255,255,0.3)' }}>{link.label}</span>}
+          </span>
+        ))}
+      </div>
+      <p style={{ fontSize: 11, color: 'rgba(255,255,255,0.18)', margin: 0 }}>
+        © 2026 YourKitchen LLC · Built with love for Danielle · All rights reserved
+      </p>
+    </footer>
+  )
+}
 
 export default function DashboardPage() {
-  const router = useRouter()
+  const router  = useRouter()
   const supabase = createClient()
 
-  const [loading, setLoading] = useState(true)
-  const [userName, setUserName] = useState('')
-  const [kitchen, setKitchen] = useState<Kitchen | null>(null)
-  const [calDates, setCalDates] = useState<CalDate[]>([])
-  const [proposals, setProposals] = useState<Proposal[]>([])
-  const [copied, setCopied] = useState(false)
+  const [loading, setLoading]       = useState(true)
+  const [userName, setUserName]     = useState('')
+  const [kitchen, setKitchen]       = useState<Kitchen | null>(null)
+  const [calDates, setCalDates]     = useState<CalDate[]>([])
+  const [proposals, setProposals]   = useState<Proposal[]>([])
+  const [copied, setCopied]         = useState(false)
   const [kitchenUrl, setKitchenUrl] = useState('')
 
-  const today = new Date()
+  const today    = new Date()
   const todayStr = today.toISOString().split('T')[0]
-  const [viewYear, setViewYear] = useState(today.getFullYear())
-  const [viewMonth, setViewMonth] = useState(today.getMonth())
+  const [viewYear, setViewYear]       = useState(today.getFullYear())
+  const [viewMonth, setViewMonth]     = useState(today.getMonth())
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [adding, setAdding] = useState(false)
-  const [addError, setAddError] = useState('')
+  const [adding, setAdding]           = useState(false)
+  const [addError, setAddError]       = useState('')
 
-  const monthName = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-  const firstDay = new Date(viewYear, viewMonth, 1).getDay()
+  const monthName  = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
+  const firstDay   = new Date(viewYear, viewMonth, 1).getDay()
   const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
-  const prevMonth = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) } else setViewMonth(m => m - 1) }
-  const nextMonth = () => { if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0) } else setViewMonth(m => m + 1) }
+  const prevMonth  = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) } else setViewMonth(m => m - 1) }
+  const nextMonth  = () => { if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0)  } else setViewMonth(m => m + 1) }
 
   const cells: (number | null)[] = []
   for (let i = 0; i < firstDay; i++) cells.push(null)
@@ -59,11 +84,8 @@ export default function DashboardPage() {
 
   const loadCalDates = useCallback(async (kitchenId: string) => {
     const { data } = await supabase
-      .from('calendar_dates')
-      .select('id, date, meal_type, status')
-      .eq('kitchen_id', kitchenId)
-      .gte('date', todayStr)
-      .order('date', { ascending: true })
+      .from('calendar_dates').select('id, date, meal_type, status')
+      .eq('kitchen_id', kitchenId).gte('date', todayStr).order('date', { ascending: true })
     setCalDates(data || [])
   }, [todayStr])
 
@@ -83,13 +105,10 @@ export default function DashboardPage() {
         setKitchen(k)
         setKitchenUrl(`${window.location.origin}/k/${k.slug}`)
         await loadCalDates(k.id)
-
         const { data: props } = await supabase
           .from('meal_proposals')
           .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type')
-          .eq('kitchen_id', k.id)
-          .eq('status', 'pending')
-          .order('delivery_date', { ascending: true })
+          .eq('kitchen_id', k.id).eq('status', 'pending').order('delivery_date', { ascending: true })
         setProposals(props || [])
       }
       setLoading(false)
@@ -102,18 +121,16 @@ export default function DashboardPage() {
     try { await navigator.clipboard.writeText(kitchenUrl) } catch {
       const ta = document.createElement('textarea')
       ta.value = kitchenUrl; ta.style.cssText = 'position:fixed;opacity:0'
-      document.body.appendChild(ta); ta.select()
-      document.execCommand('copy'); document.body.removeChild(ta)
+      document.body.appendChild(ta); ta.select(); document.execCommand('copy'); document.body.removeChild(ta)
     }
-    setCopied(true)
-    setTimeout(() => setCopied(false), 2500)
+    setCopied(true); setTimeout(() => setCopied(false), 2500)
   }
 
   const shareLink = async () => {
     if (!kitchenUrl) return
     if (navigator.share) {
       try { await navigator.share({ title: kitchen?.name, text: 'Send me a meal through YourKitchen', url: kitchenUrl }) }
-      catch { /* user cancelled */ }
+      catch { /* cancelled */ }
     } else { copyLink() }
   }
 
@@ -122,36 +139,25 @@ export default function DashboardPage() {
 
   const handleDateClick = (dateStr: string) => {
     if (dateStr < todayStr) return
-    setSelectedDate(prev => prev === dateStr ? null : dateStr)
-    setAddError('')
+    setSelectedDate(prev => prev === dateStr ? null : dateStr); setAddError('')
   }
 
   const handleAddSlot = async (mealType: string) => {
     if (!kitchen || !selectedDate) return
     setAdding(true); setAddError('')
-    const res = await fetch('/api/calendar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kitchen_id: kitchen.id, date: selectedDate, meal_type: mealType }),
-    })
+    const res  = await fetch('/api/calendar', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ kitchen_id: kitchen.id, date: selectedDate, meal_type: mealType }) })
     const data = await res.json()
     if (!res.ok) { setAddError(data.error || 'Could not add slot'); setAdding(false); return }
-    await loadCalDates(kitchen.id)
-    setAdding(false)
+    await loadCalDates(kitchen.id); setAdding(false)
   }
 
   const handleRemoveSlot = async (dateId: string) => {
-    await fetch('/api/calendar', {
-      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ date_id: dateId }),
-    })
+    await fetch('/api/calendar', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date_id: dateId }) })
     if (kitchen) await loadCalDates(kitchen.id)
   }
 
-  const formatDate = (dateStr: string) =>
-    new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-
-  const initials = (name: string) =>
-    name.split(' ').map(n => n[0]).join('').toUpperCase().slice(0, 2)
+  const formatDate = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const initials   = (n: string) => n.split(' ').map(x => x[0]).join('').toUpperCase().slice(0, 2)
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: S.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
@@ -169,7 +175,6 @@ export default function DashboardPage() {
           <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase' }}>Your</span>
           <span style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.forest, letterSpacing: -0.5 }}>Kitchen</span>
         </div>
-        {/* ── FIX: routes to /signup not /login ── */}
         <button
           onClick={async () => { await supabase.auth.signOut(); router.push('/signup') }}
           style={{ background: 'none', border: 'none', fontSize: 13, fontWeight: 500, color: S.stone, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
@@ -184,9 +189,7 @@ export default function DashboardPage() {
             <p style={{ fontSize: 13, color: S.stone, fontWeight: 300, margin: '0 0 3px' }}>Welcome back,</p>
             <h1 style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 500, color: S.forest, margin: 0, letterSpacing: -0.5 }}>{userName} 👋</h1>
           </div>
-          <div style={{ width: 44, height: 44, borderRadius: 13, background: S.sage, display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white, fontWeight: 700, fontSize: 15 }}>
-            {initials(userName)}
-          </div>
+          <div style={{ width: 44, height: 44, borderRadius: 13, background: S.sage, display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white, fontWeight: 700, fontSize: 15 }}>{initials(userName)}</div>
         </div>
 
         {/* No kitchen */}
@@ -232,32 +235,29 @@ export default function DashboardPage() {
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 4 }}>
-              {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
-                <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: S.stone, padding: '2px 0' }}>{d}</div>
-              ))}
+              {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: S.stone, padding: '2px 0' }}>{d}</div>)}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
               {cells.map((day, i) => {
                 if (!day) return <div key={i} />
-                const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`
-                const isPast = dateStr < todayStr
-                const isToday = dateStr === todayStr
-                const isSelected = selectedDate === dateStr
-                const slots = dateMap[dateStr] || []
+                const dateStr  = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
+                const isPast   = dateStr < todayStr
+                const isToday  = dateStr === todayStr
+                const isSel    = selectedDate === dateStr
+                const slots    = dateMap[dateStr] || []
                 return (
-                  <button key={i} onClick={() => handleDateClick(dateStr)} disabled={isPast} style={{ background: isSelected ? S.sageLight : slots.length > 0 ? '#F8FAF8' : S.white, border: `${isSelected || isToday ? 2 : 1}px solid ${isSelected ? S.sage : isToday ? S.sageMid : slots.length > 0 ? '#C8DDD0' : S.border}`, borderRadius: 9, padding: '8px 2px', minHeight: 54, cursor: isPast ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, fontFamily: "'DM Sans', sans-serif", opacity: isPast ? 0.35 : 1, transition: 'all 0.1s' }}>
-                    <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: isSelected ? S.sage : S.forest, lineHeight: 1 }}>{day}</span>
-                    {slots.length > 0 ? (
-                      <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-                        {slots.map((s, si) => <div key={si} style={{ width: 6, height: 6, borderRadius: '50%', background: MEAL_COLORS[s.meal_type]?.color || S.sage }} />)}
-                      </div>
-                    ) : !isPast ? <div style={{ fontSize: 14, color: '#DDE8E0' }}>+</div> : null}
+                  <button key={i} onClick={() => handleDateClick(dateStr)} disabled={isPast}
+                    style={{ background: isSel ? S.sageLight : slots.length ? '#F8FAF8' : S.white, border: `${isSel || isToday ? 2 : 1}px solid ${isSel ? S.sage : isToday ? S.sageMid : slots.length ? '#C8DDD0' : S.border}`, borderRadius: 9, padding: '8px 2px', minHeight: 54, cursor: isPast ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, fontFamily: "'DM Sans',sans-serif", opacity: isPast ? 0.35 : 1, transition: 'all 0.1s' }}>
+                    <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: isSel ? S.sage : S.forest, lineHeight: 1 }}>{day}</span>
+                    {slots.length
+                      ? <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>{slots.map((s,si) => <div key={si} style={{ width: 6, height: 6, borderRadius: '50%', background: MEAL_COLORS[s.meal_type]?.color || S.sage }} />)}</div>
+                      : !isPast ? <div style={{ fontSize: 14, color: '#DDE8E0' }}>+</div> : null}
                   </button>
                 )
               })}
             </div>
             <div style={{ display: 'flex', gap: 14, marginTop: 12, paddingTop: 12, borderTop: `0.5px solid ${S.border}`, flexWrap: 'wrap' }}>
-              {Object.entries(MEAL_COLORS).map(([k, v]) => (
+              {Object.entries(MEAL_COLORS).map(([k,v]) => (
                 <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: v.color }} />
                   <span style={{ fontSize: 10, color: S.stone, fontWeight: 500 }}>{v.emoji} {v.label}</span>
@@ -272,7 +272,7 @@ export default function DashboardPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
                 <div>
                   <p style={{ fontSize: 10, fontWeight: 700, color: S.sage, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 2px' }}>Selected date</p>
-                  <p style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 500, color: S.forest, margin: 0 }}>{formatDate(selectedDate)}</p>
+                  <p style={{ fontFamily: "'Lora',serif", fontSize: 16, fontWeight: 500, color: S.forest, margin: 0 }}>{formatDate(selectedDate)}</p>
                 </div>
                 <button onClick={() => setSelectedDate(null)} style={{ background: 'none', border: 'none', fontSize: 18, color: S.stone, cursor: 'pointer', padding: 4 }}>✕</button>
               </div>
@@ -297,49 +297,36 @@ export default function DashboardPage() {
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
                 {Object.entries(MEAL_COLORS).map(([type, mc]) => {
-                  const alreadyHas = (dateMap[selectedDate] || []).some(s => s.meal_type === type)
+                  const has = (dateMap[selectedDate] || []).some(s => s.meal_type === type)
                   return (
-                    <button key={type} onClick={() => !alreadyHas && !adding && handleAddSlot(type)} disabled={alreadyHas || adding} style={{ background: alreadyHas ? '#F5F5F5' : mc.bg, border: `1.5px solid ${alreadyHas ? '#DDD' : mc.color}`, borderRadius: 10, padding: '12px 8px', cursor: alreadyHas || adding ? 'default' : 'pointer', opacity: alreadyHas ? 0.5 : 1, fontFamily: "'DM Sans', sans-serif" }}>
+                    <button key={type} onClick={() => !has && !adding && handleAddSlot(type)} disabled={has || adding}
+                      style={{ background: has ? '#F5F5F5' : mc.bg, border: `1.5px solid ${has ? '#DDD' : mc.color}`, borderRadius: 10, padding: '12px 8px', cursor: has || adding ? 'default' : 'pointer', opacity: has ? 0.5 : 1, fontFamily: "'DM Sans',sans-serif" }}>
                       <div style={{ fontSize: 18, marginBottom: 4 }}>{mc.emoji}</div>
-                      <div style={{ fontSize: 12, fontWeight: 600, color: alreadyHas ? S.stone : mc.color }}>{alreadyHas ? '✓ Added' : mc.label}</div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: has ? S.stone : mc.color }}>{has ? '✓ Added' : mc.label}</div>
                     </button>
                   )
                 })}
               </div>
               {addError && <p style={{ fontSize: 12, color: S.red, margin: '10px 0 0' }}>{addError}</p>}
-              {adding && <p style={{ fontSize: 12, color: S.stone, margin: '10px 0 0', fontWeight: 300 }}>Adding…</p>}
+              {adding   && <p style={{ fontSize: 12, color: S.stone, margin: '10px 0 0', fontWeight: 300 }}>Adding…</p>}
             </div>
           )}
 
-          {/* ── Quick Actions — 4 items, Pending Orders added ── */}
-          <p style={{ fontFamily: "'Lora', serif", fontSize: 17, fontWeight: 500, color: S.forest, margin: '4px 0 12px' }}>Quick Actions</p>
+          {/* Quick Actions — 4 items */}
+          <p style={{ fontFamily: "'Lora',serif", fontSize: 17, fontWeight: 500, color: S.forest, margin: '4px 0 12px' }}>Quick Actions</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
             {[
-              { icon: '🏪', label: 'My Restaurants', action: () => router.push('/kitchen/restaurants') },
-              { icon: '📋', label: 'Order History', action: () => router.push('/kitchen/orders') },
-              { icon: '⚙️', label: 'Settings', action: () => router.push('/settings') },
-              {
-                icon: '🔔',
-                label: 'Pending Orders',
-                action: () => {
-                  // Scroll to top where pending proposals are shown
-                  window.scrollTo({ top: 0, behavior: 'smooth' })
-                },
-                badge: proposals.length > 0 ? proposals.length : null,
-              },
+              { icon: '🏪', label: 'My Restaurants',  action: () => router.push('/kitchen/restaurants'), badge: null },
+              { icon: '📋', label: 'Order History',    action: () => router.push('/kitchen/orders'),      badge: null },
+              { icon: '⚙️', label: 'Settings',         action: () => router.push('/settings'),            badge: null },
+              { icon: '🔔', label: 'Pending Orders',   action: () => window.scrollTo({ top: 0, behavior: 'smooth' }), badge: proposals.length || null },
             ].map(a => (
-              <button
-                key={a.label}
-                onClick={a.action}
-                style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left', position: 'relative' }}
-              >
+              <button key={a.label} onClick={a.action}
+                style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", textAlign: 'left', position: 'relative' }}>
                 <span style={{ fontSize: 22 }}>{a.icon}</span>
                 <span style={{ fontSize: 13, fontWeight: 500, color: S.forest }}>{a.label}</span>
-                {/* Badge showing pending count */}
-                {'badge' in a && a.badge && (
-                  <span style={{ position: 'absolute', top: 10, right: 12, background: S.amber, color: S.white, borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>
-                    {a.badge}
-                  </span>
+                {a.badge !== null && a.badge > 0 && (
+                  <span style={{ position: 'absolute', top: 10, right: 12, background: S.amber, color: S.white, borderRadius: '50%', width: 20, height: 20, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, fontWeight: 700 }}>{a.badge}</span>
                 )}
               </button>
             ))}
@@ -348,8 +335,8 @@ export default function DashboardPage() {
         </>)}
       </div>
 
-      {/* ── Footer — matches yourkitchen.app ── */}
-      <AppFooter />
+      {/* Footer */}
+      <InlineFooter />
     </div>
   )
 }
