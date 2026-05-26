@@ -234,7 +234,7 @@ export default function SettingsPage() {
                         <button
                           onClick={() => handlePlanSwitch(tier.key)}
                           disabled={!!switchingTier}
-                          style={{ background: tier.color, color: '#fff', border: 'none', borderRadius: 20, padding: '6px 16px', fontSize: 12, fontWeight: 600, cursor: switchingTier ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif', opacity: switchingTier ? 0.6 : 1 }}
+                          style={{ background: tier.color, color: '#fff', border: 'none', borderRadius: 20, padding: '6px 16px', fontSize: 12, fontWeight: 600, cursor: switchingTier ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: switchingTier ? 0.6 : 1 }}
                         >
                           {isSwitching ? 'Loading…' : tier.key === 'free' ? 'Downgrade' : 'Select'}
                         </button>
