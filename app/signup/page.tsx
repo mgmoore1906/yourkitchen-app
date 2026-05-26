@@ -1,13 +1,38 @@
 'use client'
+// FILE: app/signup/page.tsx
+// Changes:
+//   1. Removed the code snippet that was accidentally pasted into the JSX
+//   2. Added show/hide password toggle to both password fields (inline SVG — no new deps)
+//   3. Added inline "passwords match" indicator below confirm field
+//   4. Minimum password length bumped to 8 (was 6)
+
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
+// Inline SVG eye icons — no lucide-react needed
+const EyeIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+    <circle cx="12" cy="12" r="3" />
+  </svg>
+)
+
+const EyeOffIcon = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+    <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+    <path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+    <line x1="1" y1="1" x2="23" y2="23" />
+  </svg>
+)
+
 export default function SignUpPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
@@ -22,8 +47,8 @@ export default function SignUpPage() {
       setError('Passwords do not match')
       return
     }
-    if (password.length < 6) {
-      setError('Password must be at least 6 characters')
+    if (password.length < 8) {
+      setError('Password must be at least 8 characters')
       return
     }
 
@@ -40,7 +65,6 @@ export default function SignUpPage() {
       setError(error.message)
       setLoading(false)
     } else {
-      // Go straight to onboarding
       router.push('/onboarding/profile')
     }
   }
@@ -58,6 +82,8 @@ export default function SignUpPage() {
       setGoogleLoading(false)
     }
   }
+
+  const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword
 
   return (
     <div style={{ minHeight: '100vh', background: '#FAFAF5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
@@ -106,10 +132,10 @@ export default function SignUpPage() {
 
         {/* Email / Password form */}
         <form onSubmit={handleSignUp} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+
+          {/* Email */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 500, color: '#6B7066', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
-              Email
-            </label>
+            <label style={labelStyle}>Email</label>
             <input
               type="email"
               value={email}
@@ -119,55 +145,57 @@ export default function SignUpPage() {
               style={inputStyle}
             />
           </div>
-          const [showPassword, setShowPassword] = useState(false)
 
-// In your JSX, wrap the input in a relative div
-<div className="relative">
-  <input
-    type={showPassword ? 'text' : 'password'}
-    name="password"
-    placeholder="Password"
-    className="w-full border rounded-xl px-4 py-3 pr-12 ..."
-  />
-  <button
-    type="button"
-    onClick={() => setShowPassword(p => !p)}
-    className="absolute right-3 top-1/2 -translate-y-1/2 text-stone-400 hover:text-stone-600"
-  >
-    {showPassword ? (
-      <EyeOff size={18} />  // lucide-react
-    ) : (
-      <Eye size={18} />
-    )}
-  </button>
-</div>
-
+          {/* Password with show/hide */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 500, color: '#6B7066', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
-              Password
-            </label>
-            <input
-              type="password"
-              value={password}
-              onChange={e => setPassword(e.target.value)}
-              required
-              placeholder="At least 6 characters"
-              style={inputStyle}
-            />
+            <label style={labelStyle}>Password</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={e => setPassword(e.target.value)}
+                required
+                placeholder="At least 8 characters"
+                style={{ ...inputStyle, paddingRight: 46 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(v => !v)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7066', display: 'flex', alignItems: 'center', padding: 0 }}
+              >
+                {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
           </div>
 
+          {/* Confirm password with show/hide */}
           <div>
-            <label style={{ fontSize: 12, fontWeight: 500, color: '#6B7066', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>
-              Confirm Password
-            </label>
-            <input
-              type="password"
-              value={confirmPassword}
-              onChange={e => setConfirmPassword(e.target.value)}
-              required
-              placeholder="Repeat your password"
-              style={inputStyle}
-            />
+            <label style={labelStyle}>Confirm Password</label>
+            <div style={{ position: 'relative' }}>
+              <input
+                type={showConfirm ? 'text' : 'password'}
+                value={confirmPassword}
+                onChange={e => setConfirmPassword(e.target.value)}
+                required
+                placeholder="Repeat your password"
+                style={{ ...inputStyle, paddingRight: 46 }}
+              />
+              <button
+                type="button"
+                onClick={() => setShowConfirm(v => !v)}
+                aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+                style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7066', display: 'flex', alignItems: 'center', padding: 0 }}
+              >
+                {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
+              </button>
+            </div>
+            {/* Inline match indicator */}
+            {confirmPassword.length > 0 && (
+              <p style={{ fontSize: 12, color: passwordsMatch ? '#3D6B4F' : '#B94040', margin: '6px 0 0', fontWeight: 500 }}>
+                {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+              </p>
+            )}
           </div>
 
           {error && <p style={{ color: '#B94040', fontSize: 13, margin: 0 }}>{error}</p>}
@@ -187,21 +215,22 @@ export default function SignUpPage() {
           </button>
         </form>
 
-        {/* Sign in link */}
         <p style={{ textAlign: 'center', fontSize: 13, color: '#6B7066', marginTop: 24, fontWeight: 300 }}>
           Already have an account?{' '}
-          <Link href="/login" style={{ color: '#3D6B4F', fontWeight: 500, textDecoration: 'none' }}>
-            Sign in
-          </Link>
+          <Link href="/login" style={{ color: '#3D6B4F', fontWeight: 500, textDecoration: 'none' }}>Sign in</Link>
         </p>
 
-        {/* Free note */}
         <p style={{ textAlign: 'center', fontSize: 12, color: '#6B7066', marginTop: 12, fontWeight: 300 }}>
           Free to start · No card required
         </p>
       </div>
     </div>
   )
+}
+
+const labelStyle: React.CSSProperties = {
+  fontSize: 12, fontWeight: 500, color: '#6B7066',
+  letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8,
 }
 
 const inputStyle: React.CSSProperties = {
