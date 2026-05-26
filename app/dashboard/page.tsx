@@ -96,9 +96,8 @@ export default function DashboardPage() {
       if (!user) { router.push('/login'); return }
 
       const { data: profile } = await supabase
-        .from('profiles').select('full_name, subscription_tier').eq('id', user.id).single()
+        .from('profiles').select('full_name').eq('id', user.id).single()
       setUserName(profile?.full_name?.split(' ')[0] || 'there')
-      setSubscriptionTier((profile as any)?.subscription_tier || 'free')
 
       const { data: k } = await supabase
         .from('kitchens').select('id, name, slug').eq('organizer_id', user.id).single()
@@ -195,31 +194,6 @@ export default function DashboardPage() {
         </div>
 
 
-        {/* ── Your Plan card ── */}
-        {(() => {
-          const TIER_META: Record<string, { badge: string; color: string; bg: string; tagline: string }> = {
-            free:     { badge: 'Free',             color: '#3D6B4F', bg: '#EAF2ED', tagline: '60-day calendar · 3 restaurants · Push only' },
-            care:     { badge: 'Care+',            color: '#3D6B4F', bg: '#EAF2ED', tagline: 'Unlimited calendar · 10 restaurants · SMS' },
-            annual:   { badge: 'Early Adopter',    color: '#6B9E7E', bg: '#EAF2ED', tagline: 'Care+ features · Locked annual rate' },
-            founding: { badge: 'Founding Member',  color: '#C17F47', bg: '#FBF0E4', tagline: 'Unlimited everything · Lifetime price lock' },
-          }
-          const tier = TIER_META[subscriptionTier] || TIER_META.free
-          return (
-            <div style={{ background: '#fff', border: `1.5px solid ${tier.color}`, borderRadius: 16, padding: '14px 18px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <div>
-                <span style={{ background: tier.bg, color: tier.color, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20, letterSpacing: '0.05em', display: 'inline-block', marginBottom: 4 }}>{tier.badge}</span>
-                <p style={{ fontSize: 12, color: '#6B7066', margin: 0, fontWeight: 300 }}>{tier.tagline}</p>
-              </div>
-              <button
-                onClick={() => router.push('/settings')}
-                style={{ background: 'none', border: `1px solid ${tier.color}`, borderRadius: 10, padding: '7px 14px', fontSize: 12, color: tier.color, cursor: 'pointer', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}
-              >
-                {subscriptionTier === 'free' ? 'Upgrade' : 'Manage'}
-              </button>
-            </div>
-          )
-        })()}
-
         {/* No kitchen */}
         {!kitchen && (
           <div style={{ background: S.forest, borderRadius: 20, padding: '32px', textAlign: 'center' }}>
@@ -292,6 +266,31 @@ export default function DashboardPage() {
                 </div>
               ))}
             </div>
+            {/* ── Plan strip — bottom of calendar card ── */}
+            {(() => {
+              const TIER_META: Record<string, { badge: string; price: string; color: string; bg: string; star?: boolean }> = {
+                free:     { badge: 'Free',            price: '$0 / always',   color: '#3D6B4F', bg: '#EAF2ED' },
+                care:     { badge: 'Care+',           price: '$9.99 / mo',    color: '#3D6B4F', bg: '#EAF2ED' },
+                annual:   { badge: 'Early Adopter',   price: '$59 / yr',      color: '#6B9E7E', bg: '#EAF2ED' },
+                founding: { badge: 'Founding Member', price: '$149 lifetime', color: '#C17F47', bg: '#FBF0E4', star: true },
+              }
+              const t = TIER_META[subscriptionTier] || TIER_META.free
+              return (
+                <div style={{ marginTop: 14, paddingTop: 12, borderTop: `0.5px solid ${S.border}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    {t.star && <span style={{ fontSize: 14, color: t.color }}>★</span>}
+                    <span style={{ background: t.bg, color: t.color, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20, letterSpacing: '0.04em' }}>{t.badge}</span>
+                    <span style={{ fontSize: 11, color: S.stone, fontWeight: 300 }}>{t.price}</span>
+                  </div>
+                  <button
+                    onClick={() => router.push('/settings')}
+                    style={{ background: 'none', border: 'none', fontSize: 11, color: t.color, cursor: 'pointer', fontWeight: 600, fontFamily: "'DM Sans', sans-serif", padding: '4px 8px' }}
+                  >
+                    {subscriptionTier === 'free' ? 'Upgrade ›' : 'Manage ›'}
+                  </button>
+                </div>
+              )
+            })()}
           </div>
 
           {/* Add-date panel */}
