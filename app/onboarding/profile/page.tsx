@@ -1,7 +1,8 @@
 'use client'
 // FILE: app/onboarding/profile/page.tsx
-// Fix: replaced <form action="/auth/signout" method="post"> with client-side signOut()
-// That form was POSTing to a non-existent route, causing HTTP 405.
+// Fix: handleNext no longer does a Supabase DB call.
+// The upsert was failing silently (RLS / missing columns) and blocking navigation.
+// Profile data is saved to localStorage here and submitted to /api/onboarding at step 4.
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
@@ -13,9 +14,8 @@ const DIETARY_OPTIONS = [
 ]
 
 export default function OnboardingProfile() {
-  const router = useRouter()
+  const router  = useRouter()
   const supabase = createClient()
-  const [loading, setLoading] = useState(false)
   const [form, setForm] = useState({
     full_name: '',
     address: '',
@@ -32,21 +32,11 @@ export default function OnboardingProfile() {
     }))
   }
 
-  const handleNext = async () => {
-    setLoading(true)
-    const { data: { user } } = await supabase.auth.getUser()
-    if (!user) { router.push('/login'); return }
-
-    const { error } = await supabase.from('profiles').upsert({
-      id: user.id,
-      full_name: form.full_name,
-    })
-
-    if (!error) {
-      localStorage.setItem('yk_onboarding', JSON.stringify(form))
-      router.push('/onboarding/calendar')
-    }
-    setLoading(false)
+  // ── FIXED: no DB call here. Just save to localStorage and navigate. ──
+  // The full profile + kitchen is created by /api/onboarding at step 4.
+  const handleNext = () => {
+    localStorage.setItem('yk_onboarding', JSON.stringify(form))
+    router.push('/onboarding/calendar')
   }
 
   const handleSignOut = async () => {
@@ -58,26 +48,16 @@ export default function OnboardingProfile() {
     <div style={{ minHeight: '100vh', background: '#FAFAF5', fontFamily: "'DM Sans', sans-serif", padding: '0 0 40px' }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-      {/* Header */}
       <div style={{ background: '#fff', borderBottom: '1px solid #DDE8E0', padding: '16px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
           <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: '#6B9E7E', textTransform: 'uppercase' }}>Your</div>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
         </div>
-        {/* FIXED: was <form action="/auth/signout" method="post"> — caused 405 */}
-        <button
-          onClick={handleSignOut}
-          style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
-        >
-          Sign out
-        </button>
+        <button onClick={handleSignOut} style={{ background: 'none', border: 'none', fontSize: 12, color: '#6B7066', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Sign out</button>
       </div>
 
-      {/* Progress */}
       <div style={{ display: 'flex', gap: 6, padding: '20px 24px 0' }}>
-        {[0,1,2,3].map(i => (
-          <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i === 0 ? '#3D6B4F' : '#DDE8E0' }} />
-        ))}
+        {[0,1,2,3].map(i => <div key={i} style={{ flex: 1, height: 4, borderRadius: 4, background: i === 0 ? '#3D6B4F' : '#DDE8E0' }} />)}
       </div>
 
       <div style={{ padding: '24px 24px 0', maxWidth: 500, margin: '0 auto' }}>
@@ -111,9 +91,12 @@ export default function OnboardingProfile() {
           ))}
         </div>
 
-        <button onClick={handleNext} disabled={!form.full_name || !form.address || loading}
-          style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: !form.full_name || !form.address ? '#DDE8E0' : '#3D6B4F', color: !form.full_name || !form.address ? '#6B7066' : '#fff', fontSize: 14, fontWeight: 500, cursor: !form.full_name || !form.address ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-          {loading ? 'Saving…' : 'Next: Set My Calendar →'}
+        <button
+          onClick={handleNext}
+          disabled={!form.full_name || !form.address}
+          style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: !form.full_name || !form.address ? '#DDE8E0' : '#3D6B4F', color: !form.full_name || !form.address ? '#6B7066' : '#fff', fontSize: 14, fontWeight: 500, cursor: !form.full_name || !form.address ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}
+        >
+          Next: Set My Calendar →
         </button>
       </div>
     </div>
