@@ -1,8 +1,5 @@
-import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -11,56 +8,57 @@ const supabase = createClient(
 
 export async function POST(request: Request) {
   try {
-    const { plan, kitchen_id, user_id, promo_code } = await request.json()
+    const {
+      user_id,
+      full_name,
+      phone,
+      address,
+      household_size,
+      dietary_restrictions,
+      breakfast_windows,
+      lunch_windows,
+      dinner_windows,
+    } = await request.json()
 
-    if (!plan || !kitchen_id || !user_id) {
-      return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-    }
+    if (!user_id)        return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
+    if (!full_name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
-    const priceMap: Record<string, string> = {
-      monthly:  process.env.STRIPE_PRICE_CARE_MONTHLY!,
-      annual:   process.env.STRIPE_PRICE_CARE_ANNUAL!,
-      lifetime: process.env.STRIPE_PRICE_LIFETIME!,
-    }
+    // Update profile
+    const { error: profileError } = await supabase
+      .from('profiles')
+      .update({ full_name: full_name.trim(), phone: phone || null })
+      .eq('id', user_id)
 
-    const priceId = priceMap[plan]
-    if (!priceId) {
-      return NextResponse.json({ error: 'Invalid plan' }, { status: 400 })
-    }
+    if (profileError) return NextResponse.json({ error: profileError.message }, { status: 500 })
 
-    const isLifetime = plan === 'lifetime'
+    // Update kitchen — only set name if it was blank/wrong
+    const { data: kitchen } = await supabase
+      .from('kitchens')
+      .select('name')
+      .eq('organizer_id', user_id)
+      .single()
 
-    const sessionConfig: any = {
-      mode: isLifetime ? 'payment' : 'subscription',
-      line_items: [{ price: priceId, quantity: 1 }],
-     ...(promo_code
-  ? { discounts: [{ coupon: promo_code }] }
-  : { allow_promotion_codes: true }),                   // ← enables promo + gift codes at checkout
-      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard?upgraded=true`,
-      cancel_url: `${process.env.NEXT_PUBLIC_APP_URL}/dashboard`,
-      metadata: {
-        kitchen_id,
-        user_id,
-        plan,
-      },
-    }
+    const shouldUpdateName = !kitchen?.name
+      || kitchen.name === "'s Kitchen"
+      || kitchen.name.startsWith("'s ")
 
-    if (!isLifetime) {
-      sessionConfig.subscription_data = {
-        trial_period_days: 14,
-        metadata: {
-          kitchen_id,
-          user_id,
-          plan,
-        },
-      }
-    }
+    const { error: kitchenError } = await supabase
+      .from('kitchens')
+      .update({
+        ...(shouldUpdateName ? { name: `${full_name.trim()}'s Kitchen` } : {}),
+        address:             address || null,
+        household_size:      household_size || null,
+        dietary_restrictions: dietary_restrictions || [],
+        breakfast_windows:   breakfast_windows || ['07:00-09:00'],
+        lunch_windows:       lunch_windows     || ['11:00-12:30'],
+        dinner_windows:      dinner_windows    || ['17:30-19:00'],
+      })
+      .eq('organizer_id', user_id)
 
-    const session = await stripe.checkout.sessions.create(sessionConfig)
-    return NextResponse.json({ url: session.url })
+    if (kitchenError) return NextResponse.json({ error: kitchenError.message }, { status: 500 })
 
+    return NextResponse.json({ success: true })
   } catch (err: any) {
-    console.error('Subscription checkout error:', err.message)
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
