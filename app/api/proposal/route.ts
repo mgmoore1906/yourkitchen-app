@@ -37,7 +37,7 @@ export async function POST(request: Request) {
       const [{ data: menuItem }, { data: restaurant }, { data: calDate }] = await Promise.all([
         supabase.from('menu_items').select('name, price').eq('id', p.menu_item_id).single(),
         supabase.from('kitchen_restaurants').select('name').eq('id', p.restaurant_id).single(),
-        supabase.from('calendar_dates').select('date').eq('id', p.calendar_date_id).single(),
+        supabase.from('calendar_dates').select('date, meal_type').eq('id', p.calendar_date_id).single(),
       ])
 
       const { data: claim, error: claimError } = await supabase
