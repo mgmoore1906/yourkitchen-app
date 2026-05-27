@@ -1,6 +1,6 @@
 'use client'
 // FILE: app/onboarding/page.tsx
-// Change from original: sign out button added to nav (routes to /signup)
+// Changes: sign out button added to nav (routes to /signup); SMS consent checkbox added to Step 1 for Twilio A2P compliance
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -12,7 +12,7 @@ const TIERS = [
   {
     key: 'free', badge: 'Free', name: 'Kitchen', price: '$0', period: '/ always',
     cta: 'Start free', ctaStyle: 'outline',
-    sections: [
+    sections: [h
       { label: 'Calendar', items: [{ text: 'Active window', tag: '60 days', check: true }, { text: 'Recurring or perpetual calendar', check: false }] },
       { label: 'Restaurants + Meals', items: [{ text: 'Restaurants', tag: '3 max', check: true }, { text: 'Menu items per restaurant', tag: '4 max', check: true }, { text: 'Personal drop-off / home cook option', check: false }] },
       { label: 'Delivery', items: [{ text: 'DoorDash delivery', check: true }, { text: 'SMS confirmation flow', check: true }, { text: 'Tracking link to recipient', check: true }] },
@@ -71,10 +71,11 @@ export default function OnboardingPage() {
   const [form, setForm] = useState({
     full_name: '', phone: '', household_size: '3-4',
     dietary_restrictions: [] as string[],
+  sms_consent: false,
     street: '', apt: '', city: '', state: 'TX', zip: '',
   })
 
-  const update = (field: string, value: string) => setForm(prev => ({ ...prev, [field]: value }))
+  const update = (field: string, value: string | boolean) => setForm(prev => ({ ...prev, [field]: value }))
   const toggleDiet = (d: string) => setForm(prev => ({
     ...prev,
     dietary_restrictions: prev.dietary_restrictions.includes(d)
@@ -167,6 +168,12 @@ export default function OnboardingPage() {
         .plan-footer { font-size:11px;color:var(--stone);text-align:center;line-height:1.7;padding-top:16px;border-top:0.5px solid var(--border); }
         .skip-link { text-align:center;margin-top:16px;font-size:12px;color:var(--stone); }
         .skip-link button { background:none;border:none;color:var(--sage);font-size:12px;cursor:pointer;font-family:'DM Sans',sans-serif;text-decoration:underline; }
+
+.consent-wrap { margin-top:16px;padding:16px;background:#EAF2ED;border:1.5px solid #DDE8E0;border-radius:10px; }
+.consent-label { display:flex;align-items:flex-start;gap:12px;cursor:pointer; }
+.consent-cb { width:18px;height:18px;accent-color:var(--sage);cursor:pointer;flex-shrink:0;margin-top:2px; }
+.consent-text { font-size:12px;color:var(--stone);line-height:1.6;font-weight:300; }
+.consent-text a { color:var(--sage);text-decoration:underline; }
         @media(max-width:600px) { .onb-nav{padding:14px 20px;} .prog-label{display:none;} .plan-grid,.plan-grid-bottom{grid-template-columns:1fr;} .onb-body{padding:32px 20px 60px;} }
       `}</style>
 
@@ -223,6 +230,22 @@ export default function OnboardingPage() {
                   </div>
                   <p className="field-hint">Used only for Y/N meal confirmations via SMS.</p>
                 </div>
+                <div className="consent-wrap">
+                  <label className="consent-label">
+                    <input
+                      type="checkbox"
+                      className="consent-cb"
+                      checked={form.sms_consent}
+                      onChange={e => update('sms_consent', e.target.checked as unknown as string)}
+                    />
+                    <span className="consent-text">
+                      I agree to receive SMS notifications from YourKitchen including meal proposals,
+                      confirmations, and delivery updates. Message &amp; data rates may apply.
+                      Reply STOP to opt out at any time.{' '}
+                      <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
+                    </span>
+                  </label>
+                </div>
                 <div className="field-wrap">
                   <label className="field-label">Household size</label>
                   <div className="size-btns">
@@ -240,7 +263,7 @@ export default function OnboardingPage() {
                   </div>
                 </div>
                 <div className="btn-row" style={{ marginTop: 32 }}>
-                  <button className="btn-primary" onClick={() => setStep('address')}>Next: Delivery Address →</button>
+                  <button className="btn-primary" onClick={() => setStep('address')} disabled={!form.sms_consent}>Next: Delivery Address →</button>
                 </div>
               </div>
             )}
