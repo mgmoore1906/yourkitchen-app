@@ -54,15 +54,17 @@ export async function POST(request: Request) {
       if (claimError) return NextResponse.json({ error: claimError.message }, { status: 400 })
 
       const { data: proposal, error: proposalError } = await supabase
-        .from('meal_proposals')
-        .insert({
-          claim_id:              claim.id,
-          kitchen_restaurant_id: p.restaurant_id,
-          menu_item_id:          p.menu_item_id,
-          coordinator_note:      note || null,
-          tip_amount:            tip_amount || 0,
-          status:                'pending',
-        })
+  .from('meal_proposals')
+  .insert({
+    claim_id:              claim.id,
+    kitchen_id:            kitchen?.id,       // ← ADD THIS
+    kitchen_restaurant_id: p.restaurant_id,
+    menu_item_id:          p.menu_item_id,
+    coordinator_name:      name,              // ← ADD THIS
+    coordinator_note:      note || null,
+    tip_amount:            tip_amount || 0,
+    status:                'pending',
+  })
         .select('id')
         .single()
       if (proposalError) return NextResponse.json({ error: proposalError.message }, { status: 400 })
