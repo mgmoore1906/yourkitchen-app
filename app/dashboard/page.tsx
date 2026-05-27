@@ -7,7 +7,7 @@ const S = {
   sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
   cream: '#FAFAF5', forest: '#1E2620', stone: '#6B7066',
   border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47',
-  amberLight: '#FBF0E4', red: '#B94040', sky: '#4A8FA8',
+  amberLight: '#FBF0E4', red: '#B94040',
 }
 
 const MEAL_COLORS: Record<string, { color: string; bg: string; label: string; emoji: string }> = {
@@ -24,18 +24,18 @@ const TIER_META: Record<string, { badge: string; price: string; color: string; b
   founding: { badge: 'Founding Member', price: '$149 lifetime', color: '#C17F47', bg: '#FBF0E4', star: true, desc: 'Lifetime access — thank you for founding YourKitchen.' },
 }
 
-type CalDate    = { id: string; date: string; meal_type: string; status: string }
-type Proposal   = { id: string; coordinator_name: string; restaurant_name: string; meal_name: string; delivery_date: string; meal_type: string }
-type Kitchen    = { id: string; name: string; slug: string }
+type CalDate     = { id: string; date: string; meal_type: string; status: string }
+type Proposal    = { id: string; coordinator_name: string; restaurant_name: string; meal_name: string; delivery_date: string; meal_type: string }
+type Kitchen     = { id: string; name: string; slug: string }
 type ActiveOrder = { id: string; meal_name: string; restaurant_name: string; coordinator_name: string; doordash_tracking_url: string | null; doordash_delivery_id: string | null; delivery_date: string }
 
-function InlineFooter() {
+function Footer() {
   return (
-    <footer style={{ background: S.forest, padding: '32px 28px 48px', fontFamily: "'DM Sans', sans-serif" }}>
+    <footer style={{ background: '#1E2620', padding: '32px 28px 48px', fontFamily: "'DM Sans', sans-serif" }}>
       <div style={{ maxWidth: 680, margin: '0 auto', textAlign: 'center' }}>
-        <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase', marginBottom: 2 }}>Your</div>
-        <div style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 500, color: S.white, letterSpacing: -0.5, marginBottom: 6 }}>Kitchen</div>
-        <p style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: 13, color: S.sageMid, margin: '0 0 18px' }}>"Your kitchen, covered."</p>
+        <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 5, color: '#6B9E7E', textTransform: 'uppercase', marginBottom: 2 }}>Your</div>
+        <div style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 500, color: '#fff', marginBottom: 6 }}>Kitchen</div>
+        <p style={{ fontFamily: "'Lora', serif", fontStyle: 'italic', fontSize: 13, color: '#6B9E7E', margin: '0 0 18px' }}>"Your kitchen, covered."</p>
         <div style={{ display: 'flex', justifyContent: 'center', flexWrap: 'wrap', gap: '5px 0', fontSize: 11, marginBottom: 14 }}>
           {[
             { label: 'yourkitchen.app', href: 'https://yourkitchen.app' },
@@ -62,25 +62,25 @@ export default function DashboardPage() {
   const router   = useRouter()
   const supabase = createClient()
 
-  const [loading,      setLoading]      = useState(true)
-  const [fullName,     setFullName]     = useState('')
-  const [userTier,     setUserTier]     = useState('free')
-  const [userAddress,  setUserAddress]  = useState('')
+  const [loading,       setLoading]       = useState(true)
+  const [fullName,      setFullName]      = useState('')
+  const [userTier,      setUserTier]      = useState('free')
+  const [userAddress,   setUserAddress]   = useState('')
   const [householdSize, setHouseholdSize] = useState('')
-  const [kitchen,      setKitchen]      = useState<Kitchen | null>(null)
-  const [calDates,     setCalDates]     = useState<CalDate[]>([])
-  const [proposals,    setProposals]    = useState<Proposal[]>([])
-  const [activeOrders, setActiveOrders] = useState<ActiveOrder[]>([])
-  const [copied,       setCopied]       = useState(false)
-  const [kitchenUrl,   setKitchenUrl]   = useState('')
+  const [kitchen,       setKitchen]       = useState<Kitchen | null>(null)
+  const [calDates,      setCalDates]      = useState<CalDate[]>([])
+  const [proposals,     setProposals]     = useState<Proposal[]>([])
+  const [activeOrders,  setActiveOrders]  = useState<ActiveOrder[]>([])
+  const [copied,        setCopied]        = useState(false)
+  const [kitchenUrl,    setKitchenUrl]    = useState('')
+  const [selectedDate,  setSelectedDate]  = useState<string | null>(null)
+  const [adding,        setAdding]        = useState(false)
+  const [addError,      setAddError]      = useState('')
 
   const today     = new Date()
   const todayStr  = today.toISOString().split('T')[0]
   const [viewYear,  setViewYear]  = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
-  const [selectedDate, setSelectedDate] = useState<string | null>(null)
-  const [adding,    setAdding]    = useState(false)
-  const [addError,  setAddError]  = useState('')
 
   const monthName   = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
   const firstDay    = new Date(viewYear, viewMonth, 1).getDay()
@@ -94,8 +94,11 @@ export default function DashboardPage() {
 
   const loadCalDates = useCallback(async (kitchenId: string) => {
     const { data } = await supabase
-      .from('calendar_dates').select('id, date, meal_type, status')
-      .eq('kitchen_id', kitchenId).gte('date', todayStr).order('date', { ascending: true })
+      .from('calendar_dates')
+      .select('id, date, meal_type, status')
+      .eq('kitchen_id', kitchenId)
+      .gte('date', todayStr)
+      .order('date', { ascending: true })
     setCalDates(data || [])
   }, [todayStr])
 
@@ -107,26 +110,27 @@ export default function DashboardPage() {
       const { data: profile } = await supabase
         .from('profiles')
         .select('full_name, tier, street, city, state, zip, household_size')
-        .eq('id', user.id).single()
+        .eq('id', user.id)
+        .single()
 
-      const name = profile?.full_name || ''
-      setFullName(name)
+      setFullName(profile?.full_name || '')
       setUserTier(profile?.tier || 'free')
-      if (profile?.city) setUserAddress(
-        [profile.street, profile.city, profile.state, profile.zip]
-          .filter(Boolean).join(', ')
-      )
+      if (profile?.city) {
+        setUserAddress([profile.street, profile.city, profile.state, profile.zip].filter(Boolean).join(', '))
+      }
       if (profile?.household_size) setHouseholdSize(String(profile.household_size))
 
       const { data: k } = await supabase
-        .from('kitchens').select('id, name, slug').eq('organizer_id', user.id).single()
+        .from('kitchens')
+        .select('id, name, slug')
+        .eq('organizer_id', user.id)
+        .single()
 
       if (k) {
         setKitchen(k)
         setKitchenUrl(`${window.location.origin}/k/${k.slug}`)
         await loadCalDates(k.id)
 
-        // Pending proposals — now using kitchen_id directly
         const { data: props } = await supabase
           .from('meal_proposals')
           .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type')
@@ -135,7 +139,6 @@ export default function DashboardPage() {
           .order('delivery_date', { ascending: true })
         setProposals(props || [])
 
-        // Confirmed orders in flight
         const { data: orders } = await supabase
           .from('meal_proposals')
           .select('id, meal_name, restaurant_name, coordinator_name, doordash_tracking_url, doordash_delivery_id, delivery_date')
@@ -174,32 +177,37 @@ export default function DashboardPage() {
 
   const handleDateClick = (dateStr: string) => {
     if (dateStr < todayStr) return
-    setSelectedDate(prev => prev === dateStr ? null : dateStr); setAddError('')
+    setSelectedDate(prev => prev === dateStr ? null : dateStr)
+    setAddError('')
   }
 
   const handleAddSlot = async (mealType: string) => {
     if (!kitchen || !selectedDate) return
     setAdding(true); setAddError('')
     const res = await fetch('/api/calendar', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ kitchen_id: kitchen.id, date: selectedDate, meal_type: mealType }),
     })
     const data = await res.json()
     if (!res.ok) { setAddError(data.error || 'Could not add slot'); setAdding(false); return }
-    await loadCalDates(kitchen.id); setAdding(false)
+    await loadCalDates(kitchen.id)
+    setAdding(false)
   }
 
   const handleRemoveSlot = async (dateId: string) => {
     await fetch('/api/calendar', {
-      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ date_id: dateId }),
     })
     if (kitchen) await loadCalDates(kitchen.id)
   }
 
-  const firstName  = fullName.split(' ')[0] || 'there'
-  const formatDate = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-  const tier       = TIER_META[userTier] || TIER_META.free
+  const firstName  = (fullName || '').split(' ')[0] || 'there'
+  const formatDate = (s: string) =>
+    new Date(s + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+  const tier = TIER_META[userTier] || TIER_META.free
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: S.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
@@ -211,17 +219,14 @@ export default function DashboardPage() {
     <div style={{ minHeight: '100vh', background: S.cream, fontFamily: "'DM Sans', sans-serif", display: 'flex', flexDirection: 'column' }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-      {/* Nav — logo left, tier badge right (hyperlinked to settings) */}
+      {/* Nav */}
       <nav style={{ background: S.white, borderBottom: `0.5px solid ${S.border}`, padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
         <div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
           <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase' }}>Your</span>
           <span style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.forest, letterSpacing: -0.5 }}>Kitchen</span>
         </div>
-        {/* Tier badge — hyperlinked to settings plan section */}
-        <button
-          onClick={() => router.push('/settings')}
-          style={{ display: 'flex', alignItems: 'center', gap: 6, background: tier.bg, border: 'none', borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}
-        >
+        <button onClick={() => router.push('/settings')}
+          style={{ display: 'flex', alignItems: 'center', gap: 6, background: tier.bg, border: 'none', borderRadius: 20, padding: '6px 14px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
           {tier.star && <span style={{ fontSize: 13, color: tier.color }}>★</span>}
           <span style={{ fontSize: 10, fontWeight: 700, color: tier.color, letterSpacing: '0.04em' }}>{tier.badge}</span>
         </button>
@@ -237,7 +242,7 @@ export default function DashboardPage() {
           </h1>
         </div>
 
-        {/* No kitchen state */}
+        {/* No kitchen */}
         {!kitchen && (
           <div style={{ background: S.forest, borderRadius: 20, padding: '32px', textAlign: 'center' }}>
             <div style={{ fontSize: 48, marginBottom: 14 }}>🥗</div>
@@ -254,7 +259,7 @@ export default function DashboardPage() {
 
         {kitchen && (<>
 
-          {/* ON THE WAY card — active confirmed deliveries (Image 2 style) */}
+          {/* ON THE WAY — active confirmed deliveries */}
           {activeOrders.map(order => (
             <div key={order.id} style={{ background: S.white, border: `1.5px solid ${S.sage}`, borderRadius: 18, padding: '18px 20px', marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 14 }}>
@@ -267,18 +272,27 @@ export default function DashboardPage() {
                 </div>
                 <div>
                   <div style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 600, color: S.forest }}>{order.meal_name}</div>
-                  <div style={{ fontSize: 13, color: S.stone, fontWeight: 300 }}>from {order.restaurant_name}{order.coordinator_name ? ` · sent by ${order.coordinator_name}` : ''}</div>
+                  <div style={{ fontSize: 13, color: S.stone, fontWeight: 300 }}>
+                    from {order.restaurant_name}{order.coordinator_name ? ` · sent by ${order.coordinator_name}` : ''}
+                  </div>
                 </div>
               </div>
-              {[
-                ['Date', order.delivery_date ? new Date(order.delivery_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' }) : '—'],
-                order.doordash_delivery_id ? ['Delivery ID', order.doordash_delivery_id] : null,
-              ].filter(Boolean).map(([l, v]) => (
+
+              {/* Detail rows — typed as [string, string][] to satisfy TS */}
+              {(
+                [
+                  ['Date', order.delivery_date
+                    ? new Date(order.delivery_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+                    : '—'],
+                  ...(order.doordash_delivery_id ? [['Delivery ID', order.doordash_delivery_id]] : []),
+                ] as [string, string][]
+              ).map(([l, v]) => (
                 <div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `0.5px solid ${S.sageLight}` }}>
                   <span style={{ fontSize: 13, color: S.stone, fontWeight: 300 }}>{l}</span>
-                  <span style={{ fontSize: 12, color: S.forest, fontWeight: 500, fontFamily: order.doordash_delivery_id && l === 'Delivery ID' ? 'monospace' : "'DM Sans', sans-serif", textAlign: 'right', maxWidth: '65%', wordBreak: 'break-all' }}>{v}</span>
+                  <span style={{ fontSize: 12, color: S.forest, fontWeight: 500, textAlign: 'right', maxWidth: '65%', wordBreak: 'break-all' }}>{v}</span>
                 </div>
               ))}
+
               {order.doordash_tracking_url && (
                 <a href={order.doordash_tracking_url} target="_blank" rel="noopener noreferrer"
                   style={{ display: 'block', background: S.forest, color: S.white, borderRadius: 11, padding: '13px', fontSize: 14, fontWeight: 600, textDecoration: 'none', textAlign: 'center', marginTop: 14, fontFamily: "'DM Sans', sans-serif" }}>
@@ -301,9 +315,7 @@ export default function DashboardPage() {
                 {MEAL_COLORS[p.meal_type]?.emoji} {p.meal_name} · {p.restaurant_name}
                 {p.delivery_date && ` · ${new Date(p.delivery_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
               </div>
-              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '0 0 14px', fontWeight: 300 }}>
-                No charge until you confirm.
-              </p>
+              <p style={{ fontSize: 12, color: 'rgba(255,255,255,0.4)', margin: '0 0 14px', fontWeight: 300 }}>No charge until you confirm.</p>
               <button onClick={() => router.push(`/proposals/${p.id}`)}
                 style={{ width: '100%', background: S.sage, color: S.white, border: 'none', borderRadius: 11, padding: '12px', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                 Review Proposal →
@@ -311,7 +323,7 @@ export default function DashboardPage() {
             </div>
           ))}
 
-          {/* Kitchen name + status strip (Image 2 bottom section) */}
+          {/* Kitchen name strip when nothing pending */}
           {activeOrders.length === 0 && proposals.length === 0 && (
             <div style={{ marginBottom: 20 }}>
               <h2 style={{ fontFamily: "'Lora', serif", fontSize: 22, fontWeight: 500, color: S.forest, margin: '0 0 4px' }}>
@@ -330,10 +342,12 @@ export default function DashboardPage() {
               {kitchenUrl || 'Loading…'}
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={copyLink} style={{ flex: 1, padding: '10px', background: copied ? S.sage : S.forest, color: S.white, border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'background 0.2s' }}>
+              <button onClick={copyLink}
+                style={{ flex: 1, padding: '10px', background: copied ? S.sage : S.forest, color: S.white, border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'background 0.2s' }}>
                 {copied ? '✓ Copied!' : 'Copy Link'}
               </button>
-              <button onClick={shareLink} style={{ padding: '10px 16px', background: S.sageLight, color: S.sage, border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+              <button onClick={shareLink}
+                style={{ padding: '10px 16px', background: S.sageLight, color: S.sage, border: 'none', borderRadius: 9, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                 Share
               </button>
             </div>
@@ -350,7 +364,9 @@ export default function DashboardPage() {
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 4 }}>
-              {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: S.stone, padding: '2px 0' }}>{d}</div>)}
+              {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => (
+                <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: S.stone, padding: '2px 0' }}>{d}</div>
+              ))}
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
               {cells.map((day, i) => {
@@ -365,14 +381,16 @@ export default function DashboardPage() {
                     style={{ background: isSel ? S.sageLight : slots.length ? '#F8FAF8' : S.white, border: `${isSel || isToday ? 2 : 1}px solid ${isSel ? S.sage : isToday ? S.sageMid : slots.length ? '#C8DDD0' : S.border}`, borderRadius: 9, padding: '8px 2px', minHeight: 54, cursor: isPast ? 'default' : 'pointer', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, fontFamily: "'DM Sans',sans-serif", opacity: isPast ? 0.35 : 1, transition: 'all 0.1s' }}>
                     <span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: isSel ? S.sage : S.forest, lineHeight: 1 }}>{day}</span>
                     {slots.length
-                      ? <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>{slots.map((s,si) => <div key={si} style={{ width: 6, height: 6, borderRadius: '50%', background: MEAL_COLORS[s.meal_type]?.color || S.sage }} />)}</div>
+                      ? <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
+                          {slots.map((s, si) => <div key={si} style={{ width: 6, height: 6, borderRadius: '50%', background: MEAL_COLORS[s.meal_type]?.color || S.sage }} />)}
+                        </div>
                       : !isPast ? <div style={{ fontSize: 14, color: '#DDE8E0' }}>+</div> : null}
                   </button>
                 )
               })}
             </div>
             <div style={{ display: 'flex', gap: 14, marginTop: 12, paddingTop: 12, borderTop: `0.5px solid ${S.border}`, flexWrap: 'wrap' }}>
-              {Object.entries(MEAL_COLORS).map(([k,v]) => (
+              {Object.entries(MEAL_COLORS).map(([k, v]) => (
                 <div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
                   <div style={{ width: 7, height: 7, borderRadius: '50%', background: v.color }} />
                   <span style={{ fontSize: 10, color: S.stone, fontWeight: 500 }}>{v.emoji} {v.label}</span>
@@ -400,7 +418,9 @@ export default function DashboardPage() {
                       return (
                         <div key={slot.id} style={{ display: 'flex', alignItems: 'center', gap: 6, background: mc.bg, border: `1px solid ${mc.color}`, borderRadius: 20, padding: '5px 12px 5px 10px' }}>
                           <span style={{ fontSize: 12, fontWeight: 600, color: mc.color }}>{mc.emoji} {mc.label}</span>
-                          {slot.status === 'available' && <button onClick={() => handleRemoveSlot(slot.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: mc.color, fontSize: 13, padding: 0, lineHeight: 1, marginLeft: 2 }}>✕</button>}
+                          {slot.status === 'available' && (
+                            <button onClick={() => handleRemoveSlot(slot.id)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: mc.color, fontSize: 13, padding: 0, lineHeight: 1, marginLeft: 2 }}>✕</button>
+                          )}
                         </div>
                       )
                     })}
@@ -427,14 +447,14 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {/* Quick Actions — 4 tiles, sign out as 4th */}
+          {/* Quick Actions */}
           <p style={{ fontFamily: "'Lora',serif", fontSize: 17, fontWeight: 500, color: S.forest, margin: '4px 0 12px' }}>Quick Actions</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 16 }}>
             {[
-              { icon: '🏪', label: 'My Restaurants', action: () => router.push('/kitchen/restaurants'), badge: null },
-              { icon: '📋', label: 'Order History',  action: () => router.push('/kitchen/orders'),      badge: null },
-              { icon: '⚙️', label: 'Settings',       action: () => router.push('/settings'),            badge: null },
-              { icon: '🔓', label: 'Sign Out',        action: signOut,                                   badge: null },
+              { icon: '🏪', label: 'My Restaurants', action: () => router.push('/kitchen/restaurants') },
+              { icon: '📋', label: 'Order History',  action: () => router.push('/kitchen/orders') },
+              { icon: '⚙️', label: 'Settings',       action: () => router.push('/settings') },
+              { icon: '🔓', label: 'Sign Out',        action: signOut },
             ].map(a => (
               <button key={a.label} onClick={a.action}
                 style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px', display: 'flex', alignItems: 'center', gap: 12, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", textAlign: 'left' }}>
@@ -444,16 +464,17 @@ export default function DashboardPage() {
             ))}
           </div>
 
-          {/* Pending proposals badge row — shows count if any */}
+          {/* Pending count badge */}
           {proposals.length > 0 && (
-            <button onClick={() => proposals.length === 1 ? router.push(`/proposals/${proposals[0].id}`) : router.push('/kitchen/orders')}
+            <button
+              onClick={() => proposals.length === 1 ? router.push(`/proposals/${proposals[0].id}`) : router.push('/kitchen/orders')}
               style={{ width: '100%', background: S.amberLight, border: `1.5px solid ${S.amber}`, borderRadius: 14, padding: '14px 18px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", marginBottom: 16 }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                 <div style={{ width: 28, height: 28, borderRadius: '50%', background: S.amber, display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
                   {proposals.length}
                 </div>
                 <span style={{ fontSize: 13, fontWeight: 600, color: S.forest }}>
-                  {proposals.length === 1 ? '1 meal proposal waiting for your reply' : `${proposals.length} meal proposals waiting for your reply`}
+                  {proposals.length === 1 ? '1 meal proposal waiting for your reply' : `${proposals.length} meal proposals waiting`}
                 </span>
               </div>
               <span style={{ color: S.amber, fontSize: 18 }}>›</span>
@@ -462,51 +483,36 @@ export default function DashboardPage() {
 
           {/* Account summary — Image 1 design */}
           <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 16, overflow: 'hidden' }}>
-            {/* 2×2 grid */}
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 0 }}>
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr' }}>
               {[
-                { label: 'STATUS', val: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}><span>✅</span> Active</span> },
-                { label: 'TIER',   val: <span style={{ display: 'flex', alignItems: 'center', gap: 6 }}>{tier.star && <span style={{ color: tier.color }}>★</span>} {tier.badge}</span> },
+                { label: 'STATUS',    val: '✅ Active' },
+                { label: 'TIER',      val: `${tier.star ? '★ ' : ''}${tier.badge}` },
                 { label: 'ADDRESS',   val: userAddress || '—' },
                 { label: 'HOUSEHOLD', val: householdSize ? `${householdSize} people` : '—' },
               ].map((card, i) => (
                 <div key={card.label} style={{
                   padding: '16px 18px',
-                  borderRight: i % 2 === 0 ? `0.5px solid ${S.border}` : 'none',
-                  borderBottom: i < 2 ? `0.5px solid ${S.border}` : 'none',
+                  borderRight:  i % 2 === 0 ? `0.5px solid ${S.border}` : 'none',
+                  borderBottom: i < 2      ? `0.5px solid ${S.border}` : 'none',
                 }}>
                   <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 8px' }}>{card.label}</p>
                   <div style={{ fontSize: 14, fontWeight: 500, color: S.forest, lineHeight: 1.4 }}>{card.val}</div>
                 </div>
               ))}
             </div>
-
-            {/* Tier badge card — amber for founding, sage for others */}
-            <div style={{
-              margin: '0 14px 14px',
-              background: tier.bg,
-              border: `1px solid ${tier.color}33`,
-              borderRadius: 12,
-              padding: '14px 16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              marginTop: 14,
-            }}>
+            <div style={{ margin: '14px 14px', background: tier.bg, border: `1px solid ${tier.color}33`, borderRadius: 12, padding: '14px 16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <div>
-                <p style={{ fontSize: 10, fontWeight: 700, color: tier.color, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 4px' }}>
-                  {tier.badge}
-                </p>
+                <p style={{ fontSize: 10, fontWeight: 700, color: tier.color, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 4px' }}>{tier.badge}</p>
                 <p style={{ fontSize: 13, color: S.stone, fontWeight: 300, margin: 0, lineHeight: 1.5 }}>{tier.desc}</p>
               </div>
-              {tier.star && <span style={{ fontSize: 28, marginLeft: 12, flexShrink: 0 }}>✦</span>}
+              {tier.star && <span style={{ fontSize: 28, marginLeft: 12, flexShrink: 0, color: tier.color }}>✦</span>}
             </div>
           </div>
 
         </>)}
       </div>
 
-      <InlineFooter />
+      <Footer />
     </div>
   )
 }
