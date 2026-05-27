@@ -12,7 +12,7 @@ const TIERS = [
   {
     key: 'free', badge: 'Free', name: 'Kitchen', price: '$0', period: '/ always',
     cta: 'Start free', ctaStyle: 'outline',
-    sections: [h
+    sections: [
       { label: 'Calendar', items: [{ text: 'Active window', tag: '60 days', check: true }, { text: 'Recurring or perpetual calendar', check: false }] },
       { label: 'Restaurants + Meals', items: [{ text: 'Restaurants', tag: '3 max', check: true }, { text: 'Menu items per restaurant', tag: '4 max', check: true }, { text: 'Personal drop-off / home cook option', check: false }] },
       { label: 'Delivery', items: [{ text: 'DoorDash delivery', check: true }, { text: 'SMS confirmation flow', check: true }, { text: 'Tracking link to recipient', check: true }] },
