@@ -107,11 +107,10 @@ export default function DashboardPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
 
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('full_name, tier, street, city, state, zip, household_size')
-        .eq('id', user.id)
-        .single()
+     const { data: kitchens } = await supabase
+  .from('kitchens').select('id, name, slug').eq('organizer_id', user.id)
+  .order('created_at', { ascending: false }).limit(1)
+const k = kitchens?.[0] || null
 
       setFullName(profile?.full_name || '')
       setUserTier(profile?.tier || 'free')
