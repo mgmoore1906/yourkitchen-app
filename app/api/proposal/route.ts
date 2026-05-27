@@ -64,12 +64,14 @@ export async function POST(request: Request) {
     status:                'pending',
   })
        // After proposal insert succeeds, update display fields
-await supabase.from('meal_proposals').update({
-  restaurant_name: restaurant?.name,
-  meal_name:       menuItem?.name,
-  delivery_date:   calDate?.date,
-  meal_type:       calDate?.meal_type || 'dinner',
-}).eq('id', proposal.id)
+if (proposal?.id) {
+  await supabase.from('meal_proposals').update({
+    restaurant_name: restaurant?.name,
+    meal_name:       menuItem?.name,
+    delivery_date:   calDate?.date,
+    meal_type:       calDate?.meal_type || 'dinner',
+  }).eq('id', proposal.id)
+}
         .select('id')
         .single()
       if (proposalError) return NextResponse.json({ error: proposalError.message }, { status: 400 })
