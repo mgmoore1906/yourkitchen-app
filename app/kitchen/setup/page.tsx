@@ -86,6 +86,13 @@ export default function KitchenSetupPage() {
     }
     load()
   }, [])
+  // Already has a kitchen — skip setup
+const { data: existing } = await supabase
+  .from('kitchens').select('id').eq('organizer_id', user.id).limit(1)
+if (existing && existing.length > 0) {
+  router.push('/dashboard')
+  return
+}
 
   const toggleRestaurant = (id: string) =>
     setSelectedRestaurants(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id])
