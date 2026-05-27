@@ -57,13 +57,19 @@ export async function POST(request: Request) {
   .from('meal_proposals')
   .insert({
     claim_id:              claim.id,
+    kitchen_id:            kitchen?.id,
     kitchen_restaurant_id: p.restaurant_id,
     menu_item_id:          p.menu_item_id,
+    coordinator_name:      name,
     coordinator_note:      note || null,
     tip_amount:            tip_amount || 0,
     status:                'pending',
   })
-       // After proposal insert succeeds, update display fields
+  .select('id')
+  .single()
+if (proposalError) return NextResponse.json({ error: proposalError.message }, { status: 400 })
+
+// Denormalize display fields onto the proposal row
 if (proposal?.id) {
   await supabase.from('meal_proposals').update({
     restaurant_name: restaurant?.name,
@@ -72,9 +78,6 @@ if (proposal?.id) {
     meal_type:       calDate?.meal_type || 'dinner',
   }).eq('id', proposal.id)
 }
-        .select('id')
-        .single()
-      if (proposalError) return NextResponse.json({ error: proposalError.message }, { status: 400 })
 
       proposalIds.push(proposal.id)
 
