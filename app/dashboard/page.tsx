@@ -102,55 +102,61 @@ export default function DashboardPage() {
     setCalDates(data || [])
   }, [todayStr])
 
-  useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+ useEffect(() => {
+  const load = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
 
-     const { data: kitchens } = await supabase
-  .from('kitchens').select('id, name, slug').eq('organizer_id', user.id)
-  .order('created_at', { ascending: false }).limit(1)
-const k = kitchens?.[0] || null
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name, tier, street, city, state, zip, household_size')
+      .eq('id', user.id)
+      .single()
 
-      setFullName(profile?.full_name || '')
-      setUserTier(profile?.tier || 'free')
-      if (profile?.city) {
-        setUserAddress([profile.street, profile.city, profile.state, profile.zip].filter(Boolean).join(', '))
-      }
-      if (profile?.household_size) setHouseholdSize(String(profile.household_size))
-
-      const { data: k } = await supabase
-        .from('kitchens')
-        .select('id, name, slug')
-        .eq('organizer_id', user.id)
-        .single()
-
-      if (k) {
-        setKitchen(k)
-        setKitchenUrl(`${window.location.origin}/k/${k.slug}`)
-        await loadCalDates(k.id)
-
-        const { data: props } = await supabase
-          .from('meal_proposals')
-          .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type')
-          .eq('kitchen_id', k.id)
-          .eq('status', 'pending')
-          .order('delivery_date', { ascending: true })
-        setProposals(props || [])
-
-        const { data: orders } = await supabase
-          .from('meal_proposals')
-          .select('id, meal_name, restaurant_name, coordinator_name, doordash_tracking_url, doordash_delivery_id, delivery_date')
-          .eq('kitchen_id', k.id)
-          .eq('status', 'confirmed')
-          .order('delivery_date', { ascending: true })
-        setActiveOrders((orders || []) as ActiveOrder[])
-      }
-      setLoading(false)
+    const name = profile?.full_name
+      || (user.user_metadata?.full_name as string)
+      || (user.user_metadata?.name as string)
+      || ''
+    setFullName(name)
+    setUserTier(profile?.tier || 'free')
+    if (profile?.city) {
+      setUserAddress([profile.street, profile.city, profile.state, profile.zip].filter(Boolean).join(', '))
     }
-    load()
-  }, [])
+    if (profile?.household_size) setHouseholdSize(String(profile.household_size))
 
+    const { data: kitchens } = await supabase
+      .from('kitchens')
+      .select('id, name, slug')
+      .eq('organizer_id', user.id)
+      .order('created_at', { ascending: false })
+      .limit(1)
+    const k = kitchens?.[0] || null
+
+    if (k) {
+      setKitchen(k)
+      setKitchenUrl(`${window.location.origin}/k/${k.slug}`)
+      await loadCalDates(k.id)
+
+      const { data: props } = await supabase
+        .from('meal_proposals')
+        .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type')
+        .eq('kitchen_id', k.id)
+        .eq('status', 'pending')
+        .order('delivery_date', { ascending: true })
+      setProposals(props || [])
+
+      const { data: orders } = await supabase
+        .from('meal_proposals')
+        .select('id, meal_name, restaurant_name, coordinator_name, doordash_tracking_url, doordash_delivery_id, delivery_date')
+        .eq('kitchen_id', k.id)
+        .eq('status', 'confirmed')
+        .order('delivery_date', { ascending: true })
+      setActiveOrders((orders || []) as ActiveOrder[])
+    }
+    setLoading(false)
+  }
+  load()
+}, [])
   const copyLink = async () => {
     if (!kitchenUrl) return
     try { await navigator.clipboard.writeText(kitchenUrl) } catch {
