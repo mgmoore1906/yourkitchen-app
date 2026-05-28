@@ -52,7 +52,6 @@ export async function POST(request: Request) {
         .single()
       if (claimError) return NextResponse.json({ error: claimError.message }, { status: 400 })
 
-      // Insert proposal with kitchen_id and coordinator_name
       const { data: proposal, error: proposalError } = await supabase
         .from('meal_proposals')
         .insert({
@@ -69,14 +68,14 @@ export async function POST(request: Request) {
         .single()
       if (proposalError) return NextResponse.json({ error: proposalError.message }, { status: 400 })
 
-      // Denormalize display fields for dashboard query
+      // Denormalize display fields
       if (proposal?.id) {
         await supabase
           .from('meal_proposals')
           .update({
             restaurant_name: restaurant?.name || null,
-            meal_name:       menuItem?.name || null,
-            delivery_date:   calDate?.date || null,
+            meal_name:       menuItem?.name   || null,
+            delivery_date:   calDate?.date    || null,
             meal_type:       (calDate as any)?.meal_type || 'dinner',
           })
           .eq('id', proposal.id)
@@ -118,8 +117,8 @@ export async function POST(request: Request) {
       })
     }
 
-    // 3% YourKitchen platform fee
-    const mealTotal  = lineItems
+    // 3% platform fee
+    const mealTotal   = lineItems
       .filter(li => li.price_data.product_data.name !== 'Dasher Tip')
       .reduce((sum, li) => sum + li.price_data.unit_amount, 0)
     const platformFee = Math.round(mealTotal * 0.03)
@@ -138,27 +137,30 @@ export async function POST(request: Request) {
     }
 
     const session = await stripe.checkout.sessions.create({
-  payment_method_types: ['card'],
-  line_items:            lineItems,
-  mode:                  'payment',
-  payment_intent_data:   { capture_method: 'manual' },
-  customer_email:        email,
-  success_url:           `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}`,
-  cancel_url:            `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
-  metadata: {
-    type:             'proposal',
-    proposal_ids:     JSON.stringify(proposalIds),
-    coordinator_name: name,
-  },
-})
+      payment_method_types: ['card'],
+      line_items:           lineItems,
+      mode:                 'payment',
+      payment_intent_data:  { capture_method: 'manual' },
+      customer_email:       email,
+      success_url:          `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}`,
+      cancel_url:           `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
+      metadata: {
+        type:             'proposal',
+        proposal_ids:     JSON.stringify(proposalIds),
+        coordinator_name: name,
+      },
+    })
 
-// Save stripe_session_id — payment_intent_id gets saved by webhook
-if (session.id && proposalIds.length > 0) {
-  await supabase
-    .from('meal_proposals')
-    .update({ stripe_session_id: session.id })
-    .in('id', proposalIds)
-}
+    // Save stripe_session_id — confirm route uses this as fallback if webhook hasn't fired
+    if (session.id && proposalIds.length > 0) {
+      await supabase
+        .from('meal_proposals')
+        .update({ stripe_session_id: session.id })
+        .in('id', proposalIds)
+    }
 
-return NextResponse.json({ checkout_url: session.url })
+    return NextResponse.json({ checkout_url: session.url })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
+}
