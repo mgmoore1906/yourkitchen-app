@@ -20,51 +20,40 @@ export async function POST(request: Request) {
 
     if (!proposal) return NextResponse.json({ error: 'Proposal not found' }, { status: 404 })
 
-    if (action === 'confirm') {
-      if (!proposal.payment_intent_id) {
-        return NextResponse.json({ error: 'Payment not yet authorized for this proposal' }, { status: 400 })
+if (action === 'confirm') {
+  let paymentIntentId = proposal.payment_intent_id
+
+  // Fallback: look up payment intent from Stripe session if not saved by webhook
+  if (!paymentIntentId && proposal.stripe_session_id) {
+    try {
+      const session = await stripe.checkout.sessions.retrieve(proposal.stripe_session_id)
+      paymentIntentId = session.payment_intent as string | null
+      if (paymentIntentId) {
+        await supabase.from('meal_proposals')
+          .update({ payment_intent_id: paymentIntentId })
+          .eq('id', proposal_id)
       }
-
-      // Update DB first — webhook queries by status === 'confirmed'
-      await Promise.all([
-        supabase
-          .from('meal_proposals')
-          .update({ status: 'confirmed', responded_at: new Date().toISOString() })
-          .eq('id', proposal_id),
-        supabase
-          .from('calendar_dates')
-          .update({ status: 'confirmed' })
-          .eq('id', proposal.claims?.calendar_date_id),
-      ])
-
-      // Capture the hold — fires payment_intent.succeeded webhook → DoorDash + SMS
-      await stripe.paymentIntents.capture(proposal.payment_intent_id)
-
-      return NextResponse.json({ success: true })
-
-    } else if (action === 'decline') {
-      // Cancel the hold so coordinator isn't charged
-      if (proposal.payment_intent_id) {
-        try {
-          await stripe.paymentIntents.cancel(proposal.payment_intent_id)
-        } catch (err: any) {
-          console.error('PaymentIntent cancel failed:', err.message)
-        }
-      }
-
-      await Promise.all([
-        supabase
-          .from('meal_proposals')
-          .update({ status: 'declined', responded_at: new Date().toISOString() })
-          .eq('id', proposal_id),
-        supabase
-          .from('calendar_dates')
-          .update({ status: 'available' })
-          .eq('id', proposal.claims?.calendar_date_id),
-      ])
-
-      return NextResponse.json({ success: true })
+    } catch (err: any) {
+      console.error('Session lookup failed:', err.message)
     }
+  }
+
+  if (!paymentIntentId) {
+    return NextResponse.json({ error: 'Payment not yet authorized for this proposal' }, { status: 400 })
+  }
+
+  await Promise.all([
+    supabase.from('meal_proposals')
+      .update({ status: 'confirmed', responded_at: new Date().toISOString() })
+      .eq('id', proposal_id),
+    supabase.from('calendar_dates')
+      .update({ status: 'confirmed' })
+      .eq('id', proposal.claims?.calendar_date_id),
+  ])
+
+  await stripe.paymentIntents.capture(paymentIntentId)
+  return NextResponse.json({ success: true })
+}
 
     return NextResponse.json({ error: 'Invalid action' }, { status: 400 })
   } catch (err: any) {
