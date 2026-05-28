@@ -152,16 +152,14 @@ export async function POST(request: Request) {
   },
 })
 
-// Save payment_intent_id immediately — don't wait for webhook
-const paymentIntentId = session.payment_intent as string | null
-if (paymentIntentId && proposalIds.length > 0) {
+// Save stripe_session_id — payment_intent_id gets saved by webhook
+if (session.id && proposalIds.length > 0) {
   await supabase
     .from('meal_proposals')
-    .update({ payment_intent_id: paymentIntentId })
+    .update({ stripe_session_id: session.id })
     .in('id', proposalIds)
 }
+
 return NextResponse.json({ checkout_url: session.url })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
