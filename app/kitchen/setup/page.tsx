@@ -126,6 +126,15 @@ if (existing && existing.length > 0) {
     setLoading(true); setError('')
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) { router.push('/login'); return }
+    const { data: existing } = await supabase
+  .from('kitchens')
+  .select('id')
+  .eq('organizer_id', user.id)
+  .limit(1)
+if (existing && existing.length > 0) {
+  router.push('/dashboard')
+  return
+}
 
     const selectedRestaurantData = RESTAURANTS.filter(r => selectedRestaurants.includes(r.id))
 
