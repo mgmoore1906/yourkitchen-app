@@ -24,6 +24,7 @@ type Proposal = {
   coordinator_note: string | null
   doordash_tracking_url: string | null
   doordash_delivery_id: string | null
+  doordash_status: string | null
 }
 
 function formatDate(s: string) {
@@ -56,7 +57,7 @@ export default function OrdersPage() {
 
     const { data: proposalData } = await supabase
       .from('meal_proposals')
-      .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, proposed_at')
+      .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, doordash_status, proposed_at')
       .eq('kitchen_id', kitchens[0].id)
       .order('proposed_at', { ascending: false })
     setProposals((proposalData || []) as Proposal[])
