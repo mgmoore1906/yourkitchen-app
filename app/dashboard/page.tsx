@@ -98,8 +98,9 @@ export default function DashboardPage() {
       .from('meal_proposals').select('*', { count: 'exact', head: true })
       .eq('kitchen_id', kitchenId).eq('status', 'pending')
     const { count: active } = await supabase
-      .from('meal_proposals').select('*', { count: 'exact', head: true })
-      .eq('kitchen_id', kitchenId).eq('status', 'confirmed')
+  .from('meal_proposals').select('*', { count: 'exact', head: true })
+  .eq('kitchen_id', kitchenId).eq('status', 'confirmed')
+  .not('doordash_status', 'eq', 'cancelled')
     setPendingCount(pending || 0)
     setActiveCount(active || 0)
   }, [])
