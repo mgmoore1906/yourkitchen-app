@@ -74,25 +74,27 @@ export default function KitchenSetupPage() {
   for (let i = 0; i < firstDay; i++) cells.push(null)
   for (let d = 1; d <= daysInMonth; d++) cells.push(d)
 
-  useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
-      const { data } = await supabase
-        .from('profiles')
-        .select('full_name, street, city, state, zip, household_size, dietary_restrictions')
-        .eq('id', user.id).single()
-      setProfile(data)
+ useEffect(() => {
+  const load = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
+
+    // Already has a kitchen — skip setup
+    const { data: existing } = await supabase
+      .from('kitchens').select('id').eq('organizer_id', user.id).limit(1)
+    if (existing && existing.length > 0) {
+      router.push('/dashboard')
+      return
     }
-    load()
-  }, [])
-  // Already has a kitchen — skip setup
-const { data: existing } = await supabase
-  .from('kitchens').select('id').eq('organizer_id', user.id).limit(1)
-if (existing && existing.length > 0) {
-  router.push('/dashboard')
-  return
-}
+
+    const { data } = await supabase
+      .from('profiles')
+      .select('full_name, street, city, state, zip, household_size, dietary_restrictions')
+      .eq('id', user.id).single()
+    setProfile(data)
+  }
+  load()
+}, [])
 
   const toggleRestaurant = (id: string) =>
     setSelectedRestaurants(prev => prev.includes(id) ? prev.filter(r => r !== id) : [...prev, id])
