@@ -65,10 +65,14 @@ export default function OrdersPage() {
   load()
 }, [])
 
-  const onTheWay  = proposals.filter(p => p.status === 'confirmed')
+   const onTheWay = proposals.filter(p => 
+  p.status === 'confirmed' && p.doordash_status !== 'cancelled')
+  const cancelledDeliveries = proposals.filter(p =>
+  p.status === 'confirmed' && p.doordash_status === 'cancelled')
   const pending   = proposals.filter(p => p.status === 'pending')
-  const previous  = proposals.filter(p => ['delivered','declined','expired','cancelled','failed'].includes(p.status))
-
+  const previous = proposals.filter(p => 
+  ['delivered','declined','expired','cancelled','failed'].includes(p.status)
+).concat(cancelledDeliveries)
   const totalPending = pending.length + onTheWay.length
 
   if (loading) return (
