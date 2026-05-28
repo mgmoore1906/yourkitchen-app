@@ -51,7 +51,7 @@ export default function OrdersPage() {
 
     const { data: kitchens } = await supabase
       .from('kitchens').select('id').eq('organizer_id', user.id)
-      .order('proposed_at', { ascending: false }).limit(1)
+      .order('created_at', { ascending: false }).limit(1)
     if (!kitchens || kitchens.length === 0) { router.push('/dashboard'); return }
 
     const { data: proposalData } = await supabase
