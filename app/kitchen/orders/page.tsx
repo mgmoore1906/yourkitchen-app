@@ -24,7 +24,6 @@ type Proposal = {
   coordinator_note: string | null
   doordash_tracking_url: string | null
   doordash_delivery_id: string | null
-  created_at: string
 }
 
 function formatDate(s: string) {
@@ -45,27 +44,26 @@ export default function OrdersPage() {
   const [loading,   setLoading]   = useState(true)
   const [proposals, setProposals] = useState<Proposal[]>([])
 
-  useEffect(() => {
-    const load = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) { router.push('/login'); return }
+ useEffect(() => {
+  const load = async () => {
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) { router.push('/login'); return }
 
-      const { data} = await supabase
-        .from('kitchens').select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, proposed_at')
-.eq('kitchen_id', kitchens[0].id)
-.order('proposed_at', { ascending: false }).limit(1)
-      if (!kitchens || kitchens.length === 0) { router.push('/dashboard'); return }
+    const { data: kitchens } = await supabase
+      .from('kitchens').select('id').eq('organizer_id', user.id)
+      .order('proposed_at', { ascending: false }).limit(1)
+    if (!kitchens || kitchens.length === 0) { router.push('/dashboard'); return }
 
-      const { data: proposalData } = await supabase
-        .from('meal_proposals')
-        .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, created_at')
-        .eq('kitchen_id', kitchens[0].id)
-        .order('created_at', { ascending: false })
-      setProposals((proposalData || []) as Proposal[])
-      setLoading(false)
-    }
-    load()
-  }, [])
+    const { data: proposalData } = await supabase
+      .from('meal_proposals')
+      .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, proposed_at')
+      .eq('kitchen_id', kitchens[0].id)
+      .order('proposed_at', { ascending: false })
+    setProposals((proposalData || []) as Proposal[])
+    setLoading(false)
+  }
+  load()
+}, [])
 
   const onTheWay  = proposals.filter(p => p.status === 'confirmed')
   const pending   = proposals.filter(p => p.status === 'pending')
