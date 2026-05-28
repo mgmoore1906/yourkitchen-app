@@ -19,6 +19,7 @@ type Proposal = {
   meal_name: string
   delivery_date: string
   meal_type: string
+  proposed_at: string
   status: string
   coordinator_note: string | null
   doordash_tracking_url: string | null
@@ -50,7 +51,7 @@ export default function OrdersPage() {
       if (!user) { router.push('/login'); return }
 
       const { data: kitchens } = await supabase
-        .from('kitchens')..select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, proposed_at')
+        .from('kitchens').select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, proposed_at')
 .eq('kitchen_id', kitchens[0].id)
 .order('proposed_at', { ascending: false }).limit(1)
       if (!kitchens || kitchens.length === 0) { router.push('/dashboard'); return }
