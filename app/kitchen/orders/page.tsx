@@ -56,12 +56,12 @@ export default function OrdersPage() {
 .order('proposed_at', { ascending: false }).limit(1)
       if (!kitchens || kitchens.length === 0) { router.push('/dashboard'); return }
 
-      const { data } = await supabase
+      const { data: proposalData } = await supabase
         .from('meal_proposals')
         .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, created_at')
         .eq('kitchen_id', kitchens[0].id)
         .order('created_at', { ascending: false })
-      setProposals((data || []) as Proposal[])
+      setProposals((proposalData || []) as Proposal[])
       setLoading(false)
     }
     load()
