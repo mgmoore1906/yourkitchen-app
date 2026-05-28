@@ -1,120 +1,62 @@
-import Stripe from 'stripe'
 import { createClient } from '@supabase/supabase-js'
+import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
-
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+
+const STRIPE_PRICES: Record<string, { priceId: string; mode: 'subscription' | 'payment' }> = {
+  care:     { priceId: 'price_1TS7gX1qsEWj9oGNNeLys5Xb', mode: 'subscription' },
+  annual:   { priceId: 'price_1TThbJ1qsEWj9oGNX0E6NnKj', mode: 'subscription' },
+  founding: { priceId: 'price_1TThnS1qsEWj9oGNq7On7cJl', mode: 'payment'      },
+}
 
 export async function POST(request: Request) {
-  const body = await request.text()
-  const sig = request.headers.get('stripe-signature')!
-
-  let event: Stripe.Event
   try {
-    event = stripe.webhooks.constructEvent(
-      body,
-      sig,
-      process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET!
-    )
+    const { tier, user_id } = await request.json()
+
+    // Downgrade to free — just update DB, no Stripe needed
+    if (tier === 'free') {
+      await supabase.from('profiles').update({ tier: 'free' }).eq('id', user_id)
+      return NextResponse.json({ success: true })
+    }
+
+    const plan = STRIPE_PRICES[tier]
+    if (!plan) return NextResponse.json({ error: 'Invalid tier' }, { status: 400 })
+
+    // Get user email for Stripe customer
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('full_name')
+      .eq('id', user_id)
+      .single()
+
+    const { data: { user } } = await supabase.auth.admin.getUserById(user_id)
+    const email = user?.email || ''
+
+    const session = await stripe.checkout.sessions.create({
+      payment_method_types: ['card'],
+      mode:                 plan.mode,
+      line_items: [{
+        price:    plan.priceId,
+        quantity: 1,
+      }],
+      customer_email: email,
+      success_url: `${process.env.NEXT_PUBLIC_APP_URL}/settings?upgraded=${tier}&session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url:  `${process.env.NEXT_PUBLIC_APP_URL}/settings`,
+      metadata: {
+        type:    'subscription',
+        tier,
+        user_id,
+      },
+    })
+
+    return NextResponse.json({ url: session.url })
   } catch (err: any) {
-    return NextResponse.json({ error: `Webhook error: ${err.message}` }, { status: 400 })
+    console.error('Stripe subscription error:', err.message)
+    return NextResponse.json({ error: err.message }, { status: 500 })
   }
-
-  const getMetadata = (obj: any) => obj?.metadata || {}
-
-  switch (event.type) {
-
-    // Subscription created or trial started
-    case 'customer.subscription.created':
-    case 'customer.subscription.updated': {
-      const sub = event.data.object as Stripe.Subscription
-      const { kitchen_id } = getMetadata(sub)
-      if (!kitchen_id) break
-
-      const status = sub.status // trialing, active, past_due, canceled
-      const plan = sub.metadata?.plan || 'monthly'
-
-      await supabase.from('kitchens').update({
-        subscription_status: status,
-        subscription_plan: plan,
-        subscription_id: sub.id,
-        subscription_ends_at: status === 'trialing'
-          ? new Date(sub.trial_end! * 1000).toISOString()
-          : null,
-      }).eq('id', kitchen_id)
-      break
-    }
-
-    // Subscription cancelled or expired
-    case 'customer.subscription.deleted': {
-      const sub = event.data.object as Stripe.Subscription
-      const { kitchen_id } = getMetadata(sub)
-      if (!kitchen_id) break
-
-      await supabase.from('kitchens').update({
-        subscription_status: 'free',
-        subscription_plan: null,
-        subscription_id: null,
-        subscription_ends_at: null,
-      }).eq('id', kitchen_id)
-      break
-    }
-
-    // One-time lifetime payment completed
-    case 'checkout.session.completed': {
-      const session = event.data.object as Stripe.Checkout.Session
-      if (session.mode !== 'payment') break
-
-      const { kitchen_id, plan } = session.metadata || {}
-      if (!kitchen_id || plan !== 'lifetime') break
-
-      await supabase.from('kitchens').update({
-        subscription_status: 'lifetime',
-        subscription_plan: 'lifetime',
-        subscription_id: session.id,
-        subscription_ends_at: null,
-      }).eq('id', kitchen_id)
-      break
-    }
-
-    // Trial ending soon — send reminder SMS
-    case 'customer.subscription.trial_will_end': {
-      const sub = event.data.object as Stripe.Subscription
-      const { kitchen_id } = getMetadata(sub)
-      if (!kitchen_id) break
-
-      const { data: kitchen } = await supabase
-        .from('kitchens')
-        .select('recipient_id')
-        .eq('id', kitchen_id)
-        .single()
-
-      if (kitchen?.recipient_id) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('phone')
-          .eq('id', kitchen.recipient_id)
-          .single()
-
-        if (profile?.phone) {
-          const twilio = require('twilio')(
-            process.env.TWILIO_ACCOUNT_SID,
-            process.env.TWILIO_AUTH_TOKEN
-          )
-          await twilio.messages.create({
-            body: `Your YourKitchen Care+ trial ends in 3 days. Keep SMS notifications and unlimited scheduling by upgrading at yourkitchen.app — YourKitchen`,
-            from: process.env.TWILIO_PHONE_NUMBER,
-            to: profile.phone,
-          }).catch((e: any) => console.error('Trial SMS failed:', e.message))
-        }
-      }
-      break
-    }
-  }
-
-  return NextResponse.json({ received: true })
 }
