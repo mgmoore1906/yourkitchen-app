@@ -374,7 +374,7 @@ export default function DashboardPage() {
           <p style={{ fontFamily: "'Lora',serif", fontSize: 17, fontWeight: 500, color: S.forest, margin: '4px 0 12px' }}>Quick Actions</p>
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10, marginBottom: 20 }}>
             {[
-              { icon: '🏪', label: 'My Restaurants', action: () => router.push('/kitchen/restaurants'), badge: atRestLimit ? '!' : null, badgeColor: S.amber },
+              { icon: '🏪', label: 'My Restaurants', action: () => router.push('/kitchen/restaurants'), badge: null, badgeColor: S.amber },
               { icon: '📋', label: 'Order History',  action: () => router.push('/kitchen/orders'),      badge: badgeCount > 0 ? badgeCount : null, badgeColor: S.amber },
               { icon: '⚙️', label: 'Settings',       action: () => router.push('/settings'),            badge: null, badgeColor: '' },
               { icon: '🔓', label: 'Sign Out',        action: signOut,                                   badge: null, badgeColor: '' },
