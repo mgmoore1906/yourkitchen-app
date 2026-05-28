@@ -160,6 +160,8 @@ if (paymentIntentId && proposalIds.length > 0) {
     .update({ payment_intent_id: paymentIntentId })
     .in('id', proposalIds)
 }
-
 return NextResponse.json({ checkout_url: session.url })
-;
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
