@@ -50,8 +50,9 @@ export default function OrdersPage() {
       if (!user) { router.push('/login'); return }
 
       const { data: kitchens } = await supabase
-        .from('kitchens').select('id').eq('organizer_id', user.id)
-        .order('created_at', { ascending: false }).limit(1)
+        .from('kitchens')..select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, proposed_at')
+.eq('kitchen_id', kitchens[0].id)
+.order('proposed_at', { ascending: false }).limit(1)
       if (!kitchens || kitchens.length === 0) { router.push('/dashboard'); return }
 
       const { data } = await supabase
