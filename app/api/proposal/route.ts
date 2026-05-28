@@ -162,3 +162,4 @@ if (paymentIntentId && proposalIds.length > 0) {
 }
 
 return NextResponse.json({ checkout_url: session.url })
+;
