@@ -138,22 +138,27 @@ export async function POST(request: Request) {
     }
 
     const session = await stripe.checkout.sessions.create({
-      payment_method_types: ['card'],
-      line_items:           lineItems,
-      mode:                 'payment',
-      payment_intent_data:  { capture_method: 'manual' },
-      customer_email:       email,
-      success_url:          `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}`,
-      cancel_url:           `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
-      metadata: {
-        type:             'proposal',
-        proposal_ids:     JSON.stringify(proposalIds),
-        coordinator_name: name,
-      },
-    })
+  payment_method_types: ['card'],
+  line_items:            lineItems,
+  mode:                  'payment',
+  payment_intent_data:   { capture_method: 'manual' },
+  customer_email:        email,
+  success_url:           `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}`,
+  cancel_url:            `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
+  metadata: {
+    type:             'proposal',
+    proposal_ids:     JSON.stringify(proposalIds),
+    coordinator_name: name,
+  },
+})
 
-    return NextResponse.json({ checkout_url: session.url })
-  } catch (err: any) {
-    return NextResponse.json({ error: err.message }, { status: 500 })
-  }
+// Save payment_intent_id immediately — don't wait for webhook
+const paymentIntentId = session.payment_intent as string | null
+if (paymentIntentId && proposalIds.length > 0) {
+  await supabase
+    .from('meal_proposals')
+    .update({ payment_intent_id: paymentIntentId })
+    .in('id', proposalIds)
 }
+
+return NextResponse.json({ checkout_url: session.url })
