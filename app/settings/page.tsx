@@ -303,7 +303,7 @@ function SettingsContent() {
                 const isCurrent  = tier.key === currentTier
                 const isSwitching = switchingTier === tier.key
                 return (
-                  <div key={tier.key} style={{ background: S.white, border: `${isCurrent ? 2 : 1.5}px solid ${isCurrent ? tier.color : S.border}`, borderRadius: 14, padding: '16px 18px', position: 'relative', overflow: 'hidden' }}>
+                  <div key={tier.key} style={{ background: S.white, border: `${isCurrent ? 2 : 1.5}px solid ${isCurrent ? tier.color : S.border}`, borderRadius: 14, padding: '16px 18px', position: 'relative',}}>
                     {tier.highlight && (
                       <div style={{ position: 'absolute', top: 0, right: 0, background: tier.color, color: S.white, fontSize: 9, fontWeight: 700, padding: '3px 12px', borderBottomLeftRadius: 8, letterSpacing: '0.06em' }}>
                         {tier.highlight.toUpperCase()}
