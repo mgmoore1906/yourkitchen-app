@@ -5,12 +5,31 @@
 import { useState, useEffect, useRef } from 'react'
 import { haversineDistance, getTipTier } from '@/lib/distance'
 
+// ── Coordinator palette — warm amber/wheat (distinct from recipient's sage/forest) ──
 const S = {
-sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
-cream: '#FAFAF5', forest: '#1E2620', stone: '#6B7066',
-border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47',
-amberLight: '#FBF0E4', red: '#B94040', redLight: '#FDE8E8',
-blue: '#4A8FA8', blueLight: '#E8F4F8',
+// Coordinator accent
+amber:      '#B87333',   // warm copper-amber — primary action color
+amberMid:   '#D4956A',   // mid amber
+amberLight: '#F5ECD8',   // warm cream tint
+amberBorder:'#E0C89A',   // warm tan border
+// Coordinator background
+cream:      '#FDFAF5',   // warm cream (slightly warmer than recipient)
+warmWhite:  '#FFFCF5',   // card backgrounds
+// Coordinator text
+mahogany:   '#5C3317',   // dark warm brown — headings/buttons (replaces forest)
+walnut:     '#7A5C3A',   // medium warm brown — body text (replaces stone)
+// Functional
+white:      '#FFFFFF',
+border:     '#E0C89A',   // warm tan
+red:        '#B94040',
+redLight:   '#FDE8E8',
+blue:       '#4A8FA8',
+blueLight:  '#E8F4F8',
+// Keep for meal-type color coding
+sage:       '#3D6B4F',   // still used for dinner meal type dots
+sageLight:  '#EAF2ED',
+forest:     '#1E2620',
+stone:      '#6B7066',
 }
 const MEAL_TYPE_LABELS: Record<string, string> = {
 breakfast: '🌅 Breakfast', lunch: '☀️ Lunch', dinner: '🌙 Dinner',
@@ -78,17 +97,17 @@ return (
 {sorted.map(([name,count])=>(
 <div key={name} style={{ display:'flex',alignItems:'center',gap:10,marginBottom:7 }}>
 <span style={{ fontSize:12,color:S.forest,fontWeight:500,width:140,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{name}</span>
-<div style={{ flex:1,height:6,background:S.sageLight,borderRadius:3,overflow:'hidden' }}>
-<div style={{ height:'100%',background:S.sage,borderRadius:3,width:`${(count/max)*100}%` }}/>
+<div style={{ flex:1,height:6,background:S.amberBorder,borderRadius:3,overflow:'hidden' }}>
+<div style={{ height:'100%',background:S.amber,borderRadius:3,width:`${(count/max)*100}%` }}/>
 </div>
-<span style={{ fontSize:11,fontWeight:700,color:S.sage,width:20,textAlign:'right',flexShrink:0 }}>{count}×</span>
+<span style={{ fontSize:11,fontWeight:700,color:S.amber,width:20,textAlign:'right',flexShrink:0 }}>{count}×</span>
 </div>
 ))}
 {meals.map((m,i)=>{
 const mc=MEAL_TYPE_COLORS[m.meal_type]||MEAL_TYPE_COLORS.dinner
 const isRecent=m.delivery_date>=sevenAgo
 return (
-<div key={m.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:i<meals.length-1?`0.5px solid ${S.sageLight}`:'none' }}>
+<div key={m.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:i<meals.length-1?`0.5px solid ${S.amberBorder}`:'none' }}>
 <span style={{ background:mc.bg,color:mc.color,fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:20,flexShrink:0 }}>{MEAL_TYPE_LABELS[m.meal_type]?.split(' ')[1]||m.meal_type}</span>
 <div style={{ flex:1,overflow:'hidden' }}>
 <div style={{ fontSize:12,fontWeight:500,color:S.forest,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{m.meal_name}</div>
@@ -125,9 +144,9 @@ for(let d=1;d<=daysInMonth;d++)cells.push(d)
 return (
 <div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
-<button onClick={prev} style={{ background:S.sageLight,border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',fontSize:16,color:S.sage,display:'flex',alignItems:'center',justifyContent:'center' }}>‹</button>
+<button onClick={prev} style={{ background:S.amberLight,border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',fontSize:16,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>‹</button>
 <p style={{ fontFamily:"'Lora',serif",fontSize:16,fontWeight:500,color:S.forest,margin:0 }}>{monthName}</p>
-<button onClick={next} style={{ background:S.sageLight,border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',fontSize:16,color:S.sage,display:'flex',alignItems:'center',justifyContent:'center' }}>›</button>
+<button onClick={next} style={{ background:S.amberLight,border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',fontSize:16,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>›</button>
 </div>
 <div style={{ display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:3,marginBottom:3 }}>
 {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=><div key={d} style={{ textAlign:'center',fontSize:10,fontWeight:600,color:S.stone,padding:'3px 0' }}>{d}</div>)}
@@ -141,14 +160,14 @@ const slots=dateMap[ds]||[],has=slots.length>0
 const isSel=slots.some((s:any)=>selectedIds.has(s.id))
 return (
 <button key={i} onClick={()=>{ if(!has||isPast)return;slots.forEach((s:any)=>onToggle(s)) }} disabled={isPast||!has}
-style={{ background:isSel?S.sageLight:has?'#F8FAF8':'transparent',border:isToday?`2px solid ${S.sage}`:isSel?`2px solid ${S.sage}`:has?`1.5px solid ${S.border}`:`1.5px solid transparent`,borderRadius:10,padding:'8px 2px',minHeight:52,cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
-<span style={{ fontSize:13,fontWeight:isToday?700:500,color:isPast?'#C8D5CA':isSel?S.sage:S.forest,lineHeight:1 }}>{day}</span>
+style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isToday?`2px solid ${S.amber}`:isSel?`2px solid ${S.amber}`:has?`1.5px solid ${S.border}`:`1.5px solid transparent`,borderRadius:10,padding:'8px 2px',minHeight:52,cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
+<span style={{ fontSize:13,fontWeight:isToday?700:500,color:isPast?'#C8D5CA':isSel?S.amber:S.mahogany,lineHeight:1 }}>{day}</span>
 {has&&<div style={{ display:'flex',gap:2 }}>{slots.map((s:any,si:number)=>{const mc=MEAL_TYPE_COLORS[s.meal_type]||MEAL_TYPE_COLORS.dinner;return<div key={si} style={{ width:6,height:6,borderRadius:'50%',background:selectedIds.has(s.id)?mc.color:'#C8D5CA' }}/>})}</div>}
 </button>
 )
 })}
 </div>
-<div style={{ display:'flex',gap:12,flexWrap:'wrap',marginTop:14,paddingTop:12,borderTop:`1px solid ${S.sageLight}` }}>
+<div style={{ display:'flex',gap:12,flexWrap:'wrap',marginTop:14,paddingTop:12,borderTop:`1px solid ${S.amberBorder}` }}>
 {[{dot:'#E8834A',label:'Breakfast'},{dot:'#4A8FA8',label:'Lunch'},{dot:S.sage,label:'Dinner'},{dot:'#C8D5CA',label:'Not selected'}].map(({dot,label})=>(
 <div key={label} style={{ display:'flex',alignItems:'center',gap:5 }}>
 <div style={{ width:7,height:7,borderRadius:'50%',background:dot }}/>
@@ -162,11 +181,10 @@ style={{ background:isSel?S.sageLight:has?'#F8FAF8':'transparent',border:isToday
 
 function CoordFooter() {
 return (
-<footer style={{ background:S.forest,padding:'48px 24px',textAlign:'center',marginTop:40,fontFamily:"'DM Sans',sans-serif" }}>
-<div style={{ fontSize:9,fontWeight:500,letterSpacing:5,color:S.sageMid,textTransform:'uppercase',marginBottom:2 }}>Your</div>
-<div style={{ fontFamily:"'Lora',serif",fontSize:24,fontWeight:500,color:S.white,letterSpacing:-0.5,marginBottom:8 }}>Kitchen</div>
-<p style={{ fontFamily:"'Lora',serif",fontStyle:'italic',fontSize:13,color:S.sageMid,margin:'0 0 16px' }}>"Your kitchen, covered."</p>
-<p style={{ fontSize:10,color:'rgba(255,255,255,0.18)',margin:0 }}>© 2026 YourKitchen LLC</p>
+<footer style={{ background:S.mahogany,padding:'48px 24px',textAlign:'center',marginTop:40,fontFamily:"'DM Sans',sans-serif" }}>
+<div style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.white,letterSpacing:-0.5,marginBottom:6 }}>YourKitchen</div>
+<p style={{ fontFamily:"'Lora',serif",fontStyle:'italic',fontSize:13,color:'rgba(255,255,255,0.55)',margin:'0 0 16px' }}>"Your kitchen, covered."</p>
+<p style={{ fontSize:10,color:'rgba(255,255,255,0.2)',margin:0 }}>© 2026 YourKitchen LLC</p>
 </footer>
 )
 }
@@ -175,14 +193,14 @@ return (
 function QtyStepper({ qty, onAdd, onSub }: { qty:number; onAdd:()=>void; onSub:()=>void }) {
 if (qty === 0) {
 return (
-<button onClick={onAdd} style={{ background:S.sage,border:'none',borderRadius:8,color:S.white,fontSize:13,fontWeight:600,padding:'7px 14px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0 }}>Add</button>
+<button onClick={onAdd} style={{ background:S.amber,border:'none',borderRadius:8,color:S.white,fontSize:13,fontWeight:600,padding:'7px 14px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0 }}>Add</button>
 )
 }
 return (
-<div style={{ display:'flex',alignItems:'center',gap:0,flexShrink:0,border:`1.5px solid ${S.sage}`,borderRadius:8,overflow:'hidden' }}>
-<button onClick={onSub} style={{ background:S.sageLight,border:'none',color:S.sage,fontSize:18,fontWeight:600,width:30,height:32,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center' }}>−</button>
-<span style={{ fontSize:14,fontWeight:700,color:S.sage,width:28,textAlign:'center' }}>{qty}</span>
-<button onClick={onAdd} style={{ background:S.sageLight,border:'none',color:S.sage,fontSize:18,fontWeight:600,width:30,height:32,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
+<div style={{ display:'flex',alignItems:'center',gap:0,flexShrink:0,border:`1.5px solid ${S.amber}`,borderRadius:8,overflow:'hidden' }}>
+<button onClick={onSub} style={{ background:S.amberLight,border:'none',color:S.amber,fontSize:18,fontWeight:600,width:30,height:32,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center' }}>−</button>
+<span style={{ fontSize:14,fontWeight:700,color:S.amber,width:28,textAlign:'center' }}>{qty}</span>
+<button onClick={onAdd} style={{ background:S.amberLight,border:'none',color:S.amber,fontSize:18,fontWeight:600,width:30,height:32,cursor:'pointer',lineHeight:1,display:'flex',alignItems:'center',justifyContent:'center' }}>+</button>
 </div>
 )
 }
@@ -369,23 +387,23 @@ return (
 <div style={{ minHeight:'100vh',background:S.cream,fontFamily:"'DM Sans',sans-serif",display:'flex',flexDirection:'column' }}>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
-<div style={{ background:S.forest,padding:'20px 24px',textAlign:'center' }}>
-<div style={{ fontSize:9,fontWeight:500,letterSpacing:5,color:S.sageMid,textTransform:'uppercase' }}>Your</div>
-<div style={{ fontFamily:"'Lora',serif",fontSize:24,fontWeight:500,color:S.white }}>Kitchen</div>
+<div style={{ background:S.mahogany, padding:'16px 24px', textAlign:'center' }}>
+<div style={{ fontSize:10, fontWeight:400, letterSpacing:3, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', marginBottom:4 }}>Sending a meal to</div>
+<div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:S.white, letterSpacing:-0.5 }}>{kitchen.name}</div>
+<div style={{ fontSize:10, fontWeight:300, color:'rgba(255,255,255,0.45)', marginTop:6, letterSpacing:1 }}>via YourKitchen</div>
 </div>
-<div style={{ background:S.white,borderBottom:`1px solid ${S.border}`,padding:'20px 24px',textAlign:'center' }}>
-<h1 style={{ fontFamily:"'Lora',serif",fontSize:22,fontWeight:500,color:S.forest,margin:'0 0 4px' }}>{kitchen.name}</h1>
 {kitchen.dietary_restrictions?.length>0&&(
-<div style={{ display:'flex',gap:6,justifyContent:'center',flexWrap:'wrap',marginTop:10 }}>
+<div style={{ background:S.amberLight, borderBottom:`1px solid ${S.amberBorder}`, padding:'12px 24px' }}>
+<div style={{ display:'flex',gap:6,justifyContent:'center',flexWrap:'wrap' }}>
 {kitchen.dietary_restrictions.map((d:string)=>(
-<span key={d} style={{ background:S.sageLight,color:S.sage,borderRadius:20,fontSize:11,fontWeight:500,padding:'4px 12px' }}>⚠️ {d}</span>
+<span key={d} style={{ background:S.warmWhite,color:S.mahogany,borderRadius:20,fontSize:11,fontWeight:600,padding:'4px 12px',border:`1px solid ${S.amberBorder}` }}>⚠️ {d}</span>
 ))}
 </div>
-)}
 </div>
+)}
 
-<div style={{ display:'flex',gap:6,padding:'20px 24px 0',maxWidth:500,margin:'0 auto',width:'100%' }}>
-{[1,2,3].map(i=><div key={i} style={{ flex:1,height:4,borderRadius:4,background:i<=step?S.sage:S.border,transition:'background 0.3s' }}/>)}
+<div style={{ display:'flex',gap:6,padding:'16px 24px 0',maxWidth:500,margin:'0 auto',width:'100%' }}>
+{[1,2,3].map(i=><div key={i} style={{ flex:1,height:4,borderRadius:4,background:i<=step?S.amber:S.amberBorder,transition:'background 0.3s' }}/>)}
 </div>
 
 <div style={{ padding:'24px',maxWidth:500,margin:'0 auto',flex:1,width:'100%' }}>
@@ -396,15 +414,15 @@ return (
 <p style={sub}>Tap any highlighted date to claim it.</p>
 <MealHistory meals={recentMeals} recipientFirstName={recipientFirst}/>
 {availableDates.length===0?(
-<div style={{ background:S.sageLight,borderRadius:14,padding:'20px',textAlign:'center',marginBottom:20 }}>
-<p style={{ color:S.sage,margin:0 }}>No open dates right now. Check back soon!</p>
+<div style={{ background:S.amberLight,borderRadius:14,padding:'20px',textAlign:'center',marginBottom:20,border:`1px solid ${S.amberBorder}` }}>
+<p style={{ color:S.mahogany,margin:0 }}>No open dates right now. Check back soon!</p>
 </div>
 ):(
 <CoordCalendar availableDates={availableDates} selectedIds={selectedIds} onToggle={toggleSlot}/>
 )}
 {selectedSlots.length>0&&(
-<div style={{ background:S.sageLight,borderRadius:14,padding:'14px 16px',marginBottom:16 }}>
-<p style={{ fontSize:11,fontWeight:600,color:S.sage,letterSpacing:1.5,textTransform:'uppercase',margin:'0 0 10px' }}>{selectedSlots.length} date{selectedSlots.length>1?'s':''} selected</p>
+<div style={{ background:S.amberLight,borderRadius:14,padding:'14px 16px',marginBottom:16,border:`1px solid ${S.amberBorder}` }}>
+<p style={{ fontSize:11,fontWeight:600,color:S.amber,letterSpacing:1.5,textTransform:'uppercase',margin:'0 0 10px' }}>{selectedSlots.length} date{selectedSlots.length>1?'s':''} selected</p>
 {selectedSlots.map((slot:any)=>{
 const mc=MEAL_TYPE_COLORS[slot.meal_type]||MEAL_TYPE_COLORS.dinner
 const d=new Date(slot.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})
@@ -413,10 +431,10 @@ return (
 <div key={slot.id} style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6 }}>
 <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
 <span style={{ background:mc.bg,color:mc.color,borderRadius:20,fontSize:10,fontWeight:600,padding:'2px 8px',border:`1px solid ${mc.color}` }}>{MEAL_TYPE_LABELS[slot.meal_type]}</span>
-<span style={{ fontSize:13,color:S.forest,fontWeight:500 }}>{d}</span>
-<span style={{ fontSize:11,color:S.stone,fontWeight:400 }}>· 👤{a} 🧒{c}</span>
+<span style={{ fontSize:13,color:S.mahogany,fontWeight:500 }}>{d}</span>
+<span style={{ fontSize:11,color:S.walnut,fontWeight:400 }}>· 👤{a} 🧒{c}</span>
 </div>
-<button onClick={()=>removeSlot(slot.id)} style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:16,padding:'0 4px' }}>✕</button>
+<button onClick={()=>removeSlot(slot.id)} style={{ background:'none',border:'none',cursor:'pointer',color:S.walnut,fontSize:16,padding:'0 4px' }}>✕</button>
 </div>
 )
 })}
@@ -425,9 +443,9 @@ return (
 <button onClick={handleProceed} disabled={selectedSlots.length===0} style={btn(selectedSlots.length===0)}>
 {selectedSlots.length===0?'Select at least one date':`Next: Choose Meals → (${selectedSlots.length} date${selectedSlots.length>1?'s':''})`}
 </button>
-<div style={{ marginTop:24,paddingTop:24,borderTop:`0.5px solid ${S.border}`,textAlign:'center' }}>
-<p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 8px',lineHeight:1.6 }}>Does someone you love need their village to show up?</p>
-<a href="/signup" style={{ fontSize:13,color:S.sage,fontWeight:500,textDecoration:'none' }}>Create a free Kitchen →</a>
+<div style={{ marginTop:24,paddingTop:24,borderTop:`0.5px solid ${S.amberBorder}`,textAlign:'center' }}>
+<p style={{ fontSize:12,color:S.walnut,fontWeight:300,margin:'0 0 8px',lineHeight:1.6 }}>Does someone you love need their village to show up?</p>
+<a href="/signup" style={{ fontSize:13,color:S.amber,fontWeight:500,textDecoration:'none' }}>Create a free Kitchen →</a>
 </div>
 </>)}
 
@@ -466,8 +484,8 @@ return (
 {loadingFavs&&<div style={{ padding:'20px',textAlign:'center',color:S.stone,fontSize:13 }}>Loading…</div>}
 
 {!loadingFavs&&favorites.length===0&&(
-<div style={{ background:S.sageLight,borderRadius:14,padding:'20px',textAlign:'center' }}>
-<p style={{ fontSize:14,color:S.sage,margin:'0 0 8px',fontFamily:"'Lora',serif" }}>{recipientFirst} hasn't added favorites yet</p>
+<div style={{ background:S.amberLight,borderRadius:14,padding:'20px',textAlign:'center' }}>
+<p style={{ fontSize:14,color:S.mahogany,margin:'0 0 8px',fontFamily:"'Lora',serif" }}>{recipientFirst} hasn't added favorites yet</p>
 <p style={{ fontSize:12,color:S.stone,margin:0,fontWeight:300,lineHeight:1.6 }}>Ask them to set up restaurants and meals in their Kitchen dashboard.</p>
 </div>
 )}
@@ -486,9 +504,9 @@ const adultMeals = allMeals.filter(m=>m.category==='adult')
 const kidsMeals = allMeals.filter(m=>m.category==='kids')
 
 return (
-<div key={fav.id} style={{ background:S.white,border:`2px solid ${isSelected?S.sage:S.border}`,borderRadius:14,marginBottom:10,overflow:'hidden',transition:'all 0.15s' }}>
+<div key={fav.id} style={{ background:S.white,border:`2px solid ${isSelected?S.amber:S.amberBorder}`,borderRadius:14,marginBottom:10,overflow:'hidden',transition:'all 0.15s' }}>
 <button onClick={()=>handleRestaurantSelect(isSelected?{...fav,id:''}:fav)}
-style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap:12,background:isSelected?S.sageLight:'transparent',border:'none',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
+style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap:12,background:isSelected?S.amberLight:'transparent',border:'none',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
 <div style={{ flex:1 }}>
 <div style={{ display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:3 }}>
 <span style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:600,color:S.forest }}>{fav.name}</span>
@@ -502,7 +520,7 @@ style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap
 <span style={{ fontSize:10,color:S.stone,fontWeight:300 }}>No meals saved — you'll enter the dish name</span>
 )}
 </div>
-<span style={{ color:isSelected?S.sage:S.stone,fontSize:18,flexShrink:0,transition:'transform 0.2s',transform:isSelected?'rotate(0deg)':'rotate(-90deg)' }}>
+<span style={{ color:isSelected?S.amber:S.walnut,fontSize:18,flexShrink:0,transition:'transform 0.2s',transform:isSelected?'rotate(0deg)':'rotate(-90deg)' }}>
 {isSelected?'✓':'›'}
 </span>
 </button>
@@ -530,15 +548,15 @@ style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap
 
 {/* ── ADULTS SECTION ── */}
 {adultMeals.length>0&&(<>
-<p style={{ fontSize:10,fontWeight:700,color:S.sage,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>👤 For the adults</p>
+<p style={{ fontSize:10,fontWeight:700,color:S.amber,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>👤 For the adults</p>
 <div style={{ display:'flex',flexDirection:'column',gap:8,marginBottom:16 }}>
 {adultMeals.map((m,i)=>{
 const qty=cartGet(m.name,'adult')?.qty||0
 return (
-<div key={i} style={{ background:qty>0?S.sageLight:S.white,border:`2px solid ${qty>0?S.sage:S.border}`,borderRadius:11,padding:'11px 14px',display:'flex',alignItems:'center',gap:12,transition:'all 0.1s' }}>
+<div key={i} style={{ background:qty>0?S.amberLight:S.warmWhite,border:`2px solid ${qty>0?S.amber:S.amberBorder}`,borderRadius:11,padding:'11px 14px',display:'flex',alignItems:'center',gap:12,transition:'all 0.1s' }}>
 <div style={{ flex:1 }}>
 <div style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:600,color:S.forest }}>{m.name}</div>
-<div style={{ fontSize:13,fontWeight:700,color:S.sage,marginTop:1 }}>${m.price.toFixed(2)}</div>
+<div style={{ fontSize:13,fontWeight:700,color:S.amber,marginTop:1 }}>${m.price.toFixed(2)}</div>
 </div>
 <QtyStepper qty={qty} onAdd={()=>cartAdd({name:m.name,price:m.price,category:'adult',isCustom:false})} onSub={()=>cartSub(m.name,'adult')}/>
 </div>
@@ -583,7 +601,7 @@ return (
 <div style={{ display:'flex',gap:6,marginBottom:8 }}>
 {(['adult','kids'] as const).map(cat=>(
 <button key={cat} onClick={()=>updateGroup(currentGroupIdx,{customCategory:cat})}
-style={{ flex:1,padding:'8px',borderRadius:8,border:`1.5px solid ${currentGroup.customCategory===cat?(cat==='adult'?S.sage:S.amber):S.border}`,background:currentGroup.customCategory===cat?(cat==='adult'?S.sageLight:S.amberLight):S.white,color:currentGroup.customCategory===cat?(cat==='adult'?S.sage:S.amber):S.stone,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
+style={{ flex:1,padding:'8px',borderRadius:8,border:`1.5px solid ${currentGroup.customCategory===cat?(cat==='adult'?S.amber:S.amber):S.amberBorder}`,background:currentGroup.customCategory===cat?S.amberLight:S.warmWhite,color:currentGroup.customCategory===cat?S.amber:S.walnut,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
 {cat==='adult'?'👤 Adult':'🧒 Kids'}
 </button>
 ))}
@@ -599,12 +617,12 @@ placeholder="0.00"
 style={{ width:72,padding:'10px 10px 10px 22px',borderRadius:9,border:`1.5px solid ${S.border}`,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:S.forest,outline:'none' }}/>
 </div>
 <button onClick={addCustomToCart} disabled={!currentGroup.customMeal.trim()||!(parseFloat(currentGroup.customPrice||'0')>0)}
-style={{ background:(!currentGroup.customMeal.trim()||!(parseFloat(currentGroup.customPrice||'0')>0))?S.border:S.sage,border:'none',borderRadius:9,color:S.white,fontSize:13,fontWeight:600,padding:'10px 14px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0 }}>Add</button>
+style={{ background:(!currentGroup.customMeal.trim()||!(parseFloat(currentGroup.customPrice||'0')>0))?S.border:S.amber,border:'none',borderRadius:9,color:S.white,fontSize:13,fontWeight:600,padding:'10px 14px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0 }}>Add</button>
 </div>
 
 {/* ── CART SUMMARY ── */}
 {currentGroup.cart.length>0&&(
-<div style={{ background:S.white,border:`1.5px solid ${S.sage}`,borderRadius:12,padding:'14px 16px',marginTop:16 }}>
+<div style={{ background:S.white,border:`1.5px solid ${S.amberBorder}`,borderRadius:12,padding:'14px 16px',marginTop:16 }}>
 <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.08em',textTransform:'uppercase',margin:'0 0 10px' }}>Your order</p>
 {currentGroup.cart.map((c,i)=>(
 <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6 }}>
@@ -618,7 +636,7 @@ style={{ background:(!currentGroup.customMeal.trim()||!(parseFloat(currentGroup.
 <div style={{ height:0.5,background:S.border,margin:'8px 0' }}/>
 <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
 <span style={{ fontSize:13,fontWeight:700,color:S.forest }}>{cartCount(currentGroup.cart)} item{cartCount(currentGroup.cart)>1?'s':''}{groups.length>0&&currentGroup.slots.length>1?` × ${currentGroup.slots.length} dates`:''}</span>
-<span style={{ fontSize:14,fontWeight:700,color:S.sage }}>${cartTotal(currentGroup.cart).toFixed(2)}{currentGroup.slots.length>1?'/date':''}</span>
+<span style={{ fontSize:14,fontWeight:700,color:S.amber }}>${cartTotal(currentGroup.cart).toFixed(2)}{currentGroup.slots.length>1?'/date':''}</span>
 </div>
 {(() => {
 const comp = groupComposition(currentGroup)
@@ -627,7 +645,7 @@ let msg = ''
 if (count >= comp.total && comp.total>1) msg = 'Feeding the whole household 🧡'
 else if (count === 1) msg = `Just for ${recipientFirst} today`
 else if (count < comp.total) msg = `${count} of ${comp.total} covered`
-return msg ? <p style={{ fontSize:12,color:S.sage,fontWeight:500,margin:'8px 0 0',textAlign:'center' }}>{msg}</p> : null
+return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 0',textAlign:'center' }}>{msg}</p> : null
 })()}
 </div>
 )}
@@ -650,13 +668,13 @@ return msg ? <p style={{ fontSize:12,color:S.sage,fontWeight:500,margin:'8px 0 0
 <h2 style={h2}>Almost done!</h2>
 <p style={sub}>Let {recipientFirst} know who's sending love.</p>
 
-<div style={{ background:S.sageLight,borderRadius:14,padding:'16px',marginBottom:20 }}>
+<div style={{ background:S.amberLight,borderRadius:14,padding:'16px',marginBottom:20 }}>
 {groups.map((g,i)=>{const mc=MEAL_TYPE_COLORS[g.mealType]||MEAL_TYPE_COLORS.dinner;return(
 <div key={g.mealType} style={{ paddingBottom:i<groups.length-1?10:0,marginBottom:i<groups.length-1?10:0,borderBottom:i<groups.length-1?'1px solid #C8DDD0':'none' }}>
 <span style={{ background:mc.bg,color:mc.color,borderRadius:20,fontSize:10,fontWeight:600,padding:'2px 8px',border:`1px solid ${mc.color}`,display:'inline-block',marginBottom:6 }}>{MEAL_TYPE_LABELS[g.mealType]} · {g.slots.length} date{g.slots.length>1?'s':''}</span>
-<div style={{ fontSize:12,color:S.sageMid,fontWeight:300,marginBottom:4 }}>{g.restaurant?.name}</div>
+<div style={{ fontSize:12,color:S.walnut,fontWeight:300,marginBottom:4 }}>{g.restaurant?.name}</div>
 {g.cart.map((c,ci)=>(
-<div key={ci} style={{ fontSize:13,color:S.sage,fontWeight:500 }}>{c.category==='kids'?'🧒':'👤'} {c.name} ×{c.qty}</div>
+<div key={ci} style={{ fontSize:13,color:S.mahogany,fontWeight:500 }}>{c.category==='kids'?'🧒':'👤'} {c.name} ×{c.qty}</div>
 ))}
 </div>
 )})}
@@ -678,9 +696,9 @@ return msg ? <p style={{ fontSize:12,color:S.sage,fontWeight:500,margin:'8px 0 0
 <div style={{ display:'flex',gap:10,marginBottom:20 }}>
 {DELIVERY_PREFS.map(pref=>(
 <button key={pref.value} onClick={()=>setDeliveryPreference(pref.value as any)}
-style={{ flex:1,padding:'14px 12px',borderRadius:12,border:`2px solid ${deliveryPreference===pref.value?S.sage:S.border}`,background:deliveryPreference===pref.value?S.sageLight:S.white,cursor:'pointer',textAlign:'left',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
+style={{ flex:1,padding:'14px 12px',borderRadius:12,border:`2px solid ${deliveryPreference===pref.value?S.amber:S.amberBorder}`,background:deliveryPreference===pref.value?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'left',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
 <div style={{ fontSize:22,marginBottom:6 }}>{pref.icon}</div>
-<div style={{ fontSize:13,fontWeight:600,color:deliveryPreference===pref.value?S.sage:S.forest,marginBottom:3 }}>{pref.title}</div>
+<div style={{ fontSize:13,fontWeight:600,color:deliveryPreference===pref.value?S.amber:S.mahogany,marginBottom:3 }}>{pref.title}</div>
 <div style={{ fontSize:11,color:S.stone,fontWeight:300,lineHeight:1.4 }}>{pref.subtitle}</div>
 </button>
 ))}
@@ -690,7 +708,7 @@ style={{ flex:1,padding:'14px 12px',borderRadius:12,border:`2px solid ${delivery
 <input value={deliveryNote} onChange={e=>setDeliveryNote(e.target.value)} placeholder="Gate code 4521 · leave at back door" style={inp}/>
 
 <label style={lbl}>Tip for your Dasher</label>
-<div style={{ background:S.sageLight,border:`1.5px solid ${S.sage}`,borderRadius:14,padding:'14px 16px',marginBottom:12 }}>
+<div style={{ background:S.amberLight,border:`1.5px solid ${S.amberBorder}`,borderRadius:14,padding:'14px 16px',marginBottom:12 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6 }}>
 <div>
 <p style={{ fontSize:14,fontWeight:700,color:S.forest,margin:'0 0 3px' }}>🚗 Recommended tip: ${(activeTipTier?.default||300)/100}</p>
@@ -749,7 +767,7 @@ return (
 <div style={{ height:0.5,background:S.border,margin:'8px 0' }}/>
 <div style={{ display:'flex',justifyContent:'space-between' }}>
 <span style={{ fontSize:14,fontWeight:700,color:S.forest }}>Estimated total</span>
-<span style={{ fontSize:14,fontWeight:700,color:S.sage }}>${grandTotal.toFixed(2)}</span>
+<span style={{ fontSize:14,fontWeight:700,color:S.amber }}>${grandTotal.toFixed(2)}</span>
 </div>
 <p style={{ fontSize:11,color:S.stone,margin:'8px 0 0',fontWeight:300,lineHeight:1.5 }}>
 Price reflects what {recipientFirst} saved. Actual price may vary slightly.
@@ -777,9 +795,9 @@ Price reflects what {recipientFirst} saved. Actual price may vary slightly.
 )
 }
 
-const h2: React.CSSProperties = { fontFamily:"'Lora',serif",fontSize:22,fontWeight:500,color:'#1E2620',margin:'0 0 6px' }
-const sub: React.CSSProperties = { fontSize:14,color:'#6B7066',margin:'0 0 20px',fontWeight:300 }
-const btn = (d:boolean): React.CSSProperties => ({ width:'100%',padding:'14px',borderRadius:10,border:'none',background:d?'#DDE8E0':'#3D6B4F',color:d?'#6B7066':'#fff',fontSize:14,fontWeight:500,cursor:d?'default':'pointer',fontFamily:"'DM Sans',sans-serif" })
-const back: React.CSSProperties = { padding:'14px 20px',borderRadius:10,border:`1.5px solid #DDE8E0`,background:'transparent',fontSize:14,color:'#6B7066',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }
-const lbl: React.CSSProperties = { fontSize:11,fontWeight:600,color:'#6B7066',letterSpacing:1.5,textTransform:'uppercase',display:'block',marginBottom:8 }
-const inp: React.CSSProperties = { width:'100%',padding:'13px 16px',borderRadius:10,border:'1.5px solid #DDE8E0',fontSize:16,background:'#fff',outline:'none',boxSizing:'border-box',marginBottom:20,fontFamily:"'DM Sans',sans-serif",color:'#1E2620' }
+const h2: React.CSSProperties = { fontFamily:"'Lora',serif",fontSize:22,fontWeight:500,color:'#5C3317',margin:'0 0 6px' }
+const sub: React.CSSProperties = { fontSize:14,color:'#7A5C3A',margin:'0 0 20px',fontWeight:300 }
+const btn = (d:boolean): React.CSSProperties => ({ width:'100%',padding:'14px',borderRadius:10,border:'none',background:d?'#E0C89A':'#5C3317',color:d?'#7A5C3A':'#fff',fontSize:14,fontWeight:500,cursor:d?'default':'pointer',fontFamily:"'DM Sans',sans-serif" })
+const back: React.CSSProperties = { padding:'14px 20px',borderRadius:10,border:`1.5px solid #E0C89A`,background:'transparent',fontSize:14,color:'#7A5C3A',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }
+const lbl: React.CSSProperties = { fontSize:11,fontWeight:600,color:'#7A5C3A',letterSpacing:1.5,textTransform:'uppercase',display:'block',marginBottom:8 }
+const inp: React.CSSProperties = { width:'100%',padding:'13px 16px',borderRadius:10,border:'1.5px solid #E0C89A',fontSize:16,background:'#FFFCF5',outline:'none',boxSizing:'border-box',marginBottom:20,fontFamily:"'DM Sans',sans-serif",color:'#5C3317' }
