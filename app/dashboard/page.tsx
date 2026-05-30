@@ -889,7 +889,7 @@ export default function DashboardPage() {
             <div style={{ fontSize:48,marginBottom:14 }}>🥗</div>
             <h2 style={{ fontFamily:"'Lora',serif",fontSize:22,fontWeight:500,color:S.white,margin:'0 0 10px' }}>Set up your Kitchen</h2>
             <p style={{ fontSize:14,color:'rgba(255,255,255,0.65)',fontWeight:300,lineHeight:1.7,margin:'0 0 22px' }}>Add restaurants, set your calendar, and share your link.</p>
-            <button onClick={()=>router.push('/kitchen/setup')}
+            <button onClick={()=>router.push('/onboarding')}
               style={{ background:S.sage,color:S.white,border:'none',borderRadius:12,padding:'13px 28px',fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
               Set Up My Kitchen →
             </button>
