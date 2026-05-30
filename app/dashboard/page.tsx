@@ -782,10 +782,11 @@ export default function DashboardPage() {
   const handleShare = useCallback(async () => {
     const url = kitchenUrl || (typeof window !== 'undefined' ? `${window.location.origin}/k/${kitchen?.slug || ''}` : '')
     if (!url) return
-    const shareText = `Help bring meals to ${firstName}'s family — pick a date and send a meal through their YourKitchen:`
+    const fn = (fullName || '').split(' ')[0] || 'their family'
+    const shareText = `Help bring meals to ${fn}'s family — pick a date and send a meal through their YourKitchen:`
     if (typeof navigator !== 'undefined' && (navigator as any).share) {
       try {
-        await (navigator as any).share({ title: `${firstName}'s Kitchen`, text: shareText, url })
+        await (navigator as any).share({ title: `${fn}'s Kitchen`, text: shareText, url })
         return
       } catch { /* user cancelled — fall through to clipboard */ }
     }
@@ -795,7 +796,7 @@ export default function DashboardPage() {
     } catch {
       alert(`Share this link with your village:\n\n${url}`)
     }
-  }, [kitchenUrl, kitchen?.slug, firstName])
+  }, [kitchenUrl, kitchen?.slug, fullName])
 
   // ── Derived counts ──────────────────────────────────────────────────────────
   const pendingCount = allProposals.filter(p => p.status === 'pending').length
