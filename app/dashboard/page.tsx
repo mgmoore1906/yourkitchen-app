@@ -481,7 +481,7 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
 }
 
 // ── SHARE TAB ─────────────────────────────────────────────────────────────────
-function ShareTab({ kitchenUrl, kitchen }: { kitchenUrl: string; kitchen: Kitchen }) {
+function ShareTab({ kitchenUrl, kitchen, restaurantCount, router }: { kitchenUrl: string; kitchen: Kitchen; restaurantCount: number | null; router: any }) {
   const [copied, setCopied] = useState(false)
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(kitchenUrl) } catch {
@@ -494,6 +494,28 @@ function ShareTab({ kitchenUrl, kitchen }: { kitchenUrl: string; kitchen: Kitche
     if(navigator.share){ try { await navigator.share({title:kitchen.name,text:'Send me a meal through YourKitchen 🧡',url:kitchenUrl}) } catch {} }
     else { copyLink() }
   }
+
+  // ── Share-lock: a kitchen with no restaurants can't be shared yet ──
+  if (restaurantCount === 0) {
+    return (
+      <div style={{ padding:'16px 20px' }}>
+        <p style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.forest,margin:'0 0 4px',letterSpacing:-0.5 }}>Share Your Kitchen</p>
+        <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 20px',lineHeight:1.6 }}>One quick step before your link is ready.</p>
+        <div style={{ background:S.white,border:`1.5px solid ${S.amber}`,borderRadius:16,padding:'22px 20px',textAlign:'center' }}>
+          <div style={{ width:52,height:52,borderRadius:14,background:S.amberLight,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,margin:'0 auto 14px' }}>🏪</div>
+          <p style={{ fontFamily:"'Lora',serif",fontSize:17,fontWeight:600,color:S.forest,margin:'0 0 6px' }}>Add one restaurant to start sharing</p>
+          <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 18px',lineHeight:1.6 }}>
+            Your village needs at least one place to order from. Add a favorite and your link goes live right away.
+          </p>
+          <button onClick={()=>router.push('/kitchen/restaurants')}
+            style={{ padding:'12px 24px',background:S.forest,color:S.white,border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
+            Add a restaurant →
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div style={{ padding:'16px 20px' }}>
       <p style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.forest,margin:'0 0 4px',letterSpacing:-0.5 }}>Share Your Kitchen</p>
@@ -639,6 +661,7 @@ export default function DashboardPage() {
   const [allProposals,  setAllProposals]  = useState<Proposal[]>([])
   const [villagePosts,  setVillagePosts]  = useState<VillagePost[]>([])
   const [kitchenUrl,    setKitchenUrl]    = useState('')
+  const [restaurantCount, setRestaurantCount] = useState<number | null>(null)
   const [selectedDate,  setSelectedDate]  = useState<string | null>(null)
   const [adding,        setAdding]        = useState(false)
   const [addError,      setAddError]      = useState('')
@@ -692,6 +715,12 @@ export default function DashboardPage() {
       if (k) {
         setKitchen(k)
         setKitchenUrl(`${window.location.origin}/k/${k.slug}`)
+        const { count } = await supabase
+          .from('kitchen_restaurants')
+          .select('id', { count: 'exact', head: true })
+          .eq('kitchen_id', k.id)
+          .eq('is_active', true)
+        setRestaurantCount(count ?? 0)
         await Promise.all([
           loadCalDates(k.id),
           loadProposals(k.id),
@@ -880,7 +909,7 @@ export default function DashboardPage() {
             {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier}/>}
             {activeTab==='activity' && <ActivityTab proposals={allProposals} router={router}/>}
             {activeTab==='insights' && <InsightsTab proposals={allProposals} kitchenName={kitchen.name}/>}
-            {activeTab==='share'    && <ShareTab kitchenUrl={kitchenUrl} kitchen={kitchen}/>}
+            {activeTab==='share'    && <ShareTab kitchenUrl={kitchenUrl} kitchen={kitchen} restaurantCount={restaurantCount} router={router}/>}
             {activeTab==='village'  && <VillageTab kitchen={kitchen} villagePosts={villagePosts} proposals={allProposals} onPostUpdate={()=>loadVillagePosts(kitchen.id)}/>}
           </div>
           <BottomNav active={activeTab} set={setActiveTab} badge={badgeCount}/>
