@@ -282,7 +282,6 @@ style={{ padding:'6px 14px', borderRadius:20, border:`1.5px solid ${range===r?S.
 </div>
 ))}
 </div>
-
 </div>
 
 {/* All orders table */}
