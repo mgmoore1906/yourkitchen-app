@@ -1,8 +1,15 @@
 'use client'
 // FILE: app/k/[slug]/client.tsx
-// v2: Google Places live restaurant search + chain menu library
+// v3: Google Places search + recipient favorites + 7-day recent meals warning
 
 import { useState, useEffect, useCallback } from 'react'
+
+const S = {
+  sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
+  cream: '#FAFAF5', forest: '#1E2620', stone: '#6B7066',
+  border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47',
+  amberLight: '#FBF0E4', red: '#B94040',
+}
 
 const MEAL_TYPE_LABELS: Record<string, string> = {
   breakfast: '🌅 Breakfast', lunch: '☀️ Lunch', dinner: '🌙 Dinner',
@@ -335,6 +342,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
   const [groups,             setGroups]             = useState<Group[]>([])
   const [currentGroupIndex,  setCurrentGroupIndex]  = useState(0)
   const [groupSubStep,       setGroupSubStep]       = useState<'restaurant'|'menu'>('restaurant')
+  const [favorites,          setFavorites]          = useState<any[]>([])
   const [name,               setName]               = useState('')
   const [email,              setEmail]              = useState('')
   const [phone,              setPhone]              = useState('')
@@ -345,6 +353,20 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
   const [loading,            setLoading]            = useState(false)
   const [submitted,          setSubmitted]          = useState(false)
   const [errorMsg,           setErrorMsg]           = useState('')
+
+  // Fetch recipient's favorite restaurants
+  useEffect(() => {
+    fetch(`/api/restaurants/favorites?slug=${kitchen.slug}`)
+      .then(r => r.json())
+      .then(d => setFavorites(d.favorites || []))
+      .catch(() => {})
+  }, [kitchen.slug])
+
+  // 7-day recent meals for coordinator warning
+  const sevenDaysAgo    = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0]
+  const recentMeals7    = recentMeals.filter((m: any) => m.delivery_date >= sevenDaysAgo)
+  const recentRestNames = new Set(recentMeals7.map((m: any) => m.restaurant_name?.toLowerCase()))
+  const recentMealNames = new Set(recentMeals7.map((m: any) => m.meal_name?.toLowerCase()))
 
   const selectedSlots      = availableDates.filter((d: any) => selectedIds.has(d.id))
   const recipientFirstName = kitchen.name?.split("'")[0] || 'them'
@@ -508,6 +530,41 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
           {groupSubStep==='restaurant' && (<>
             <h2 style={h2}>{groups.length>1?`Choose a ${currentGroup.mealType} restaurant`:'Choose a restaurant'}</h2>
             <p style={sub}>Searching near {kitchen.address?.split(',').slice(1,2).join(',').trim() || 'recipient'} — {currentGroup.slots.map((s:any)=>new Date(s.date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})).join(', ')}</p>
+
+            {/* ⭐ Recipient's favorites */}
+            {favorites.length > 0 && (
+              <div style={{ marginBottom: 20 }}>
+                <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px' }}>⭐ {recipientFirstName}'s favorites</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {favorites.map((fav: any) => {
+                    const orderedRecently = recentRestNames.has(fav.name?.toLowerCase())
+                    return (
+                      <button key={fav.id}
+                        onClick={() => {
+                          const place: PlaceResult = { place_id: fav.place_id || fav.id, name: fav.name, address: fav.address || '', rating: null, is_open: null }
+                          handleRestaurantSelect(place, [])
+                        }}
+                        style={{ width: '100%', background: currentGroup.restaurant?.name === fav.name ? S.sageLight : S.white, border: `2px solid ${currentGroup.restaurant?.name === fav.name ? S.sage : S.border}`, borderRadius: 14, padding: '14px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 14, fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
+                        <div style={{ flex: 1 }}>
+                          <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                            <span style={{ fontSize: 9, fontWeight: 700, background: S.amberLight, color: S.amber, borderRadius: 20, padding: '2px 8px' }}>⭐ Favorite</span>
+                            {orderedRecently && <span style={{ fontSize: 9, fontWeight: 700, background: '#FDE8E8', color: S.red, borderRadius: 20, padding: '2px 8px' }}>Ordered recently</span>}
+                          </div>
+                          <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: S.forest }}>{fav.name}</div>
+                          {fav.address && <div style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>{fav.address}</div>}
+                        </div>
+                        {currentGroup.restaurant?.name === fav.name && <span style={{ color: S.sage, fontSize: 20 }}>✓</span>}
+                      </button>
+                    )
+                  })}
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, margin: '16px 0 10px' }}>
+                  <div style={{ flex: 1, height: 0.5, background: S.border }} />
+                  <span style={{ fontSize: 11, color: S.stone }}>or search all restaurants</span>
+                  <div style={{ flex: 1, height: 0.5, background: S.border }} />
+                </div>
+              </div>
+            )}
             <RestaurantSearch
               kitchen={kitchen} mealType={currentGroup.mealType}
               currentRestaurant={currentGroup.restaurant}
@@ -521,6 +578,16 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
           {groupSubStep==='menu' && currentGroup.restaurant && (<>
             <h2 style={h2}>Select a meal</h2>
             <p style={sub}>from <strong>{currentGroup.restaurant.name}</strong></p>
+
+            {/* 7-day recent orders warning */}
+            {recentMeals7.filter((m: any) => m.restaurant_name?.toLowerCase() === currentGroup.restaurant!.name.toLowerCase()).length > 0 && (
+              <div style={{ background: '#FFF8E8', border: '1px solid #F0E2B8', borderRadius: 12, padding: '12px 14px', marginBottom: 16 }}>
+                <p style={{ fontSize: 12, fontWeight: 600, color: '#7A5800', margin: '0 0 6px' }}>⚠️ Ordered from here in the last 7 days</p>
+                {recentMeals7.filter((m: any) => m.restaurant_name?.toLowerCase() === currentGroup.restaurant!.name.toLowerCase()).map((m: any) => (
+                  <p key={m.id} style={{ fontSize: 12, color: '#7A5800', margin: '0 0 2px', fontWeight: 300 }}>· {m.meal_name} ({new Date(m.delivery_date+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})})</p>
+                ))}
+              </div>
+            )}
             <MenuSelector
               restaurant={currentGroup.restaurant}
               menuItems={currentMenuItems}
