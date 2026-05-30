@@ -509,6 +509,14 @@ style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap
 
 {isSelected&&(
 <div style={{ borderTop:`0.5px solid ${S.border}`,padding:'14px 16px',background:'#FAFDF9' }}>
+{kitchen.dietary_restrictions?.length>0&&(
+<div style={{ background:S.blueLight,border:`1px solid ${S.blue}40`,borderRadius:10,padding:'10px 14px',marginBottom:14 }}>
+<p style={{ fontSize:12,color:'#2A6175',margin:'0 0 4px',fontWeight:600 }}>💙 A note on {recipientFirst}'s needs</p>
+<p style={{ fontSize:12,color:'#2A6175',margin:0,fontWeight:400,lineHeight:1.5 }}>
+{recipientFirst} has noted: {kitchen.dietary_restrictions.join(', ')}. Please double-check the dish you choose works for them.
+</p>
+</div>
+)}
 {tipTier?.warning&&(
 <div style={{ background:miles!<10?'#FFF8E8':S.redLight,border:`1px solid ${miles!<10?'#F0E2B8':'#F5C0C0'}`,borderRadius:10,padding:'10px 14px',marginBottom:14 }}>
 <p style={{ fontSize:12,color:miles!<10?'#7A5800':S.red,margin:0,fontWeight:500 }}>{tipTier.warning}</p>
