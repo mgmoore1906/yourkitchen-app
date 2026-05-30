@@ -254,7 +254,6 @@ style={{ padding:'6px 14px', borderRadius:20, border:`1.5px solid ${range===r?S.
 ))}
 </div>
 </div>
-</div>
 
 {/* Top restaurants + Top supporters — 2 column grid */}
 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:24 }}>
