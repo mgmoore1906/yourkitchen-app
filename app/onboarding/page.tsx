@@ -239,9 +239,10 @@ export default function OnboardingPage() {
                       onChange={e => update('sms_consent', e.target.checked as unknown as string)}
                     />
                     <span className="consent-text">
-                      I agree to receive SMS notifications from YourKitchen including meal proposals,
-                      confirmations, and delivery updates. Message &amp; data rates may apply.
-                      Reply STOP to opt out at any time.{' '}
+                      I agree to receive recurring SMS text messages from YourKitchen, including
+                      meal proposals, confirmations, and delivery updates. Message frequency varies
+                      by activity. Message &amp; data rates may apply. Reply STOP to opt out or
+                      HELP for help.{' '}
                       <a href="/terms" target="_blank" rel="noopener noreferrer">Terms of Service</a>
                     </span>
                   </label>
