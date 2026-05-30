@@ -1,0 +1,56 @@
+import { NextResponse } from 'next/server'
+import { createClient } from '@supabase/supabase-js'
+
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+)
+
+const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY!
+
+export async function GET(request: Request) {
+  try {
+    const { searchParams } = new URL(request.url)
+    const lat       = searchParams.get('lat')
+    const lng       = searchParams.get('lng')
+    const query     = searchParams.get('query') || 'restaurant'
+    const radius    = searchParams.get('radius') || '8000' // 5 miles default
+
+    if (!lat || !lng) {
+      return NextResponse.json({ error: 'lat and lng required' }, { status: 400 })
+    }
+
+    // Google Places Nearby Search
+    const url = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json')
+    url.searchParams.set('location', `${lat},${lng}`)
+    url.searchParams.set('radius',   radius)
+    url.searchParams.set('type',     'restaurant')
+    url.searchParams.set('keyword',  query)
+    url.searchParams.set('key',      PLACES_API_KEY)
+
+    const res  = await fetch(url.toString())
+    const data = await res.json()
+
+    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
+      console.error('[Places] API error:', data.status, data.error_message)
+      return NextResponse.json({ error: data.error_message || data.status }, { status: 500 })
+    }
+
+    // Shape results for the coordinator UI
+    const restaurants = (data.results || []).slice(0, 12).map((place: any) => ({
+      place_id:      place.place_id,
+      name:          place.name,
+      address:       place.vicinity,
+      rating:        place.rating || null,
+      price_level:   place.price_level || null,
+      is_open:       place.opening_hours?.open_now ?? null,
+      photo_ref:     place.photos?.[0]?.photo_reference || null,
+      types:         place.types || [],
+    }))
+
+    return NextResponse.json({ restaurants, query, count: restaurants.length })
+  } catch (err: any) {
+    console.error('[Places] Search error:', err.message)
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
