@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { haversineDistance, formatDistance } from '@/lib/distance'
 
 const S = {
   sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
@@ -10,57 +11,67 @@ const S = {
   amberLight: '#FBF0E4', red: '#B94040', redLight: '#FDE8E8',
 }
 
-const TIER_LIMITS: Record<string, number> = {
-  free: 3, trial: 10, care: 10, annual: 10, founding: 999,
-}
-const TIER_LABELS: Record<string, string> = {
-  free: 'Free', trial: 'Free Trial', care: 'Care+',
-  annual: 'Early Adopter', founding: 'Founding Member',
-}
+const TIER_LIMITS: Record<string, number> = { free: 3, trial: 10, care: 10, annual: 10, founding: 999 }
+const TIER_LABELS: Record<string, string>  = { free: 'Free', trial: 'Free Trial', care: 'Care+', annual: 'Early Adopter', founding: 'Founding Member' }
 
 type Restaurant = {
-  id: string; name: string; cuisine: string
-  is_active: boolean; doordash_store_id: string | null
+  id: string; name: string; cuisine: string; is_active: boolean
   place_id: string | null; address: string | null
-  favorite_meals: string[]
+  lat: number | null; lng: number | null
+  favorite_meals: string[]; favorite_meal_prices: number[]
 }
 type PlaceResult = {
   place_id: string; name: string; address: string
+  lat: number | null; lng: number | null
   rating: number | null; is_open: boolean | null
+}
+
+function distanceFromKitchen(r: { lat: number | null; lng: number | null }, kitLat: number, kitLng: number): number | null {
+  if (!r.lat || !r.lng) return null
+  return haversineDistance(kitLat, kitLng, r.lat, r.lng)
+}
+
+function DistanceBadge({ miles }: { miles: number | null }) {
+  if (miles === null) return null
+  const color = miles < 7 ? S.sage : miles < 10 ? S.amber : S.red
+  const bg    = miles < 7 ? S.sageLight : miles < 10 ? S.amberLight : S.redLight
+  return (
+    <span style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 20, padding: '2px 8px', marginLeft: 6 }}>
+      {formatDistance(miles)}
+    </span>
+  )
 }
 
 export default function KitchenRestaurantsPage() {
   const router   = useRouter()
   const supabase = createClient()
 
-  const [loading,      setLoading]      = useState(true)
-  const [kitchenId,    setKitchenId]    = useState('')
-  const [kitchenLat,   setKitchenLat]   = useState<number | null>(null)
-  const [kitchenLng,   setKitchenLng]   = useState<number | null>(null)
-  const [userTier,     setUserTier]     = useState('free')
-  const [restaurants,  setRestaurants]  = useState<Restaurant[]>([])
-  const [saveMsg,      setSaveMsg]      = useState('')
-  const [expandedId,   setExpandedId]   = useState<string | null>(null)
-  const [newMeal,      setNewMeal]      = useState<Record<string, string>>({})
-  const [savingMeals,  setSavingMeals]  = useState<string | null>(null)
-  const [deleting,     setDeleting]     = useState<string | null>(null)
-
-  // Search state
-  const [searchQuery,   setSearchQuery]   = useState('')
-  const [searchResults, setSearchResults] = useState<PlaceResult[]>([])
-  const [searching,     setSearching]     = useState(false)
-  const [adding,        setAdding]        = useState<string | null>(null)
+  const [loading,       setLoading]      = useState(true)
+  const [kitchenId,     setKitchenId]    = useState('')
+  const [kitchenLat,    setKitchenLat]   = useState<number | null>(null)
+  const [kitchenLng,    setKitchenLng]   = useState<number | null>(null)
+  const [userTier,      setUserTier]     = useState('free')
+  const [restaurants,   setRestaurants]  = useState<Restaurant[]>([])
+  const [saveMsg,       setSaveMsg]      = useState('')
+  const [expandedId,    setExpandedId]   = useState<string | null>(null)
+  const [newMealName,   setNewMealName]  = useState<Record<string, string>>({})
+  const [newMealPrice,  setNewMealPrice] = useState<Record<string, string>>({})
+  const [savingMeals,   setSavingMeals]  = useState<string | null>(null)
+  const [deleting,      setDeleting]     = useState<string | null>(null)
+  const [shakingLimit,  setShakingLimit] = useState(false)
+  const [searchQuery,   setSearchQuery]  = useState('')
+  const [searchResults, setSearchResults]= useState<PlaceResult[]>([])
+  const [searching,     setSearching]    = useState(false)
+  const [adding,        setAdding]       = useState<string | null>(null)
 
   useEffect(() => {
     const load = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) { router.push('/login'); return }
-      const { data: profile } = await supabase
-        .from('profiles').select('tier').eq('id', user.id).single()
+      const { data: profile } = await supabase.from('profiles').select('tier').eq('id', user.id).single()
       setUserTier(profile?.tier || 'free')
-      const { data: kitchen } = await supabase
-        .from('kitchens').select('id, latitude, longitude')
-        .eq('organizer_id', user.id)
+      const { data: kitchen } = await supabase.from('kitchens')
+        .select('id, latitude, longitude').eq('organizer_id', user.id)
         .order('created_at', { ascending: false }).limit(1)
       if (!kitchen || kitchen.length === 0) { router.push('/kitchen/setup'); return }
       const k = kitchen[0]
@@ -76,15 +87,19 @@ export default function KitchenRestaurantsPage() {
   const loadRestaurants = async (kId: string) => {
     const { data } = await supabase
       .from('kitchen_restaurants')
-      .select('id, name, cuisine, is_active, doordash_store_id, place_id, address, favorite_meals')
-      .eq('kitchen_id', kId)
-      .order('created_at', { ascending: true })
-    setRestaurants((data || []).map((r: any) => ({ ...r, favorite_meals: r.favorite_meals || [] })))
+      .select('id, name, cuisine, is_active, place_id, address, lat, lng, favorite_meals, favorite_meal_prices')
+      .eq('kitchen_id', kId).order('created_at', { ascending: true })
+    setRestaurants((data || []).map((r: any) => ({
+      ...r,
+      favorite_meals:       r.favorite_meals       || [],
+      favorite_meal_prices: r.favorite_meal_prices || [],
+    })))
   }
 
   const limit       = TIER_LIMITS[userTier] || 3
   const activeCount = restaurants.filter(r => r.is_active).length
   const atLimit     = activeCount >= limit
+  const shakeLimit  = () => { setShakingLimit(true); setTimeout(() => setShakingLimit(false), 600) }
 
   const searchRestaurants = useCallback(async () => {
     if (!searchQuery.trim() || !kitchenLat || !kitchenLng) return
@@ -98,11 +113,15 @@ export default function KitchenRestaurantsPage() {
   }, [searchQuery, kitchenLat, kitchenLng])
 
   const addFavorite = async (place: PlaceResult) => {
-    if (atLimit) return
+    if (atLimit) { shakeLimit(); return }
     setAdding(place.place_id)
-    const res = await fetch('/api/restaurants/favorites', {
+    const res  = await fetch('/api/restaurants/favorites', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ kitchen_id: kitchenId, place_id: place.place_id, name: place.name, address: place.address, cuisine: 'Restaurant' }),
+      body: JSON.stringify({
+        kitchen_id: kitchenId, place_id: place.place_id,
+        name: place.name, address: place.address,
+        lat: place.lat, lng: place.lng,
+      }),
     })
     const data = await res.json()
     if (data.success) {
@@ -115,50 +134,75 @@ export default function KitchenRestaurantsPage() {
   }
 
   const toggleActive = async (id: string, currentActive: boolean) => {
-    if (!currentActive && atLimit) return
+    if (!currentActive && atLimit) { shakeLimit(); return }
     const newActive = !currentActive
     setRestaurants(prev => prev.map(r => r.id === id ? { ...r, is_active: newActive } : r))
-    await supabase.from('kitchen_restaurants').update({ is_active: newActive }).eq('id', id)
+    await fetch('/api/restaurants/favorites', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurant_id: id, is_active: newActive }),
+    })
     setSaveMsg(newActive ? 'Shown to coordinators' : 'Hidden from coordinators')
     setTimeout(() => setSaveMsg(''), 2500)
   }
 
   const deleteRestaurant = async (id: string, name: string) => {
-    if (!confirm(`Remove ${name} from your favorites?`)) return
+    if (!confirm(`Remove ${name}?`)) return
     setDeleting(id)
-    await fetch('/api/restaurants/favorites', {
+    const res  = await fetch('/api/restaurants/favorites', {
       method: 'DELETE', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ restaurant_id: id }),
     })
-    setRestaurants(prev => prev.filter(r => r.id !== id))
-    setSaveMsg(`${name} removed`)
-    setTimeout(() => setSaveMsg(''), 2500)
+    const data = await res.json()
+    if (data.success) {
+      setRestaurants(prev => prev.filter(r => r.id !== id))
+      setSaveMsg(`${name} removed`)
+      setTimeout(() => setSaveMsg(''), 2500)
+    }
     setDeleting(null)
   }
 
-  const addMeal = async (restaurantId: string) => {
-    const meal = (newMeal[restaurantId] || '').trim()
-    if (!meal) return
-    setSavingMeals(restaurantId)
-    const rest    = restaurants.find(r => r.id === restaurantId)!
-    const updated = [...(rest.favorite_meals || []), meal]
-    await fetch('/api/restaurants/favorites', {
-      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updated }),
+  const deleteAll = async () => {
+    if (!confirm('Remove ALL favorites? This cannot be undone.')) return
+    const res  = await fetch('/api/restaurants/favorites', {
+      method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kitchen_id: kitchenId, delete_all: true }),
     })
-    setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, favorite_meals: updated } : r))
-    setNewMeal(prev => ({ ...prev, [restaurantId]: '' }))
+    const data = await res.json()
+    if (data.success) { setRestaurants([]); setSaveMsg('All favorites removed'); setTimeout(() => setSaveMsg(''), 3000) }
+  }
+
+  const addMeal = async (restaurantId: string) => {
+    const name  = (newMealName[restaurantId]  || '').trim()
+    const price = parseFloat(newMealPrice[restaurantId] || '0') || 15
+    if (!name) return
+    setSavingMeals(restaurantId)
+    const rest           = restaurants.find(r => r.id === restaurantId)!
+    const updatedMeals   = [...(rest.favorite_meals       || []), name]
+    const updatedPrices  = [...(rest.favorite_meal_prices || []), price]
+    const res = await fetch('/api/restaurants/favorites', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices }),
+    })
+    const data = await res.json()
+    if (data.success) {
+      setRestaurants(prev => prev.map(r => r.id === restaurantId
+        ? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices } : r))
+      setNewMealName(prev  => ({ ...prev, [restaurantId]: '' }))
+      setNewMealPrice(prev => ({ ...prev, [restaurantId]: '' }))
+    }
     setSavingMeals(null)
   }
 
-  const removeMeal = async (restaurantId: string, meal: string) => {
-    const rest    = restaurants.find(r => r.id === restaurantId)!
-    const updated = rest.favorite_meals.filter(m => m !== meal)
+  const removeMeal = async (restaurantId: string, index: number) => {
+    const rest          = restaurants.find(r => r.id === restaurantId)!
+    const updatedMeals  = rest.favorite_meals.filter((_, i) => i !== index)
+    const updatedPrices = rest.favorite_meal_prices.filter((_, i) => i !== index)
     await fetch('/api/restaurants/favorites', {
       method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updated }),
+      body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices }),
     })
-    setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, favorite_meals: updated } : r))
+    setRestaurants(prev => prev.map(r => r.id === restaurantId
+      ? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices } : r))
   }
 
   const alreadySaved = (place: PlaceResult) =>
@@ -166,15 +210,18 @@ export default function KitchenRestaurantsPage() {
 
   if (loading) return (
     <div style={{ minHeight: '100vh', background: S.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
-      <p style={{ color: S.stone, fontSize: 14 }}>Loading restaurants…</p>
+      <p style={{ color: S.stone, fontSize: 14 }}>Loading…</p>
     </div>
   )
 
   return (
     <div style={{ minHeight: '100vh', background: S.cream, fontFamily: "'DM Sans', sans-serif", paddingBottom: 60 }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+      <style>{`
+        @keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+        .shake { animation: shake 0.5s ease; }
+      `}</style>
 
-      {/* Nav */}
       <nav style={{ background: S.white, borderBottom: `0.5px solid ${S.border}`, padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 10 }}>
         <button onClick={() => router.push('/dashboard')}
           style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.sage }}>‹</button>
@@ -189,13 +236,16 @@ export default function KitchenRestaurantsPage() {
         <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.sage, margin: '0 0 6px' }}>My Restaurants</p>
         <h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: S.forest, margin: '0 0 6px', letterSpacing: -0.5 }}>Favorite restaurants</h1>
         <p style={{ fontSize: 14, color: S.stone, margin: '0 0 20px', fontWeight: 300, lineHeight: 1.6 }}>
-          Add your favorites and list your go-to meals at each one. Coordinators will see exactly what to order.
+          Add favorites and save your go-to meals with prices. Coordinators see only these — no outside searching.
         </p>
 
         {/* Tier limit */}
-        <div style={{ background: S.white, border: `1.5px solid ${atLimit ? S.amber : S.border}`, borderRadius: 14, padding: '14px 16px', marginBottom: 20 }}>
+        <div className={shakingLimit ? 'shake' : ''}
+          style={{ background: S.white, border: `1.5px solid ${shakingLimit ? S.red : atLimit ? S.amber : S.border}`, borderRadius: 14, padding: '14px 16px', marginBottom: 20, transition: 'border-color 0.2s' }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: atLimit ? 10 : 0 }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: S.forest }}>{activeCount} / {limit === 999 ? '∞' : limit} active · {TIER_LABELS[userTier]}</span>
+            <span style={{ fontSize: 13, fontWeight: 600, color: shakingLimit ? S.red : S.forest }}>
+              {activeCount} / {limit === 999 ? '∞' : limit} active · {TIER_LABELS[userTier]}
+            </span>
             <div style={{ width: 80, height: 6, background: S.sageLight, borderRadius: 3, overflow: 'hidden', marginLeft: 12 }}>
               <div style={{ height: '100%', background: atLimit ? S.amber : S.sage, borderRadius: 3, width: limit === 999 ? '20%' : `${Math.min((activeCount / limit) * 100, 100)}%`, transition: 'width 0.3s' }} />
             </div>
@@ -211,101 +261,91 @@ export default function KitchenRestaurantsPage() {
           )}
         </div>
 
-        {/* Saved restaurants */}
+        {/* Saved favorites */}
         {restaurants.length > 0 && (
           <div style={{ marginBottom: 28 }}>
-            <p style={{ fontSize: 11, fontWeight: 600, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 12px' }}>Your favorites ({restaurants.length})</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+              <p style={{ fontSize: 11, fontWeight: 600, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
+                Your favorites ({restaurants.length})
+              </p>
+              <button onClick={deleteAll}
+                style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: S.red, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", padding: '4px 8px' }}>
+                Clear all
+              </button>
+            </div>
+
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {restaurants.map(r => {
                 const isExpanded = expandedId === r.id
+                const miles      = kitchenLat && kitchenLng ? distanceFromKitchen(r, kitchenLat, kitchenLng) : null
                 return (
-                  <div key={r.id} style={{ background: S.white, border: `1.5px solid ${r.is_active ? S.sage : S.border}`, borderRadius: 14, overflow: 'hidden', transition: 'all 0.15s' }}>
-
-                    {/* Restaurant header row */}
+                  <div key={r.id} style={{ background: S.white, border: `1.5px solid ${r.is_active ? S.sage : S.border}`, borderRadius: 14, overflow: 'hidden' }}>
                     <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
                       <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpandedId(isExpanded ? null : r.id)}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
                           <span style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: S.forest }}>{r.name}</span>
-                          {r.favorite_meals?.length > 0 && (
-                            <span style={{ fontSize: 9, fontWeight: 700, background: S.amberLight, color: S.amber, borderRadius: 20, padding: '2px 8px' }}>
-                              {r.favorite_meals.length} meal{r.favorite_meals.length !== 1 ? 's' : ''}
-                            </span>
-                          )}
+                          {miles !== null && <DistanceBadge miles={miles} />}
+                          {r.favorite_meals?.length > 0
+                            ? <span style={{ fontSize: 9, fontWeight: 700, background: S.amberLight, color: S.amber, borderRadius: 20, padding: '2px 8px' }}>{r.favorite_meals.length} meal{r.favorite_meals.length !== 1 ? 's' : ''}</span>
+                            : <span style={{ fontSize: 9, fontWeight: 700, background: S.redLight, color: S.red, borderRadius: 20, padding: '2px 8px' }}>no meals</span>}
                         </div>
-                        <div style={{ fontSize: 12, color: S.stone, fontWeight: 300, marginTop: 2 }}>
+                        <div style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>
                           {r.address || r.cuisine}
-                          {r.is_active && <span style={{ color: S.sageMid, marginLeft: 6 }}>· shown to coordinators ✓</span>}
+                          {r.is_active && <span style={{ color: S.sageMid, marginLeft: 6 }}>· visible to coordinators ✓</span>}
                         </div>
                       </div>
-
-                      {/* Actions */}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        {/* Expand to manage meals */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
                         <button onClick={() => setExpandedId(isExpanded ? null : r.id)}
                           style={{ background: isExpanded ? S.sageLight : 'none', border: `1px solid ${isExpanded ? S.sage : S.border}`, borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: isExpanded ? S.sage : S.stone, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
                           {isExpanded ? 'Done' : '✏️ Meals'}
                         </button>
-
-                        {/* Toggle active */}
-                        <button onClick={() => (r.is_active || !atLimit) && toggleActive(r.id, r.is_active)}
-                          disabled={!r.is_active && atLimit}
-                          style={{ width: 44, height: 24, borderRadius: 12, border: 'none', background: r.is_active ? S.sage : S.border, cursor: (!r.is_active && atLimit) ? 'not-allowed' : 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+                        <button onClick={() => (r.is_active || !atLimit) ? toggleActive(r.id, r.is_active) : shakeLimit()}
+                          style={{ width: 44, height: 24, borderRadius: 12, border: 'none', background: r.is_active ? S.sage : S.border, cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
                           <div style={{ width: 18, height: 18, borderRadius: '50%', background: S.white, position: 'absolute', top: 3, left: r.is_active ? 23 : 3, transition: 'left 0.2s' }} />
                         </button>
-
-                        {/* Delete */}
-                        <button onClick={() => deleteRestaurant(r.id, r.name)}
-                          disabled={deleting === r.id}
-                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, fontSize: 16, padding: '4px', lineHeight: 1, opacity: deleting === r.id ? 0.5 : 1 }}
-                          title="Remove from favorites">
-                          🗑
-                        </button>
+                        <button onClick={() => deleteRestaurant(r.id, r.name)} disabled={deleting === r.id}
+                          style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, fontSize: 16, padding: '4px', opacity: deleting === r.id ? 0.4 : 1 }}>🗑</button>
                       </div>
                     </div>
 
-                    {/* Expanded — manage favorite meals */}
                     {isExpanded && (
                       <div style={{ borderTop: `0.5px solid ${S.border}`, padding: '16px', background: '#FAFDF9' }}>
-                        <p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }}>
-                          Favorite meals at {r.name}
-                        </p>
+                        <p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 6px' }}>Favorite meals</p>
                         <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 12px', lineHeight: 1.6 }}>
-                          Add real dish names so coordinators know exactly what to order. Be specific — "Smash Burger with fries" not just "burger."
+                          Exact dish names + prices. Coordinators see and pay what you set.
                         </p>
-
-                        {/* Current saved meals */}
                         {r.favorite_meals?.length > 0 ? (
-                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 14 }}>
-                            {r.favorite_meals.map(meal => (
-                              <div key={meal} style={{ display: 'flex', alignItems: 'center', gap: 6, background: S.sageLight, border: `1px solid ${S.sage}`, borderRadius: 20, padding: '5px 12px' }}>
-                                <span style={{ fontSize: 13, color: S.forest, fontWeight: 500 }}>⭐ {meal}</span>
-                                <button onClick={() => removeMeal(r.id, meal)}
-                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.sage, fontSize: 13, padding: 0, lineHeight: 1 }}>✕</button>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+                            {r.favorite_meals.map((meal, i) => (
+                              <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: S.sageLight, border: `1px solid ${S.sage}`, borderRadius: 10, padding: '8px 12px' }}>
+                                <span style={{ fontSize: 16 }}>⭐</span>
+                                <span style={{ flex: 1, fontSize: 13, color: S.forest, fontWeight: 500 }}>{meal}</span>
+                                <span style={{ fontSize: 13, fontWeight: 700, color: S.sage }}>${(r.favorite_meal_prices[i] || 15).toFixed(2)}</span>
+                                <button onClick={() => removeMeal(r.id, i)}
+                                  style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.sage, fontSize: 14, padding: 0 }}>✕</button>
                               </div>
                             ))}
                           </div>
                         ) : (
                           <div style={{ background: S.amberLight, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
                             <p style={{ fontSize: 12, color: S.amber, margin: 0, fontWeight: 500 }}>
-                              No meals saved yet. Coordinators will be asked to enter the meal name manually.
+                              ⚠️ No meals yet — coordinators will type the dish name manually.
                             </p>
                           </div>
                         )}
-
-                        {/* Add a meal */}
                         <div style={{ display: 'flex', gap: 8 }}>
-                          <input
-                            value={newMeal[r.id] || ''}
-                            onChange={e => setNewMeal(prev => ({ ...prev, [r.id]: e.target.value }))}
-                            onKeyDown={e => e.key === 'Enter' && addMeal(r.id)}
-                            placeholder={`e.g. "Smash Burger with fries" or "Chicken Sandwich"`}
-                            style={{ flex: 1, padding: '10px 14px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }}
-                          />
-                          <button
-                            onClick={() => addMeal(r.id)}
-                            disabled={!(newMeal[r.id] || '').trim() || savingMeals === r.id}
-                            style={{ padding: '10px 16px', borderRadius: 9, border: 'none', background: !(newMeal[r.id] || '').trim() ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !(newMeal[r.id] || '').trim() ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
-                            {savingMeals === r.id ? '…' : '+ Add'}
+                          <input value={newMealName[r.id] || ''} onChange={e => setNewMealName(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
+                            placeholder="e.g. Smash Burger with fries"
+                            style={{ flex: 1, padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+                          <div style={{ position: 'relative', flexShrink: 0 }}>
+                            <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: S.stone }}>$</span>
+                            <input type="number" value={newMealPrice[r.id] || ''} onChange={e => setNewMealPrice(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
+                              placeholder="0.00"
+                              style={{ width: 76, padding: '10px 10px 10px 22px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+                          </div>
+                          <button onClick={() => addMeal(r.id)} disabled={!(newMealName[r.id]||'').trim()||savingMeals===r.id}
+                            style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(newMealName[r.id]||'').trim()?S.border:S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !(newMealName[r.id]||'').trim()?'default':'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+                            {savingMeals===r.id?'…':'+ Add'}
                           </button>
                         </div>
                       </div>
@@ -317,60 +357,67 @@ export default function KitchenRestaurantsPage() {
           </div>
         )}
 
-        {/* Add from Google Places */}
+        {/* Search & add */}
         <div style={{ background: S.white, border: `1.5px solid ${S.border}`, borderRadius: 16, padding: '20px' }}>
           <p style={{ fontSize: 13, fontWeight: 600, color: S.forest, margin: '0 0 4px' }}>
-            {restaurants.length === 0 ? 'Add your first favorite restaurants' : '+ Add more restaurants'}
+            {restaurants.length === 0 ? 'Add your first favorites' : '+ Add more restaurants'}
           </p>
           <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 14px', lineHeight: 1.6 }}>
-            Search any restaurant near your delivery address. Coordinators will see these when sending meals.
+            Search within 8 miles of your delivery address. Restaurants over 7 miles may need a larger tip.
           </p>
-
           {!kitchenLat && (
             <div style={{ background: S.amberLight, borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
-              <p style={{ fontSize: 12, color: S.amber, margin: 0 }}>Add your delivery address in Settings to search nearby restaurants.</p>
+              <p style={{ fontSize: 12, color: S.amber, margin: 0 }}>Add your delivery address in Settings to enable nearby search.</p>
             </div>
           )}
-
           <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            <input
-              value={searchQuery}
-              onChange={e => setSearchQuery(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && searchRestaurants()}
-              placeholder="Search — e.g. Chipotle, Thai food, pizza near me"
+            <input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key==='Enter'&&searchRestaurants()}
+              placeholder="e.g. Chipotle, Thai food, pizza"
               disabled={!kitchenLat}
-              style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${S.border}`, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none', background: kitchenLat ? S.white : '#F5F5F5' }}
-            />
-            <button onClick={searchRestaurants} disabled={!kitchenLat || searching || !searchQuery.trim()}
-              style={{ padding: '12px 18px', borderRadius: 10, border: 'none', background: !searchQuery.trim() || !kitchenLat ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !searchQuery.trim() ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+              style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${S.border}`, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none', background: kitchenLat ? S.white : '#F5F5F5' }} />
+            <button onClick={searchRestaurants} disabled={!kitchenLat||searching||!searchQuery.trim()}
+              style={{ padding: '12px 18px', borderRadius: 10, border: 'none', background: !searchQuery.trim()||!kitchenLat?S.border:S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !searchQuery.trim()?'default':'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
               {searching ? '…' : 'Search'}
             </button>
           </div>
-
           {searchResults.length > 0 && (
             <div>
-              <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }}>Results — 15 miles away</p>
+              <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }}>Within 8 miles</p>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                 {searchResults.map(place => {
                   const saved    = alreadySaved(place)
                   const isAdding = adding === place.place_id
+                  const miles    = kitchenLat && kitchenLng && place.lat && place.lng
+                    ? haversineDistance(kitchenLat, kitchenLng, place.lat, place.lng)
+                    : null
+                  const distColor = miles === null ? S.stone : miles < 7 ? S.sage : miles < 10 ? S.amber : S.red
+                  const distBg    = miles === null ? S.border : miles < 7 ? S.sageLight : miles < 10 ? S.amberLight : S.redLight
                   return (
                     <div key={place.place_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, border: `1px solid ${saved ? S.sageLight : S.border}`, background: saved ? S.sageLight : S.white }}>
                       <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: S.forest }}>{place.name}</div>
-                        <div style={{ fontSize: 12, color: S.stone, fontWeight: 300, marginTop: 2 }}>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+                          <span style={{ fontSize: 14, fontWeight: 600, color: S.forest }}>{place.name}</span>
+                          {miles !== null && (
+                            <span style={{ fontSize: 10, fontWeight: 700, color: distColor, background: distBg, borderRadius: 20, padding: '2px 8px' }}>
+                              {formatDistance(miles)}
+                              {miles >= 7 && miles < 10 && ' · larger tip recommended'}
+                              {miles >= 10 && ' · very long delivery'}
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>
                           {place.address}
                           {place.rating && <span style={{ color: S.amber, marginLeft: 8 }}>★ {place.rating}</span>}
-                          {place.is_open === true  && <span style={{ color: S.sage, marginLeft: 8, fontWeight: 500 }}>Open</span>}
+                          {place.is_open === true  && <span style={{ color: S.sage, marginLeft: 8, fontWeight: 500 }}>Open now</span>}
                           {place.is_open === false && <span style={{ color: S.red,  marginLeft: 8 }}>Closed</span>}
                         </div>
                       </div>
                       {saved ? (
-                        <span style={{ fontSize: 11, fontWeight: 700, color: S.sage, background: S.sageLight, padding: '4px 12px', borderRadius: 20 }}>✓ Saved</span>
+                        <span style={{ fontSize: 11, fontWeight: 700, color: S.sage, padding: '4px 12px', borderRadius: 20, background: S.sageLight }}>✓ Saved</span>
                       ) : (
-                        <button onClick={() => !atLimit && !isAdding && addFavorite(place)} disabled={atLimit || isAdding}
-                          style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: atLimit ? S.border : S.sage, color: S.white, fontSize: 12, fontWeight: 600, cursor: atLimit ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
-                          {isAdding ? '…' : atLimit ? 'Limit' : '+ Add'}
+                        <button onClick={() => atLimit ? shakeLimit() : !isAdding && addFavorite(place)} disabled={isAdding}
+                          style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: atLimit ? S.redLight : S.sage, color: atLimit ? S.red : S.white, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+                          {isAdding ? '…' : atLimit ? 'Limit reached' : '+ Add'}
                         </button>
                       )}
                     </div>
