@@ -183,14 +183,14 @@ function RestaurantSearch({
 
   const handleSelect = async (place: PlaceResult) => {
     setLoadingMenu(true); setNoMenu(false)
-    // Fetch menu from chain library via a simple API call
     try {
-      const res  = await fetch(`/api/restaurants/menu?name=${encodeURIComponent(place.name)}`)
+      const res  = await fetch(`/api/restaurants/menu?name=${encodeURIComponent(place.name)}&slug=${encodeURIComponent(kitchen.slug || '')}`)
       const data = await res.json()
       if (data.items && data.items.length > 0) {
         setMenuItems(data.items)
         onSelect(place, data.items)
       } else {
+        // No chain match and no saved favorites — go straight to free text
         setNoMenu(true)
         onSelect(place, [])
       }
@@ -269,16 +269,20 @@ function MenuSelector({
     return (
       <div>
         <div style={{ background: '#FBF0E4', border: '1px solid #E8C88A', borderRadius: 12, padding: '14px 16px', marginBottom: 16 }}>
-          <p style={{ fontSize: 13, color: '#7A5800', margin: '0 0 4px', fontWeight: 500 }}>Menu not in our library yet</p>
-          <p style={{ fontSize: 12, color: '#7A5800', margin: 0, fontWeight: 300 }}>Type the meal name you want to send from {restaurant.name}.</p>
+          <p style={{ fontSize: 13, color: '#7A5800', margin: '0 0 6px', fontWeight: 600 }}>Enter the exact dish name</p>
+          <p style={{ fontSize: 12, color: '#7A5800', margin: 0, fontWeight: 300, lineHeight: 1.5 }}>
+            Be specific so the recipient recognizes it and the restaurant can prepare it — e.g. "Smash Burger with fries" not just "burger."
+          </p>
         </div>
         <input
           value={customMeal}
           onChange={e => onCustomChange(e.target.value)}
-          placeholder={`e.g. "Spicy Ramen" or "Margherita Pizza"`}
+          placeholder={`Exact dish name from ${restaurant.name}`}
           style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: '#1E2620', outline: 'none', boxSizing: 'border-box' }}
         />
-        <p style={{ fontSize: 11, color: '#6B7066', marginTop: 6, fontWeight: 300 }}>We'll add {restaurant.name} to our full menu library soon.</p>
+        <p style={{ fontSize: 11, color: '#6B7066', marginTop: 6, fontWeight: 300, lineHeight: 1.5 }}>
+          💡 Tip: Ask the recipient to add their go-to meals for this restaurant in their dashboard — next time coordinators will see them automatically.
+        </p>
       </div>
     )
   }
