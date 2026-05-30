@@ -61,10 +61,10 @@ export default function OnboardingProfile() {
         <p style={{ fontSize: 14, color: '#6B7066', margin: '0 0 28px', fontWeight: 300 }}>This helps your village know what you need.</p>
 
         <label style={labelStyle}>Your name</label>
-        <input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Danielle Moore" style={inputStyle} />
+        <input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="" style={inputStyle} />
 
         <label style={labelStyle}>Delivery address</label>
-        <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="1422 Oak Creek Dr, Waller, TX 77484" style={inputStyle} />
+        <input value={form.address} onChange={e => setForm(f => ({ ...f, address: e.target.value }))} placeholder="" style={inputStyle} />
 
         <label style={labelStyle}>Household size</label>
         <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
