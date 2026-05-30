@@ -9,11 +9,19 @@ const supabase = createClient(
 export async function POST(request: Request) {
   try {
     const {
-      user_id, full_name, phone, address, household_size,
-      dietary_restrictions, breakfast_windows, lunch_windows, dinner_windows,
+      user_id,
+      full_name,
+      phone,
+      address,
+      household_adults,
+      household_children,
+      dietary_restrictions,
+      breakfast_windows,
+      lunch_windows,
+      dinner_windows,
     } = await request.json()
 
-    if (!user_id) return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
+    if (!user_id)        return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
     if (!full_name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
     const { error: profileError } = await supabase
@@ -37,12 +45,13 @@ export async function POST(request: Request) {
       .from('kitchens')
       .update({
         ...(shouldUpdateName ? { name: `${full_name.trim()}'s Kitchen` } : {}),
-        address:              address || null,
-        household_size:       household_size || null,
+        address:             address || null,
+        household_adults:    household_adults ?? 2,
+        household_children:  household_children ?? 2,
         dietary_restrictions: dietary_restrictions || [],
-        breakfast_windows:    breakfast_windows || ['07:00-09:00'],
-        lunch_windows:        lunch_windows     || ['11:00-12:30'],
-        dinner_windows:       dinner_windows    || ['17:30-19:00'],
+        breakfast_windows:   breakfast_windows || ['07:00-09:00'],
+        lunch_windows:       lunch_windows     || ['11:00-12:30'],
+        dinner_windows:      dinner_windows    || ['17:30-19:00'],
       })
       .eq('organizer_id', user_id)
 
