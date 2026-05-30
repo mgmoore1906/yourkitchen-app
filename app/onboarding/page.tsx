@@ -206,10 +206,10 @@ Sign out
 <p style={sub}>Your village will see your name — never your phone or address.</p>
 
 <label style={lbl}>Your name</label>
-<input value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="Danielle Moore" style={inputSt} />
+<input value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="" style={inputSt} />
 
 <label style={lbl}>Phone number</label>
-<input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(936) 555-0142" style={inputSt} />
+<input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="" style={inputSt} />
 <p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '-8px 0 16px' }}>Used only for Y/N meal confirmations via SMS.</p>
 
 <div style={{ background: S.sageLight, border: `1.5px solid ${S.border}`, borderRadius: 10, padding: 16, marginBottom: 20 }}>
