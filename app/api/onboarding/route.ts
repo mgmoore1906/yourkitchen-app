@@ -65,8 +65,11 @@ const DOORDASH_STORE_IDS: Record<string, string> = {
 export async function POST(request: Request) {
   try {
     const {
-      user_id, full_name, address, household_size,
-      dietary_restrictions, restaurants, calendar_dates,
+      user_id, full_name, phone, sms_consent, address,
+      street, apt, city, state, zip,
+      household_size, household_adults, household_children,
+      dietary_restrictions, tier, restaurants, calendar_dates,
+      breakfast_windows, lunch_windows, dinner_windows,
       delivery_window_start, delivery_window_end, favorites
     } = await request.json()
 
@@ -74,8 +77,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
     }
 
-    // Update profile
-    await supabase.from('profiles').upsert({ id: user_id, full_name })
+    // Update profile with everything collected in onboarding
+    await supabase.from('profiles').upsert({
+      id: user_id,
+      full_name,
+      phone: phone || null,
+      sms_consent: sms_consent ?? false,
+      street: street || null,
+      apt: apt || null,
+      city: city || null,
+      state: state || null,
+      zip: zip || null,
+      household_size: household_size || null,
+      dietary_restrictions: dietary_restrictions || [],
+      tier: tier || 'free',
+    }, { onConflict: 'id' })
 
     // Geocode the delivery address → lat/lng (Places API). Non-blocking: if this
     // fails, the kitchen still gets created; the user can fix the address in Settings.
@@ -104,9 +120,14 @@ export async function POST(request: Request) {
         latitude: coords?.lat ?? null,
         longitude: coords?.lng ?? null,
         household_size: parseInt(household_size?.toString().split('-')[0] || '3'),
+        household_adults: household_adults ?? 2,
+        household_children: household_children ?? 2,
         dietary_restrictions: dietary_restrictions || [],
+        breakfast_windows: breakfast_windows || [],
+        lunch_windows: lunch_windows || [],
+        dinner_windows: dinner_windows || ['17:30-19:00'],
         status: 'active',
-        tier: 'trial',
+        tier: (tier && tier !== 'free') ? 'trial' : 'free',
         trial_started_at: new Date().toISOString(),
       })
       .select()
