@@ -264,7 +264,7 @@ export default function OnboardingPage() {
                   </div>
                 </div>
                 <div className="btn-row" style={{ marginTop: 32 }}>
-                  <button className="btn-primary" onClick={() => setStep('address')} disabled={!form.sms_consent}>Next: Delivery Address →</button>
+                  <button className="btn-primary" onClick={() => setStep('address')} disabled={!form.sms_consent || !form.full_name.trim() || !form.phone.trim()}>Next: Delivery Address →</button>
                 </div>
               </div>
             )}
