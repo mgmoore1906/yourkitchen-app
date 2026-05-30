@@ -254,6 +254,10 @@ style={{ padding:'6px 14px', borderRadius:20, border:`1.5px solid ${range===r?S.
 ))}
 </div>
 </div>
+</div>
+
+{/* Top restaurants + Top supporters — 2 column grid */}
+<div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:16, marginBottom:24 }}>
 
 {/* Top restaurants */}
 <div style={{ background:S.white, border:`0.5px solid ${S.border}`, borderRadius:14, padding:'16px 18px' }}>
@@ -279,6 +283,7 @@ style={{ padding:'6px 14px', borderRadius:20, border:`1.5px solid ${range===r?S.
 </div>
 ))}
 </div>
+
 </div>
 
 {/* All orders table */}
@@ -347,6 +352,7 @@ style={{ padding:'6px 14px', borderRadius:8, border:`1.5px solid ${S.sage}`, bac
 <p style={{ fontSize:11, color:S.stone, fontWeight:300, textAlign:'center', marginTop:16, lineHeight:1.6 }}>
 Data pulled live from Supabase. GMV, fees, and tips are in cents — exports convert to dollars. Avg onboarding time = profile created_at → kitchen created_at.
 </p>
+</div>
 </div>
 )
 }
