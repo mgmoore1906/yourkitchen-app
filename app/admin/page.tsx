@@ -352,6 +352,7 @@ Data pulled live from Supabase. GMV, fees, and tips are in cents — exports con
 </p>
 </div>
 </div>
+</div>  
 )
 }
 
