@@ -18,54 +18,6 @@ async function sendSMS(to: string, body: string) {
   }
 }
 
-async function dispatchShipday(proposal: any, kitchen: any) {
-  const restaurant   = proposal.kitchen_restaurants
-  const menuItem     = proposal.menu_items
-  const coordName    = proposal.claims?.guest_coordinators?.full_name || 'Coordinator'
-
-  const orderNumber  = `YK-${proposal.id.slice(0, 8).toUpperCase()}`
-  const deliveryDate = proposal.delivery_date
-    ? new Date(proposal.delivery_date + 'T12:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-    : new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
-
-  const payload = {
-    orderNumber,
-    orderTime:     new Date().toISOString(),
-    restaurantName: restaurant?.name || 'Restaurant',
-    restaurantAddress: restaurant?.address || '',
-    restaurantPhone:   restaurant?.phone || '',
-    customerName:      kitchen?.name || 'Recipient',
-    customerAddress:   kitchen?.address || '',
-    customerEmail:     '',
-    customerPhone:     kitchen?.recipient_phone || '',
-    deliveryInstruction: `YourKitchen delivery — sent by ${coordName}. Please leave at door.`,
-    items: [{
-      name:     menuItem?.name || 'Meal',
-      quantity: 1,
-      unitPrice: menuItem?.price || 20,
-    }],
-    orderSource: 'YourKitchen',
-    tip:         (proposal.tip_amount || 0) / 100,
-    // Request on-demand 3rd party delivery (DoorDash/Uber via Shipday gateway)
-    requestOnDemandDelivery: true,
-  }
-
-  const res = await fetch('https://api.shipday.com/orders', {
-    method:  'POST',
-    headers: {
-      'Content-Type':  'application/json',
-      'Authorization': `Basic ${process.env.SHIPDAY_API_KEY}`,
-    },
-    body: JSON.stringify(payload),
-  })
-
-  const data = await res.json()
-  if (!res.ok) throw new Error(data.message || `Shipday error ${res.status}`)
-
-  console.log(`[Shipday] Order created: ${orderNumber}`, data)
-  return { orderNumber, shipdayOrderId: data.orderId, trackingUrl: data.trackingLink || null }
-}
-
 export async function POST(request: Request) {
   const body      = await request.text()
   const signature = request.headers.get('stripe-signature') || ''
@@ -142,7 +94,10 @@ export async function POST(request: Request) {
     }
   }
 
-  // ── payment_intent.succeeded (Y confirmed → Stripe captured) ──────────────
+  // ── payment_intent.succeeded ───────────────────────────────────────────────
+  // Stripe captured payment after recipient confirmed Y.
+  // MANUAL DISPATCH GATE: do NOT auto-dispatch Shipday.
+  // Mark proposal confirmed, alert Marques, wait for manual Dispatch tap.
   if (event.type === 'payment_intent.succeeded') {
     const pi = event.data.object as Stripe.PaymentIntent
 
@@ -163,63 +118,59 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true })
     }
 
-    const kitchen = (proposal as any).kitchens
+    const kitchen  = (proposal as any).kitchens
+    const mealName = (proposal as any).menu_items?.name || 'the meal'
+    const restName = (proposal as any).kitchen_restaurants?.name || 'the restaurant'
+    const mealType = (proposal as any).meal_type || 'meal'
 
-    try {
-      const { orderNumber, shipdayOrderId, trackingUrl } = await dispatchShipday(proposal as any, kitchen)
+    // Update status → awaiting_dispatch (food order not yet placed)
+    await supabase.from('meal_proposals')
+      .update({ status: 'confirmed', delivery_status: 'awaiting_dispatch' })
+      .eq('id', (proposal as any).id)
 
-      // Update proposal with Shipday order info
-      await supabase.from('meal_proposals').update({
-        doordash_delivery_id:  shipdayOrderId ? String(shipdayOrderId) : orderNumber,
-        doordash_tracking_url: trackingUrl,
-        status:                'confirmed',
-      }).eq('id', (proposal as any).id)
+    // Alert Marques via SMS so he knows to place the food order
+    const marquesPhone = process.env.MARQUES_PHONE
+    if (marquesPhone) {
+      const delivDate = (proposal as any).delivery_date
+        ? new Date((proposal as any).delivery_date + 'T12:00:00')
+            .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+        : 'today'
+      await sendSMS(
+        marquesPhone,
+        `🍽 YK ORDER READY\n` +
+        `${mealName} from ${restName}\n` +
+        `${mealType.charAt(0).toUpperCase() + mealType.slice(1)} · ${delivDate}\n` +
+        `Delivery: ${kitchen?.address || 'address on file'}\n\n` +
+        `1. Place order at restaurant\n` +
+        `2. Tap Dispatch in admin panel\n\n` +
+        `app.yourkitchen.app/admin`
+      )
+    }
 
-      // Notify coordinator
-      const coordPhone = (proposal as any).claims?.guest_coordinators?.phone
-      const coordName  = (proposal as any).claims?.guest_coordinators?.full_name || 'You'
-      const mealName   = (proposal as any).menu_items?.name || 'the meal'
-      const restName   = (proposal as any).kitchen_restaurants?.name || 'the restaurant'
+    // Notify coordinator — payment captured, meal is being arranged
+    const coordPhone = (proposal as any).claims?.guest_coordinators?.phone
+    if (coordPhone) {
+      await sendSMS(
+        coordPhone,
+        `✅ Your meal gift was confirmed! ${mealName} from ${restName} is being arranged for delivery.\n\n` +
+        `We'll text you when it's on the way. Thank you for showing up. 🧡\n\n— YourKitchen`
+      )
+    }
 
-      if (coordPhone) {
+    // Notify recipient — confirmed, delivery coming
+    if (kitchen?.recipient_id) {
+      const { data: recipientProfile } = await supabase
+        .from('profiles').select('phone').eq('id', kitchen.recipient_id).single()
+      if (recipientProfile?.phone) {
         await sendSMS(
-          coordPhone,
-          `✅ Your meal was confirmed! ${mealName} from ${restName} is being dispatched.` +
-          (trackingUrl ? ` Track it: ${trackingUrl}` : '') +
-          `\n\n— YourKitchen 🧡`
+          recipientProfile.phone,
+          `✅ Confirmed! ${mealName} from ${restName} is being arranged. ` +
+          `We'll send a tracking link once it's on the way.\n\n— YourKitchen`
         )
       }
-
-      // Notify recipient
-      if (kitchen?.recipient_id) {
-        const { data: recipientProfile } = await supabase
-          .from('profiles').select('phone').eq('id', kitchen.recipient_id).single()
-        if (recipientProfile?.phone) {
-          await sendSMS(
-            recipientProfile.phone,
-            `✅ Confirmed! ${mealName} from ${restName} is on its way.` +
-            (trackingUrl ? ` Track your order: ${trackingUrl}` : '') +
-            `\n\n— YourKitchen`
-          )
-        }
-      }
-
-      console.log(`[Shipday] Dispatched order ${orderNumber} for proposal ${(proposal as any).id}`)
-
-    } catch (dispatchErr: any) {
-      console.error('[Shipday] Dispatch failed:', dispatchErr.message)
-
-      // Refund coordinator if dispatch fails
-      try {
-        await stripe.refunds.create({ payment_intent: pi.id })
-        await supabase.from('meal_proposals')
-          .update({ status: 'declined' })
-          .eq('payment_intent_id', pi.id)
-        console.log('Refunded payment_intent:', pi.id)
-      } catch (refundErr: any) {
-        console.error('Refund failed:', refundErr.message)
-      }
     }
+
+    console.log(`[Gate] Payment captured for proposal ${(proposal as any).id} — awaiting manual dispatch`)
   }
 
   return NextResponse.json({ received: true })
