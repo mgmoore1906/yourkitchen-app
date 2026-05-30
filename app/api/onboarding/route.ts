@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { geocodeAddress } from '@/lib/geocode'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -76,6 +77,10 @@ export async function POST(request: Request) {
     // Update profile
     await supabase.from('profiles').upsert({ id: user_id, full_name })
 
+    // Geocode the delivery address → lat/lng (Places API). Non-blocking: if this
+    // fails, the kitchen still gets created; the user can fix the address in Settings.
+    const coords = await geocodeAddress(address || '')
+
     // Generate unique slug
     const baseSlug = full_name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '')
     let slug = baseSlug
@@ -87,7 +92,7 @@ export async function POST(request: Request) {
       slug = `${baseSlug}-${attempt}`
     }
 
-    // Create kitchen
+    // Create kitchen — now with geocoded coordinates so Places search works immediately
     const { data: kitchen, error: kitchenError } = await supabase
       .from('kitchens')
       .insert({
@@ -96,6 +101,8 @@ export async function POST(request: Request) {
         name: `${full_name}'s Kitchen`,
         slug,
         address,
+        latitude: coords?.lat ?? null,
+        longitude: coords?.lng ?? null,
         household_size: parseInt(household_size?.toString().split('-')[0] || '3'),
         dietary_restrictions: dietary_restrictions || [],
         status: 'active',
