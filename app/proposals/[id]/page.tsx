@@ -40,6 +40,11 @@ const [declined, setDeclined] = useState(false)
 const [declineNote, setDeclineNote] = useState('')
 const [confirmed, setConfirmed] = useState(false)
 const [error, setError] = useState('')
+const [kitchenId, setKitchenId] = useState('')
+const [villagePosts, setVillagePosts] = useState<{id:string;content:string;author_name:string|null;author_type:string|null;posted_at:string}[]>([])
+const [reply, setReply] = useState('')
+const [replying, setReplying] = useState(false)
+const [replyDone, setReplyDone] = useState(false)
 
 useEffect(() => {
 const load = async () => {
@@ -47,7 +52,7 @@ const { data, error } = await supabase
 .from('meal_proposals')
 .select(`
 id, status, coordinator_note, coordinator_name,
-restaurant_name, meal_name, meal_items, delivery_date, meal_type,
+restaurant_name, meal_name, meal_items, delivery_date, meal_type, kitchen_id,
 claims(calendar_date_id, calendar_dates(date, meal_type))
 `)
 .eq('id', id)
@@ -57,6 +62,14 @@ if (error || !data) { setNotFound(true); setLoading(false); return }
 setProposal(data as any)
 if (data.status === 'confirmed') setConfirmed(true)
 if (data.status === 'declined') setDeclined(true)
+
+// Load village posts to show on confirmation screen
+if (data.kitchen_id) {
+setKitchenId(data.kitchen_id)
+const vRes = await fetch(`/api/village-posts?kitchen_id=${data.kitchen_id}`)
+const vData = await vRes.json()
+setVillagePosts(vData.posts || [])
+}
 setLoading(false)
 }
 load()
@@ -140,6 +153,57 @@ if (confirmed) return (
 </div>
 ))}
 </div>
+
+{/* Village posts — what the recipient has been sharing */}
+{villagePosts.length > 0 && (
+<div style={{ marginTop: 24, textAlign: 'left' }}>
+<p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 10px' }}>
+🧡 From {proposal?.restaurant_name ? coordName + "'s" : 'the'} Kitchen
+</p>
+{villagePosts.slice(0, 2).map(post => (
+<div key={post.id} style={{ background: S.sageLight, borderRadius: 12, padding: '12px 14px', marginBottom: 8 }}>
+<div style={{ fontSize: 11, color: S.sageMid, fontWeight: 500, marginBottom: 4 }}>
+{post.author_name || 'Kitchen update'}
+</div>
+<p style={{ fontSize: 14, color: S.forest, margin: 0, lineHeight: 1.7, fontFamily: "'Lora', serif", fontStyle: 'italic' }}>"{post.content}"</p>
+</div>
+))}
+</div>
+)}
+
+{/* Supporter reply box */}
+{kitchenId && (
+<div style={{ marginTop: 20, textAlign: 'left' }}>
+<p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 8px' }}>
+Leave a note for the family
+</p>
+{replyDone ? (
+<div style={{ background: S.sageLight, borderRadius: 10, padding: '12px 14px', textAlign: 'center' }}>
+<p style={{ fontSize: 13, color: S.sage, fontWeight: 600, margin: 0 }}>🧡 Your note was delivered to the family.</p>
+</div>
+) : (
+<>
+<textarea value={reply} onChange={e => setReply(e.target.value)}
+placeholder="Thinking of you all — hope this brings some comfort tonight 🧡"
+style={{ width: '100%', minHeight: 80, borderRadius: 10, border: `1.5px solid ${S.border}`, padding: '10px 12px', fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: S.forest, background: S.cream, resize: 'none', outline: 'none', boxSizing: 'border-box' as const, lineHeight: 1.6, marginBottom: 8 }} />
+<button onClick={async () => {
+if (!reply.trim() || !kitchenId) return
+setReplying(true)
+await fetch('/api/village-posts', {
+method: 'POST',
+headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ kitchen_id: kitchenId, content: reply.trim(), author_name: coordName, author_type: 'supporter' }),
+})
+setReply(''); setReplying(false); setReplyDone(true)
+}} disabled={!reply.trim() || replying}
+style={{ width: '100%', padding: '11px', borderRadius: 9, border: 'none', background: !reply.trim() ? S.border : S.forest, color: !reply.trim() ? S.stone : S.white, fontSize: 13, fontWeight: 600, cursor: !reply.trim() ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{replying ? 'Sending…' : 'Send a note to the family'}
+</button>
+</>
+)}
+</div>
+)}
+
 <button onClick={() => router.push('/dashboard')} style={{ ...btnPrimary, marginTop: 20 }}>Back to my Kitchen</button>
 </div>
 </Page>
