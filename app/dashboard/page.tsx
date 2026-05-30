@@ -39,53 +39,34 @@ type VillagePost = { id: string; content: string; posted_at: string }
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 function BottomNav({ active, set, badge }: { active: Tab; set: (t: Tab) => void; badge: number }) {
-  const leftTabs:  { key: Tab; icon: string; label: string }[] = [
+  const tabs: { key: Tab; icon: string; label: string }[] = [
     { key: 'home',     icon: '🏠', label: 'Home'     },
     { key: 'activity', icon: '📋', label: 'Activity' },
-  ]
-  const rightTabs: { key: Tab; icon: string; label: string }[] = [
+    { key: 'share',    icon: '❤️',  label: 'Share'    },
     { key: 'insights', icon: '📊', label: 'Insights' },
     { key: 'village',  icon: '💬', label: 'Village'  },
   ]
-  const renderTab = (t: { key: Tab; icon: string; label: string }) => {
-    const isActive  = active === t.key
-    const showBadge = t.key === 'activity' && badge > 0
-    return (
-      <button key={t.key} onClick={() => set(t.key)}
-        style={{ flex:1, border:'none', background:'none', cursor:'pointer', padding:'10px 0 8px', display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative', fontFamily:"'DM Sans',sans-serif" }}>
-        {showBadge && (
-          <div style={{ position:'absolute', top:6, right:'50%', transform:'translateX(12px)', background:S.amber, color:S.white, borderRadius:'50%', width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700 }}>
-            {badge > 9 ? '9+' : badge}
-          </div>
-        )}
-        <div style={{ width:36, height:28, borderRadius:14, background:isActive?S.sageLight:'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.2s' }}>
-          <span style={{ fontSize:17 }}>{t.icon}</span>
-        </div>
-        <span style={{ fontSize:10, fontWeight:isActive?700:400, color:isActive?S.sage:S.stone, letterSpacing:'0.02em' }}>{t.label}</span>
-      </button>
-    )
-  }
   return (
-    <div style={{ position:'fixed', bottom:0, left:0, right:0, background:S.white, borderTop:`0.5px solid ${S.border}`, display:'flex', alignItems:'flex-end', zIndex:200, paddingBottom:'env(safe-area-inset-bottom, 0px)' }}>
-      {leftTabs.map(renderTab)}
-
-      {/* ── FAB — Share (raised heart button) ── */}
-      <button onClick={() => set('share')}
-        style={{ flex:1, border:'none', background:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, paddingBottom:8, fontFamily:"'DM Sans',sans-serif", position:'relative' }}>
-        <div style={{
-          width:52, height:52, borderRadius:'50%',
-          background: active==='share' ? S.sage : S.forest,
-          display:'flex', alignItems:'center', justifyContent:'center',
-          position:'relative', top:-14,
-          boxShadow:'0 2px 8px rgba(30,38,32,0.25)',
-          transition:'background 0.2s',
-        }}>
-          <span style={{ fontSize:22 }}>🤍</span>
-        </div>
-        <span style={{ fontSize:10, fontWeight:active==='share'?700:500, color:active==='share'?S.sage:S.forest, letterSpacing:'0.02em', marginTop:-8 }}>Share</span>
-      </button>
-
-      {rightTabs.map(renderTab)}
+    <div style={{ position:'fixed', bottom:0, left:0, right:0, background:S.white, borderTop:`0.5px solid ${S.border}`, display:'flex', zIndex:200, paddingBottom:'env(safe-area-inset-bottom, 0px)' }}>
+      {tabs.map(t => {
+        const isActive  = active === t.key
+        const isShare   = t.key === 'share'
+        const showBadge = t.key === 'activity' && badge > 0
+        return (
+          <button key={t.key} onClick={() => set(t.key)}
+            style={{ flex:1, border:'none', background:'none', cursor:'pointer', padding:'10px 0 8px', display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative', fontFamily:"'DM Sans',sans-serif" }}>
+            {showBadge && (
+              <div style={{ position:'absolute', top:6, right:'50%', transform:'translateX(12px)', background:S.amber, color:S.white, borderRadius:'50%', width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700 }}>
+                {badge > 9 ? '9+' : badge}
+              </div>
+            )}
+            <div style={{ width:36, height:28, borderRadius:14, background:isActive?(isShare?'#FDECEA':S.sageLight):'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.2s' }}>
+              <span style={{ fontSize: isShare ? 19 : 17 }}>{t.icon}</span>
+            </div>
+            <span style={{ fontSize:10, fontWeight:isActive?700:400, color:isActive?(isShare?'#C0392B':S.sage):S.stone, letterSpacing:'0.02em' }}>{t.label}</span>
+          </button>
+        )
+      })}
     </div>
   )
 }
@@ -305,13 +286,8 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
 
       {/* ── Share CTA — fills the void space, most important next action ── */}
       <div style={{ background:S.forest, borderRadius:16, padding:'18px 20px', marginBottom:14 }}>
-        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
-          <div style={{ fontSize:28, lineHeight:1 }}>🤍</div>
-          <div>
-            <p style={{ fontFamily:"'Lora',serif", fontSize:15, fontWeight:600, color:S.white, margin:'0 0 3px' }}>Share with your village</p>
-            <p style={{ fontSize:12, color:'rgba(255,255,255,0.65)', fontWeight:300, margin:0, lineHeight:1.5 }}>The next step — let the people who love you know your kitchen is open.</p>
-          </div>
-        </div>
+        <p style={{ fontFamily:"'Lora',serif", fontSize:15, fontWeight:600, color:S.white, margin:'0 0 6px' }}>Share with your village</p>
+        <p style={{ fontSize:12, color:'rgba(255,255,255,0.65)', fontWeight:300, margin:'0 0 14px', lineHeight:1.5 }}>Let the people who love you know your kitchen is open.</p>
         <button onClick={onShare}
           style={{ width:'100%', padding:'12px', borderRadius:10, border:'none', background:S.sage, color:S.white, fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
           Share My Kitchen →
@@ -969,7 +945,7 @@ export default function DashboardPage() {
       ) : (
         <>
           <div ref={scrollRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
-            style={{ flex:1,overflowY:'auto',paddingBottom:72,position:'relative' }}>
+            style={{ flex:1,overflowY:'auto',paddingBottom:60,position:'relative' }}>
             {(pullDistance > 0 || isRefreshing) && (
               <div style={{ height:isRefreshing?40:pullDistance, display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',transition:isRefreshing?'height 0.2s':'none' }}>
                 <span style={{ fontSize:15,opacity:0.6,transform:`rotate(${pullDistance*3}deg)`,transition:isRefreshing?'none':'transform 0.1s' }}>
@@ -983,7 +959,7 @@ export default function DashboardPage() {
             {activeTab==='share'    && <ShareTab kitchenUrl={kitchenUrl} kitchen={kitchen} restaurantCount={restaurantCount} router={router}/>}
             {activeTab==='village'  && <VillageTab kitchen={kitchen} villagePosts={villagePosts} proposals={allProposals} onPostUpdate={()=>loadVillagePosts(kitchen.id)}/>}
           </div>
-          <BottomNav active={activeTab} set={setActiveTab} badge={badgeCount}/>
+          <BottomNav active={activeTab} set={(t) => { setActiveTab(t); if (scrollRef.current) scrollRef.current.scrollTop = 0 }} badge={badgeCount}/>
         </>
       )}
     </div>
