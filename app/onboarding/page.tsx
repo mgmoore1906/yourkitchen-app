@@ -92,12 +92,14 @@ const { data } = await supabase
 .from('kitchen_restaurants')
 .select('id, name, cuisine, is_active, place_id, address, lat, lng, favorite_meals, favorite_meal_prices, favorite_meal_categories')
 .eq('kitchen_id', kId).order('created_at', { ascending: true })
-setRestaurants((data || []).map((r: any) => ({
+const mapped = (data || []).map((r: any) => ({
 ...r,
 favorite_meals: r.favorite_meals || [],
 favorite_meal_prices: r.favorite_meal_prices || [],
 favorite_meal_categories: r.favorite_meal_categories || [],
-})))
+}))
+setRestaurants(mapped)
+return mapped
 }
 
 const limit = TIER_LIMITS[userTier] || 3
@@ -129,10 +131,20 @@ lat: place.lat, lng: place.lng,
 })
 const data = await res.json()
 if (data.success) {
-await loadRestaurants(kitchenId)
+const updated = await loadRestaurants(kitchenId)
 setSaveMsg(`${place.name} added!`)
 setTimeout(() => setSaveMsg(''), 3000)
 setSearchResults(prev => prev.filter(r => r.place_id !== place.place_id))
+// Auto-expand the newly added restaurant so meal entry is immediate
+const newRest = updated.find((r: any) => r.place_id === place.place_id)
+if (newRest) {
+setExpandedId(newRest.id)
+// Give the DOM a tick to render, then scroll the expanded panel into view
+setTimeout(() => {
+const el = document.getElementById(`restaurant-${newRest.id}`)
+if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}, 100)
+}
 }
 setAdding(null)
 }
@@ -243,9 +255,14 @@ style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, h
 <div style={{ padding: '24px', maxWidth: 540, margin: '0 auto' }}>
 <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.sage, margin: '0 0 6px' }}>My Restaurants</p>
 <h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: S.forest, margin: '0 0 6px', letterSpacing: -0.5 }}>Favorite restaurants</h1>
-<p style={{ fontSize: 14, color: S.stone, margin: '0 0 20px', fontWeight: 300, lineHeight: 1.6 }}>
+<p style={{ fontSize: 14, color: S.stone, margin: '0 0 16px', fontWeight: 300, lineHeight: 1.6 }}>
 Add favorites and save your go-to meals with prices. Tag each as an adult or kids meal so your village always knows what to order.
 </p>
+<div style={{ background: S.sageLight, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+<p style={{ fontSize: 13, color: S.sage, margin: 0, lineHeight: 1.6, fontWeight: 400 }}>
+📋 <strong>A quick note:</strong> while we're in pilot, you'll enter your favorite dishes and their current menu prices manually. Yes, slightly inconvenient — open the restaurant's menu on your phone and add the dishes your family loves most.
+</p>
+</div>
 
 {/* Tier limit */}
 <div className={shakingLimit ? 'shake' : ''}
@@ -288,7 +305,7 @@ const isExpanded = expandedId === r.id
 const miles = kitchenLat && kitchenLng ? distanceFromKitchen(r, kitchenLat, kitchenLng) : null
 const mealCat = newMealCategory[r.id] || 'adult'
 return (
-<div key={r.id} style={{ background: S.white, border: `1.5px solid ${r.is_active ? S.sage : S.border}`, borderRadius: 14, overflow: 'hidden' }}>
+<div key={r.id} id={`restaurant-${r.id}`} style={{ background: S.white, border: `1.5px solid ${r.is_active ? S.sage : S.border}`, borderRadius: 14, overflow: 'hidden' }}>
 <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
 <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpandedId(isExpanded ? null : r.id)}>
 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
@@ -341,9 +358,9 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? 
 })}
 </div>
 ) : (
-<div style={{ background: S.amberLight, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
-<p style={{ fontSize: 12, color: S.amber, margin: 0, fontWeight: 500 }}>
-⚠️ No meals yet — coordinators will type the dish name manually.
+<div style={{ background: '#F8FAF9', border: `1px solid ${S.border}`, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+<p style={{ fontSize: 13, color: S.stone, margin: 0, fontWeight: 400 }}>
+No meals yet.
 </p>
 </div>
 )}
