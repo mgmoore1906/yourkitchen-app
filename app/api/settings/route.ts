@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { geocodeAddress } from '@/lib/geocode'
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -33,7 +34,7 @@ export async function POST(request: Request) {
 
     const { data: kitchen } = await supabase
       .from('kitchens')
-      .select('name')
+      .select('name, address')
       .eq('organizer_id', user_id)
       .single()
 
@@ -41,11 +42,19 @@ export async function POST(request: Request) {
       || kitchen.name === "'s Kitchen"
       || kitchen.name.startsWith("'s ")
 
+    // Re-geocode only if the address actually changed (saves an API call on every save)
+    let coordsUpdate: { latitude: number; longitude: number } | {} = {}
+    if (address && address !== kitchen?.address) {
+      const coords = await geocodeAddress(address)
+      if (coords) coordsUpdate = { latitude: coords.lat, longitude: coords.lng }
+    }
+
     const { error: kitchenError } = await supabase
       .from('kitchens')
       .update({
         ...(shouldUpdateName ? { name: `${full_name.trim()}'s Kitchen` } : {}),
         address:             address || null,
+        ...coordsUpdate,
         household_adults:    household_adults ?? 2,
         household_children:  household_children ?? 2,
         dietary_restrictions: dietary_restrictions || [],
