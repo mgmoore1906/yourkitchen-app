@@ -149,7 +149,8 @@ return (
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <style>{`
 .tier-grid { display: grid; grid-template-columns: 1fr; gap: 14px; }
-@media (min-width: 820px) { .tier-grid { grid-template-columns: 1fr 1fr 1fr; gap: 12px; align-items: start; } }
+@media (min-width: 720px) { .tier-grid { grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; } }
+@media (min-width: 1080px) { .tier-grid { grid-template-columns: 1fr 1fr 1fr 1fr; gap: 12px; align-items: start; } }
 `}</style>
 
 <nav style={{ background: S.forest, padding: '16px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 10 }}>
@@ -161,7 +162,7 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 </div>
 </nav>
 
-<div style={{ padding: '28px 24px', maxWidth: 1040, margin: '0 auto' }}>
+<div style={{ padding: '28px 24px', maxWidth: 1320, margin: '0 auto' }}>
 <h1 style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 500, color: S.forest, margin: '0 0 8px', letterSpacing: -0.5 }}>Plans &amp; pricing</h1>
 <p style={{ fontSize: 14, color: S.stone, fontWeight: 300, margin: '0 0 28px', lineHeight: 1.6 }}>
 Every paid plan starts with a 14-day free trial — no card required.
@@ -196,12 +197,12 @@ style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, bord
 </button>
 </div>
 
-{/* FOUNDING */}
+{/* EARLY ADOPTER — ANNUAL */}
 <div style={{ background: S.white, border: `2px solid ${S.amber}`, borderRadius: 14, padding: '20px', position: 'relative' }}>
-<span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: S.amber, color: S.white, fontSize: 10, fontWeight: 600, padding: '3px 12px', borderRadius: 10, whiteSpace: 'nowrap' }}>Limited — first 100</span>
-<span style={{ display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 8, marginBottom: 10, background: S.amberLight, color: S.amberText }}>Founding Member</span>
-<div style={{ fontSize: 18, fontWeight: 500, color: S.forest, marginBottom: 4 }}>Care+ Founding</div>
-<div style={{ fontSize: 13, color: S.stone, marginBottom: 14 }}><strong style={{ fontSize: 22, fontWeight: 500, color: S.forest }}>$59</strong> / year <span style={{ fontSize: 11, color: S.stone }}>or $149 lifetime</span></div>
+<span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: S.amber, color: S.white, fontSize: 10, fontWeight: 600, padding: '3px 12px', borderRadius: 10, whiteSpace: 'nowrap' }}>Best value</span>
+<span style={{ display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 8, marginBottom: 10, background: S.amberLight, color: S.amberText }}>Early Adopter</span>
+<div style={{ fontSize: 18, fontWeight: 500, color: S.forest, marginBottom: 4 }}>Care+ Annual</div>
+<div style={{ fontSize: 13, color: S.stone, marginBottom: 14 }}><strong style={{ fontSize: 22, fontWeight: 500, color: S.forest }}>$59</strong> / year <span style={{ fontSize: 11, color: S.stone }}>· save 50%</span></div>
 <p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.stone, margin: '0 0 10px' }}>Everything in Care+, plus</p>
 {FOUNDING_PERKS.map((p, i) => (
 <div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 7, fontSize: 12, color: S.forest, lineHeight: 1.4 }}>
@@ -209,9 +210,32 @@ style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, bord
 <span>{p}</span>
 </div>
 ))}
-<button onClick={() => handleSwitch('annual')} disabled={!!switching || currentTier === 'annual' || currentTier === 'founding'}
+<button onClick={() => handleSwitch('annual')} disabled={!!switching || currentTier === 'annual'}
 style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: S.amber, color: S.white, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 16, fontFamily: "'DM Sans', sans-serif", opacity: switching ? 0.6 : 1 }}>
-{currentTier === 'annual' || currentTier === 'founding' ? '✓ Current plan' : switching === 'annual' ? 'Loading…' : 'Claim founding membership'}
+{currentTier === 'annual' ? '✓ Current plan' : switching === 'annual' ? 'Loading…' : 'Lock in annual rate'}
+</button>
+</div>
+
+{/* FOUNDING — LIFETIME */}
+<div style={{ background: S.forest, border: `2px solid ${S.forest}`, borderRadius: 14, padding: '20px', position: 'relative' }}>
+<span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: S.amber, color: S.white, fontSize: 10, fontWeight: 600, padding: '3px 12px', borderRadius: 10, whiteSpace: 'nowrap' }}>Limited — first 100</span>
+<span style={{ display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 8, marginBottom: 10, background: S.amber, color: S.white }}>Founding Member</span>
+<div style={{ fontSize: 18, fontWeight: 500, color: S.white, marginBottom: 4 }}>Lifetime</div>
+<div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 14 }}><strong style={{ fontSize: 22, fontWeight: 500, color: S.white }}>$149</strong> <span style={{ fontSize: 11 }}>once · never pay again</span></div>
+<p style={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'rgba(255,255,255,0.5)', margin: '0 0 10px' }}>Everything in Early Adopter, plus</p>
+<div style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 7, fontSize: 12, color: S.white, lineHeight: 1.4 }}>
+<span style={{ width: 6, height: 6, borderRadius: '50%', background: S.amber, flexShrink: 0, marginTop: 5 }} />
+<span>Pay once — no renewals, ever</span>
+</div>
+{FOUNDING_PERKS.map((p, i) => (
+<div key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 8, marginBottom: 7, fontSize: 12, color: 'rgba(255,255,255,0.85)', lineHeight: 1.4 }}>
+<span style={{ width: 6, height: 6, borderRadius: '50%', background: S.amber, flexShrink: 0, marginTop: 5 }} />
+<span>{p}</span>
+</div>
+))}
+<button onClick={() => handleSwitch('founding')} disabled={!!switching || currentTier === 'founding'}
+style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: S.amber, color: S.white, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 16, fontFamily: "'DM Sans', sans-serif", opacity: switching ? 0.6 : 1 }}>
+{currentTier === 'founding' ? '✓ Current plan' : switching === 'founding' ? 'Loading…' : 'Claim lifetime membership'}
 </button>
 </div>
 
