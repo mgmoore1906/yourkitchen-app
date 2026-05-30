@@ -1,372 +1,290 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-
-// ── Only this email can access /admin ──────────────────────────────────────
-const ADMIN_EMAIL = 'marques@yourkitchen.app'
 
 const S = {
   sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
   cream: '#FAFAF5', forest: '#1E2620', stone: '#6B7066',
-  border: '#DDE8E0', white: '#FFFFFF', red: '#B94040',
-  amber: '#C17F47', amberLight: '#FFF8E8',
+  border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47',
+  amberLight: '#FBF0E4', red: '#B94040', redLight: '#FDE8E8',
+  blue: '#2B6CB0', blueLight: '#E8F0FD',
 }
 
-type Restaurant = {
-  id: string
-  name: string
-  cuisine: string
-  is_active: boolean
-  doordash_store_id: string | null
-  menu_items: MenuItem[]
+const MEAL_EMOJI: Record<string, string> = {
+  breakfast: '🌅', lunch: '☀️', dinner: '🌙',
 }
-type MenuItem = {
+
+type Order = {
   id: string
-  name: string
-  description: string
-  price: number
-  is_favorite: boolean
-}
-type Kitchen = {
-  id: string
-  name: string
-  slug: string
+  status: string
+  delivery_status: string | null
+  meal_type: string
+  delivery_date: string
+  delivery_preference: string | null
+  delivery_note: string | null
+  coordinator_name: string
+  restaurant_name: string
+  meal_name: string
+  tip_amount: number | null
+  doordash_tracking_url: string | null
+  doordash_delivery_id: string | null
+  kitchen_name: string
+  kitchen_address: string
+  proposed_at: string
 }
 
 export default function AdminPage() {
-  const router = useRouter()
+  const router   = useRouter()
   const supabase = createClient()
+  const [loading,      setLoading]      = useState(true)
+  const [orders,       setOrders]       = useState<Order[]>([])
+  const [dispatching,  setDispatching]  = useState<string | null>(null)
+  const [dispatchMsg,  setDispatchMsg]  = useState<Record<string, string>>({})
+  const [adminSecret,  setAdminSecret]  = useState('')
+  const [authed,       setAuthed]       = useState(false)
+  const [authErr,      setAuthErr]      = useState('')
+  const [filter,       setFilter]       = useState<'awaiting' | 'all'>('awaiting')
 
-  const [checking, setChecking]     = useState(true)
-  const [authorized, setAuthorized] = useState(false)
+  const loadOrders = useCallback(async () => {
+    const { data } = await supabase
+      .from('meal_proposals')
+      .select(`
+        id, status, delivery_status, meal_type, delivery_date,
+        delivery_preference, delivery_note,
+        coordinator_name, restaurant_name, meal_name,
+        tip_amount, doordash_tracking_url, doordash_delivery_id,
+        proposed_at,
+        kitchens:kitchen_id(name, address)
+      `)
+      .eq('status', 'confirmed')
+      .order('delivery_date', { ascending: true })
 
-  // Kitchen lookup
-  const [slugInput, setSlugInput]   = useState('')
-  const [kitchen, setKitchen]       = useState<Kitchen | null>(null)
-  const [restaurants, setRestaurants] = useState<Restaurant[]>([])
-  const [lookupError, setLookupError] = useState('')
-  const [looking, setLooking]       = useState(false)
-
-  // Add restaurant form
-  const [showRestForm, setShowRestForm] = useState(false)
-  const [restForm, setRestForm]     = useState({
-    name: '', cuisine: '', address: '', phone: '', doordash_store_id: '',
-  })
-  const [savingRest, setSavingRest] = useState(false)
-  const [restError, setRestError]   = useState('')
-
-  // Add menu item form
-  const [activeRestId, setActiveRestId] = useState<string | null>(null)
-  const [itemForm, setItemForm]     = useState({
-    name: '', description: '', price: '', is_favorite: false,
-  })
-  const [savingItem, setSavingItem] = useState(false)
-  const [itemError, setItemError]   = useState('')
-  const [expandedRest, setExpandedRest] = useState<string | null>(null)
-
-  // ── Auth gate ──────────────────────────────────────────────────────────────
-  useEffect(() => {
-    const check = async () => {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user || user.email !== ADMIN_EMAIL) {
-        router.push('/dashboard')
-        return
-      }
-      setAuthorized(true)
-      setChecking(false)
-    }
-    check()
+    const mapped = (data || []).map((r: any) => ({
+      ...r,
+      kitchen_name:    r.kitchens?.name    || '',
+      kitchen_address: r.kitchens?.address || '',
+    }))
+    setOrders(mapped)
+    setLoading(false)
   }, [])
 
-  // ── Lookup kitchen by slug ─────────────────────────────────────────────────
-  const lookupKitchen = async () => {
-    if (!slugInput.trim()) return
-    setLooking(true); setLookupError(''); setKitchen(null); setRestaurants([])
-    const { data: k } = await supabase
-      .from('kitchens')
-      .select('id, name, slug')
-      .eq('slug', slugInput.trim().toLowerCase())
-      .single()
-    if (!k) { setLookupError('Kitchen not found. Check the slug and try again.'); setLooking(false); return }
-    setKitchen(k)
-    await loadRestaurants(k.id)
-    setLooking(false)
-  }
+  useEffect(() => {
+    // Check if already authed in session
+    const saved = sessionStorage.getItem('yk_admin_secret')
+    if (saved) { setAdminSecret(saved); setAuthed(true); loadOrders() }
+    else setLoading(false)
+  }, [])
 
-  const loadRestaurants = async (kitchenId: string) => {
-    const { data } = await supabase
-      .from('kitchen_restaurants')
-      .select('id, name, cuisine, is_active, doordash_store_id, menu_items(id, name, description, price, is_favorite)')
-      .eq('kitchen_id', kitchenId)
-      .order('name')
-    setRestaurants((data || []) as Restaurant[])
-  }
-
-  // ── Add restaurant ─────────────────────────────────────────────────────────
-  const addRestaurant = async () => {
-    if (!kitchen || !restForm.name.trim() || !restForm.cuisine.trim()) return
-    setSavingRest(true); setRestError('')
-    const { error } = await supabase.from('kitchen_restaurants').insert({
-      kitchen_id: kitchen.id,
-      name: restForm.name.trim(),
-      cuisine: restForm.cuisine.trim(),
-      address: restForm.address.trim() || null,
-      phone: restForm.phone.trim() || null,
-      doordash_store_id: restForm.doordash_store_id.trim() || null,
-      is_active: true,
+  const handleAuth = async () => {
+    setAuthErr('')
+    // Verify against env via a simple test dispatch call with wrong id
+    const res = await fetch('/api/dispatch', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+      body: JSON.stringify({ proposal_id: 'auth-test' }),
     })
-    if (error) { setRestError(error.message); setSavingRest(false); return }
-    await loadRestaurants(kitchen.id)
-    setRestForm({ name: '', cuisine: '', address: '', phone: '', doordash_store_id: '' })
-    setShowRestForm(false)
-    setSavingRest(false)
+    if (res.status === 401) { setAuthErr('Wrong admin secret'); return }
+    // 404 means auth passed (proposal not found, but we authenticated)
+    sessionStorage.setItem('yk_admin_secret', adminSecret)
+    setAuthed(true)
+    loadOrders()
   }
 
-  // ── Add menu item ──────────────────────────────────────────────────────────
-  const addMenuItem = async (restId: string) => {
-    if (!itemForm.name.trim() || !itemForm.price) return
-    setSavingItem(true); setItemError('')
-    const { error } = await supabase.from('menu_items').insert({
-      kitchen_restaurant_id: restId,
-      name: itemForm.name.trim(),
-      description: itemForm.description.trim() || null,
-      price: parseFloat(itemForm.price),
-      is_favorite: itemForm.is_favorite,
-    })
-    if (error) { setItemError(error.message); setSavingItem(false); return }
-    await loadRestaurants(kitchen!.id)
-    setItemForm({ name: '', description: '', price: '', is_favorite: false })
-    setActiveRestId(null)
-    setSavingItem(false)
+  const handleDispatch = async (orderId: string) => {
+    setDispatching(orderId)
+    setDispatchMsg(m => ({ ...m, [orderId]: '' }))
+    try {
+      const res = await fetch('/api/dispatch', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret },
+        body: JSON.stringify({ proposal_id: orderId }),
+      })
+      const data = await res.json()
+      if (res.ok) {
+        setDispatchMsg(m => ({ ...m, [orderId]: `✅ Dispatched! Order: ${data.orderNumber}${data.trackingUrl ? ' · ' + data.trackingUrl : ''}` }))
+        await loadOrders()
+      } else {
+        setDispatchMsg(m => ({ ...m, [orderId]: `❌ ${data.error}` }))
+      }
+    } catch (err: any) {
+      setDispatchMsg(m => ({ ...m, [orderId]: `❌ ${err.message}` }))
+    }
+    setDispatching(null)
   }
 
-  // ── Toggle restaurant active ───────────────────────────────────────────────
-  const toggleActive = async (restId: string, current: boolean) => {
-    await supabase.from('kitchen_restaurants').update({ is_active: !current }).eq('id', restId)
-    setRestaurants(prev => prev.map(r => r.id === restId ? { ...r, is_active: !current } : r))
-  }
+  const awaiting  = orders.filter(o => !o.delivery_status || o.delivery_status === 'awaiting_dispatch')
+  const dispatched = orders.filter(o => o.delivery_status === 'dispatched')
+  const visible   = filter === 'awaiting' ? awaiting : orders
 
-  // ── Delete menu item ───────────────────────────────────────────────────────
-  const deleteItem = async (itemId: string) => {
-    await supabase.from('menu_items').delete().eq('id', itemId)
-    if (kitchen) await loadRestaurants(kitchen.id)
-  }
+  const fmt = (s: string) => new Date(s + 'T12:00:00').toLocaleDateString('en-US', {
+    weekday: 'short', month: 'short', day: 'numeric'
+  })
 
-  // ── Loading / unauthorized ─────────────────────────────────────────────────
-  if (checking) return (
-    <div style={{ minHeight: '100vh', background: S.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
-      <p style={{ color: S.stone }}>Checking access…</p>
+  // ── Auth screen ─────────────────────────────────────────────────────────────
+  if (!authed) return (
+    <div style={{ minHeight: '100vh', background: S.forest, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
+      <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+      <div style={{ background: S.cream, borderRadius: 20, padding: 40, width: 340 }}>
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
+          <div style={{ fontSize: 10, fontWeight: 700, letterSpacing: 4, color: S.sageMid, textTransform: 'uppercase', marginBottom: 4 }}>Your</div>
+          <div style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 500, color: S.forest }}>Kitchen</div>
+          <div style={{ fontSize: 12, color: S.stone, marginTop: 6 }}>Admin · Dispatch Panel</div>
+        </div>
+        <input
+          type="password"
+          value={adminSecret}
+          onChange={e => setAdminSecret(e.target.value)}
+          onKeyDown={e => e.key === 'Enter' && handleAuth()}
+          placeholder="Admin secret"
+          style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${S.border}`, fontSize: 14, fontFamily: "'DM Sans', sans-serif", outline: 'none', marginBottom: 12, background: S.white }}
+        />
+        {authErr && <p style={{ fontSize: 12, color: S.red, margin: '0 0 10px', textAlign: 'center' }}>{authErr}</p>}
+        <button onClick={handleAuth}
+          style={{ width: '100%', padding: 13, borderRadius: 10, border: 'none', background: S.forest, color: S.white, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+          Sign In
+        </button>
+      </div>
     </div>
   )
 
-  if (!authorized) return null
-
+  // ── Main panel ──────────────────────────────────────────────────────────────
   return (
     <div style={{ minHeight: '100vh', background: S.cream, fontFamily: "'DM Sans', sans-serif" }}>
-      <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 
-      {/* Nav */}
-      <nav style={{ background: S.forest, padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+      {/* Top bar */}
+      <div style={{ background: S.forest, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
-          <div style={{ fontSize: 8, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase' }}>Your</div>
-          <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.white }}>Kitchen</div>
+          <div style={{ fontSize: 9, fontWeight: 500, letterSpacing: 4, color: S.sageMid, textTransform: 'uppercase' }}>Your</div>
+          <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.white, lineHeight: 1.1 }}>Kitchen · Admin</div>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
-          <span style={{ background: S.amber, color: S.white, fontSize: 10, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.06em' }}>ADMIN</span>
-          <button onClick={() => router.push('/dashboard')} style={{ background: 'none', border: 'none', color: 'rgba(255,255,255,0.5)', fontSize: 13, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-            ← Dashboard
+        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+          <div style={{ background: S.red, color: S.white, borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700 }}>
+            {awaiting.length} need dispatch
+          </div>
+          <button onClick={() => loadOrders()}
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '8px 14px', color: S.white, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+            Refresh
           </button>
         </div>
-      </nav>
+      </div>
 
-      <div style={{ maxWidth: 720, margin: '0 auto', padding: '32px 24px 80px' }}>
-        <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 500, color: S.forest, margin: '0 0 6px', letterSpacing: -0.5 }}>
-          Restaurant Admin
-        </h1>
-        <p style={{ fontSize: 14, color: S.stone, fontWeight: 300, margin: '0 0 28px' }}>
-          Look up any Kitchen by slug, add restaurants, and seed menu items.
-        </p>
+      <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 20px' }}>
 
-        {/* Kitchen lookup */}
-        <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '20px', marginBottom: 24 }}>
-          <p style={label}>Kitchen slug</p>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <input
-              value={slugInput}
-              onChange={e => setSlugInput(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && lookupKitchen()}
-              placeholder="danielle-moore"
-              style={inputSt}
-            />
-            <button onClick={lookupKitchen} disabled={looking} style={btnPrimary(looking || !slugInput.trim())}>
-              {looking ? 'Looking…' : 'Look up'}
+        {/* Filter tabs */}
+        <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
+          {(['awaiting', 'all'] as const).map(f => (
+            <button key={f} onClick={() => setFilter(f)}
+              style={{ padding: '8px 18px', borderRadius: 20, border: `1.5px solid ${filter === f ? S.sage : S.border}`, background: filter === f ? S.sageLight : S.white, color: filter === f ? S.sage : S.stone, fontSize: 13, fontWeight: filter === f ? 700 : 400, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+              {f === 'awaiting' ? `🔴 Needs dispatch (${awaiting.length})` : `All confirmed (${orders.length})`}
             </button>
-          </div>
-          {lookupError && <p style={{ color: S.red, fontSize: 12, margin: '8px 0 0' }}>{lookupError}</p>}
-
-          {kitchen && (
-            <div style={{ marginTop: 14, padding: '12px 14px', background: S.sageLight, borderRadius: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-              <div>
-                <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 500, color: S.forest }}>{kitchen.name}</div>
-                <div style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>slug: {kitchen.slug} · {restaurants.length} restaurant{restaurants.length !== 1 ? 's' : ''}</div>
-              </div>
-              <span style={{ fontSize: 18 }}>✓</span>
-            </div>
-          )}
+          ))}
         </div>
 
-        {kitchen && (<>
+        {loading && <p style={{ color: S.stone, fontSize: 14, textAlign: 'center', padding: 40 }}>Loading orders…</p>}
 
-          {/* Restaurant list */}
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            <p style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 500, color: S.forest, margin: 0 }}>
-              Restaurants
-            </p>
-            <button onClick={() => setShowRestForm(f => !f)} style={{
-              background: showRestForm ? S.border : S.forest, color: showRestForm ? S.stone : S.white,
-              border: 'none', borderRadius: 9, padding: '8px 16px', fontSize: 12, fontWeight: 600,
-              cursor: 'pointer', fontFamily: "'DM Sans', sans-serif",
-            }}>
-              {showRestForm ? 'Cancel' : '+ Add Restaurant'}
-            </button>
+        {!loading && visible.length === 0 && (
+          <div style={{ textAlign: 'center', padding: 60 }}>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>🎉</div>
+            <p style={{ fontFamily: "'Lora', serif", fontSize: 18, color: S.forest, margin: '0 0 8px' }}>All caught up</p>
+            <p style={{ fontSize: 13, color: S.stone }}>No orders waiting for dispatch.</p>
           </div>
+        )}
 
-          {/* Add restaurant form */}
-          {showRestForm && (
-            <div style={{ background: S.white, border: `2px solid ${S.sage}`, borderRadius: 14, padding: '20px', marginBottom: 16 }}>
-              <p style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 500, color: S.forest, margin: '0 0 16px' }}>New restaurant</p>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                <div>
-                  <p style={label}>Name *</p>
-                  <input value={restForm.name} onChange={e => setRestForm(f => ({ ...f, name: e.target.value }))} placeholder="Peli Peli Kitchen" style={inputSt} />
-                </div>
-                <div>
-                  <p style={label}>Cuisine *</p>
-                  <input value={restForm.cuisine} onChange={e => setRestForm(f => ({ ...f, cuisine: e.target.value }))} placeholder="South African" style={inputSt} />
-                </div>
-              </div>
-              <div style={{ marginBottom: 12 }}>
-                <p style={label}>Full address (for DoorDash pickup)</p>
-                <input value={restForm.address} onChange={e => setRestForm(f => ({ ...f, address: e.target.value }))} placeholder="1001 McKinney St, Houston, TX 77002" style={inputSt} />
-              </div>
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 16 }}>
-                <div>
-                  <p style={label}>Phone (optional)</p>
-                  <input value={restForm.phone} onChange={e => setRestForm(f => ({ ...f, phone: e.target.value }))} placeholder="(713) 555-0100" style={inputSt} />
-                </div>
-                <div>
-                  <p style={label}>DoorDash Store ID (optional)</p>
-                  <input value={restForm.doordash_store_id} onChange={e => setRestForm(f => ({ ...f, doordash_store_id: e.target.value }))} placeholder="927672" style={inputSt} />
-                </div>
-              </div>
-              {restError && <p style={{ color: S.red, fontSize: 12, margin: '0 0 12px' }}>{restError}</p>}
-              <button onClick={addRestaurant} disabled={savingRest || !restForm.name || !restForm.cuisine} style={btnPrimary(savingRest || !restForm.name || !restForm.cuisine)}>
-                {savingRest ? 'Adding…' : 'Add Restaurant'}
-              </button>
-            </div>
-          )}
+        {visible.map(order => {
+          const isAwaiting   = !order.delivery_status || order.delivery_status === 'awaiting_dispatch'
+          const isDispatching_ = dispatching === order.id
+          const msg          = dispatchMsg[order.id]
 
-          {/* Restaurant cards */}
-          {restaurants.length === 0 ? (
-            <div style={{ background: S.white, border: `0.5px dashed ${S.border}`, borderRadius: 14, padding: '28px', textAlign: 'center' }}>
-              <p style={{ fontSize: 14, color: S.stone, fontWeight: 300, margin: 0 }}>No restaurants yet. Add the first one above.</p>
-            </div>
-          ) : restaurants.map(r => (
-            <div key={r.id} style={{ background: S.white, border: `0.5px solid ${r.is_active ? S.border : '#EEE'}`, borderRadius: 14, marginBottom: 12, overflow: 'hidden', opacity: r.is_active ? 1 : 0.7 }}>
+          return (
+            <div key={order.id} style={{ background: S.white, border: `2px solid ${isAwaiting ? S.red : S.border}`, borderRadius: 16, padding: 20, marginBottom: 14 }}>
 
-              {/* Restaurant header */}
-              <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: S.forest }}>{r.name}</div>
-                  <div style={{ fontSize: 12, color: S.stone, fontWeight: 300, marginTop: 2 }}>
-                    {r.cuisine}
-                    {r.doordash_store_id && <span style={{ marginLeft: 8, color: S.sageMid }}>· DoorDash ID: {r.doordash_store_id}</span>}
-                    <span style={{ marginLeft: 8 }}>· {r.menu_items?.length || 0} items</span>
+              {/* Header row */}
+              <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
+                <div>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
+                    <span style={{ fontSize: 18 }}>{MEAL_EMOJI[order.meal_type] || '🍽'}</span>
+                    <span style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 600, color: S.forest }}>{order.meal_name}</span>
+                  </div>
+                  <div style={{ fontSize: 13, color: S.stone }}>
+                    {order.restaurant_name} · {fmt(order.delivery_date)}
+                  </div>
+                  <div style={{ fontSize: 12, color: S.stone, marginTop: 2 }}>
+                    from <strong style={{ color: S.forest }}>{order.coordinator_name}</strong>
                   </div>
                 </div>
-                <button onClick={() => setExpandedRest(expandedRest === r.id ? null : r.id)}
-                  style={{ background: S.sageLight, border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 600, color: S.sage, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                  {expandedRest === r.id ? 'Collapse' : 'Expand'}
-                </button>
-                <button onClick={() => { setActiveRestId(activeRestId === r.id ? null : r.id); setExpandedRest(r.id) }}
-                  style={{ background: S.forest, border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 11, fontWeight: 600, color: S.white, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-                  + Item
-                </button>
-                {/* Toggle switch */}
-                <button onClick={() => toggleActive(r.id, r.is_active)}
-                  style={{ width: 44, height: 24, borderRadius: 12, border: 'none', cursor: 'pointer', background: r.is_active ? S.sage : '#DDE8E0', position: 'relative', flexShrink: 0 }}>
-                  <div style={{ width: 18, height: 18, borderRadius: '50%', background: S.white, position: 'absolute', top: 3, left: r.is_active ? 23 : 3, transition: 'left 0.2s' }} />
-                </button>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: isAwaiting ? S.redLight : S.sageLight, color: isAwaiting ? S.red : S.sage }}>
+                  {isAwaiting ? '🔴 Needs dispatch' : '✅ Dispatched'}
+                </span>
               </div>
 
-              {/* Add menu item form */}
-              {activeRestId === r.id && (
-                <div style={{ borderTop: `0.5px solid ${S.border}`, padding: '14px 16px', background: '#FAFFF8' }}>
-                  <p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 12px' }}>Add menu item</p>
-                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 10, marginBottom: 10 }}>
-                    <div>
-                      <p style={label}>Item name *</p>
-                      <input value={itemForm.name} onChange={e => setItemForm(f => ({ ...f, name: e.target.value }))} placeholder="Peri-Peri Chicken Plate" style={inputSt} />
-                    </div>
-                    <div>
-                      <p style={label}>Price *</p>
-                      <input type="number" value={itemForm.price} onChange={e => setItemForm(f => ({ ...f, price: e.target.value }))} placeholder="18.00" style={inputSt} />
-                    </div>
+              {/* Delivery details */}
+              <div style={{ background: S.cream, borderRadius: 10, padding: '12px 14px', marginBottom: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>Delivery address</div>
+                  <div style={{ fontSize: 13, color: S.forest }}>{order.kitchen_name}</div>
+                  <div style={{ fontSize: 12, color: S.stone }}>{order.kitchen_address}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>Delivery preference</div>
+                  <div style={{ fontSize: 13, color: S.forest }}>
+                    {order.delivery_preference === 'hand_to_recipient' ? '🤝 Hand to recipient' : '🚪 Leave at door (no knock)'}
                   </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <p style={label}>Description</p>
-                    <input value={itemForm.description} onChange={e => setItemForm(f => ({ ...f, description: e.target.value }))} placeholder="Half rotisserie chicken, rice pilaf, peri-peri sauce" style={inputSt} />
-                  </div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 14 }}>
-                    <input type="checkbox" id={`fav-${r.id}`} checked={itemForm.is_favorite} onChange={e => setItemForm(f => ({ ...f, is_favorite: e.target.checked }))} style={{ width: 16, height: 16, cursor: 'pointer' }} />
-                    <label htmlFor={`fav-${r.id}`} style={{ fontSize: 13, color: S.forest, cursor: 'pointer' }}>⭐ Mark as recipient favorite (shown first to coordinators)</label>
-                  </div>
-                  {itemError && <p style={{ color: S.red, fontSize: 12, margin: '0 0 10px' }}>{itemError}</p>}
-                  <div style={{ display: 'flex', gap: 10 }}>
-                    <button onClick={() => setActiveRestId(null)} style={{ padding: '10px 16px', background: 'transparent', color: S.stone, border: `1.5px solid ${S.border}`, borderRadius: 9, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Cancel</button>
-                    <button onClick={() => addMenuItem(r.id)} disabled={savingItem || !itemForm.name || !itemForm.price}
-                      style={btnPrimary(savingItem || !itemForm.name || !itemForm.price)}>
-                      {savingItem ? 'Adding…' : 'Add Item'}
-                    </button>
+                  {order.delivery_note && <div style={{ fontSize: 12, color: S.stone, fontStyle: 'italic' }}>"{order.delivery_note}"</div>}
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>Tip</div>
+                  <div style={{ fontSize: 13, color: S.forest }}>${((order.tip_amount || 0) / 100).toFixed(2)}</div>
+                </div>
+                <div>
+                  <div style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>Meal type</div>
+                  <div style={{ fontSize: 13, color: S.forest }}>{order.meal_type?.charAt(0).toUpperCase() + order.meal_type?.slice(1)}</div>
+                </div>
+              </div>
+
+              {/* Checklist for Marques */}
+              {isAwaiting && (
+                <div style={{ background: S.amberLight, border: `1px solid ${S.amber}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: S.amber, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Before you tap Dispatch</div>
+                  <div style={{ fontSize: 13, color: S.forest, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                    <div>☐ &nbsp;Order placed at <strong>{order.restaurant_name}</strong></div>
+                    <div>☐ &nbsp;Order name: <strong>{order.coordinator_name || 'YourKitchen'}</strong></div>
+                    <div>☐ &nbsp;Delivery address confirmed: <strong>{order.kitchen_address}</strong></div>
+                    <div>☐ &nbsp;Delivery preference noted: <strong>{order.delivery_preference === 'hand_to_recipient' ? 'Hand to recipient' : 'Leave at door — no knock'}</strong></div>
                   </div>
                 </div>
               )}
 
-              {/* Menu items list */}
-              {expandedRest === r.id && (r.menu_items?.length > 0) && (
-                <div style={{ borderTop: `0.5px solid ${S.border}`, padding: '12px 16px' }}>
-                  <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }}>
-                    Menu ({r.menu_items.length} items)
-                  </p>
-                  {r.menu_items.map(item => (
-                    <div key={item.id} style={{ display: 'flex', alignItems: 'flex-start', gap: 10, padding: '8px 0', borderBottom: `0.5px solid #EAF2ED` }}>
-                      <div style={{ flex: 1 }}>
-                        <div style={{ fontSize: 13, fontWeight: 500, color: S.forest }}>{item.is_favorite ? '⭐ ' : ''}{item.name}</div>
-                        <div style={{ fontSize: 11, color: S.stone, fontWeight: 300, marginTop: 2, lineHeight: 1.4 }}>{item.description}</div>
-                      </div>
-                      <div style={{ fontSize: 13, fontWeight: 600, color: S.sage, flexShrink: 0 }}>${item.price}</div>
-                      <button onClick={() => deleteItem(item.id)}
-                        style={{ background: 'none', border: `1px solid #EEE`, borderRadius: 6, padding: '3px 8px', fontSize: 11, color: S.stone, cursor: 'pointer', flexShrink: 0 }}>
-                        ✕
-                      </button>
-                    </div>
-                  ))}
+              {/* Tracking link if dispatched */}
+              {order.doordash_tracking_url && (
+                <a href={order.doordash_tracking_url} target="_blank" rel="noopener noreferrer"
+                  style={{ display: 'block', background: S.blueLight, color: S.blue, borderRadius: 9, padding: '10px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginBottom: 10, textAlign: 'center' }}>
+                  🚗 Track this order
+                </a>
+              )}
+
+              {/* Dispatch button */}
+              {isAwaiting && (
+                <button
+                  onClick={() => handleDispatch(order.id)}
+                  disabled={isDispatching_}
+                  style={{ width: '100%', padding: 14, background: isDispatching_ ? S.border : S.forest, color: isDispatching_ ? S.stone : S.white, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: isDispatching_ ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", transition: 'background 0.2s' }}>
+                  {isDispatching_ ? '⏳ Dispatching…' : '🚀 Dispatch to Shipday →'}
+                </button>
+              )}
+
+              {/* Result message */}
+              {msg && (
+                <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 9, background: msg.startsWith('✅') ? S.sageLight : S.redLight, color: msg.startsWith('✅') ? S.sage : S.red, fontSize: 13, fontWeight: 500 }}>
+                  {msg}
                 </div>
               )}
-            </div>
-          ))}
 
-        </>)}
+            </div>
+          )
+        })}
       </div>
     </div>
   )
 }
-
-const label: React.CSSProperties = { fontSize: 10, fontWeight: 600, color: '#6B7066', letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 6px' }
-const inputSt: React.CSSProperties = { width: '100%', padding: '10px 12px', borderRadius: 9, border: '1.5px solid #DDE8E0', fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: '#1E2620', background: '#fff', outline: 'none', boxSizing: 'border-box' }
-const btnPrimary = (disabled: boolean): React.CSSProperties => ({
-  padding: '11px 20px', background: disabled ? '#DDE8E0' : '#1E2620', color: disabled ? '#6B7066' : '#fff',
-  border: 'none', borderRadius: 9, fontSize: 13, fontWeight: 600,
-  cursor: disabled ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap' as const,
-})
