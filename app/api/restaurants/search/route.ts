@@ -1,50 +1,46 @@
-import { NextResponse } from 'next/server'
+// lib/distance.ts — haversine distance + tip logic
 
-const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY!
+export function haversineDistance(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R     = 3958.8 // Earth radius in miles
+  const dLat  = (lat2 - lat1) * Math.PI / 180
+  const dLng  = (lng2 - lng1) * Math.PI / 180
+  const a     = Math.sin(dLat/2)**2
+    + Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng/2)**2
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a))
+}
 
-export async function GET(request: Request) {
-  try {
-    const { searchParams } = new URL(request.url)
-    const lat    = searchParams.get('lat')
-    const lng    = searchParams.get('lng')
-    const query  = searchParams.get('query') || 'restaurant'
-    // Default 15 miles (~24km) — covers rural/suburban areas
-    // Caller can override with ?radius=XXXX
-    const radius = searchParams.get('radius') || '24000'
+export type TipTier = {
+  default:  number   // default tip in cents
+  options:  { label: string; value: number }[]
+  warning?: string
+  badge:    { text: string; color: string; bg: string }
+}
 
-    if (!lat || !lng) {
-      return NextResponse.json({ error: 'lat and lng required' }, { status: 400 })
-    }
-
-    const url = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json')
-    url.searchParams.set('location', `${lat},${lng}`)
-    url.searchParams.set('radius',   radius)
-    url.searchParams.set('type',     'restaurant')
-    url.searchParams.set('keyword',  query)
-    url.searchParams.set('key',      PLACES_API_KEY)
-
-    const res  = await fetch(url.toString())
-    const data = await res.json()
-
-    if (data.status !== 'OK' && data.status !== 'ZERO_RESULTS') {
-      console.error('[Places] API error:', data.status, data.error_message)
-      return NextResponse.json({ error: data.error_message || data.status }, { status: 500 })
-    }
-
-    const restaurants = (data.results || []).slice(0, 15).map((place: any) => ({
-      place_id:    place.place_id,
-      name:        place.name,
-      address:     place.vicinity,
-      rating:      place.rating      || null,
-      price_level: place.price_level || null,
-      is_open:     place.opening_hours?.open_now ?? null,
-      photo_ref:   place.photos?.[0]?.photo_reference || null,
-      types:       place.types || [],
-    }))
-
-    return NextResponse.json({ restaurants, query, count: restaurants.length })
-  } catch (err: any) {
-    console.error('[Places] Search error:', err.message)
-    return NextResponse.json({ error: err.message }, { status: 500 })
+export function getTipTier(miles: number): TipTier {
+  if (miles < 4) return {
+    default: 300,
+    options: [{ label:'No tip',value:0},{ label:'$2',value:200},{ label:'$3',value:300},{ label:'$5',value:500}],
+    badge: { text: `${miles.toFixed(1)} mi`, color: '#276749', bg: '#E6F7EF' },
   }
+  if (miles < 7) return {
+    default: 400,
+    options: [{ label:'No tip',value:0},{ label:'$3',value:300},{ label:'$4',value:400},{ label:'$5',value:500},{ label:'$6',value:600}],
+    badge: { text: `${miles.toFixed(1)} mi`, color: '#276749', bg: '#E6F7EF' },
+  }
+  if (miles < 10) return {
+    default: 600,
+    options: [{ label:'No tip',value:0},{ label:'$4',value:400},{ label:'$5',value:500},{ label:'$6',value:600},{ label:'$8',value:800}],
+    warning: `🟡 ${miles.toFixed(1)} miles — a $6+ tip helps ensure quick pickup`,
+    badge: { text: `${miles.toFixed(1)} mi`, color: '#7A5800', bg: '#FFF8E8' },
+  }
+  return {
+    default: 800,
+    options: [{ label:'No tip',value:0},{ label:'$5',value:500},{ label:'$6',value:600},{ label:'$8',value:800},{ label:'$10',value:1000}],
+    warning: `🔴 ${miles.toFixed(1)} miles — a $8+ tip is strongly recommended for reliable delivery`,
+    badge: { text: `${miles.toFixed(1)} mi`, color: '#B94040', bg: '#FDE8E8' },
+  }
+}
+
+export function formatDistance(miles: number): string {
+  return `${miles.toFixed(1)} mi`
 }
