@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
-import { useRouter } from 'next/navigation'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { haversineDistance, formatDistance } from '@/lib/distance'
 
@@ -42,8 +42,10 @@ return (
 )
 }
 
-export default function KitchenRestaurantsPage() {
+function KitchenRestaurantsContent() {
 const router = useRouter()
+const searchParams = useSearchParams()
+const isOnboarding = searchParams.get('welcome') === '1'
 const supabase = createClient()
 
 const [loading, setLoading] = useState(true)
@@ -90,12 +92,14 @@ const { data } = await supabase
 .from('kitchen_restaurants')
 .select('id, name, cuisine, is_active, place_id, address, lat, lng, favorite_meals, favorite_meal_prices, favorite_meal_categories')
 .eq('kitchen_id', kId).order('created_at', { ascending: true })
-setRestaurants((data || []).map((r: any) => ({
+const mapped = (data || []).map((r: any) => ({
 ...r,
 favorite_meals: r.favorite_meals || [],
 favorite_meal_prices: r.favorite_meal_prices || [],
 favorite_meal_categories: r.favorite_meal_categories || [],
-})))
+}))
+setRestaurants(mapped)
+return mapped
 }
 
 const limit = TIER_LIMITS[userTier] || 3
@@ -127,10 +131,20 @@ lat: place.lat, lng: place.lng,
 })
 const data = await res.json()
 if (data.success) {
-await loadRestaurants(kitchenId)
+const updated = await loadRestaurants(kitchenId)
 setSaveMsg(`${place.name} added!`)
 setTimeout(() => setSaveMsg(''), 3000)
 setSearchResults(prev => prev.filter(r => r.place_id !== place.place_id))
+// Auto-expand the newly added restaurant so meal entry is immediate
+const newRest = updated.find((r: any) => r.place_id === place.place_id)
+if (newRest) {
+setExpandedId(newRest.id)
+// Give the DOM a tick to render, then scroll the expanded panel into view
+setTimeout(() => {
+const el = document.getElementById(`restaurant-${newRest.id}`)
+if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}, 100)
+}
 }
 setAdding(null)
 }
@@ -143,7 +157,7 @@ await fetch('/api/restaurants/favorites', {
 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({ restaurant_id: id, is_active: newActive }),
 })
-setSaveMsg(newActive ? 'Shown to coordinators' : 'Hidden from coordinators')
+setSaveMsg(newActive ? 'Shown to your village ✓' : 'Hidden from your village')
 setTimeout(() => setSaveMsg(''), 2500)
 }
 
@@ -229,8 +243,8 @@ return (
 `}</style>
 
 <nav style={{ background: S.white, borderBottom: `0.5px solid ${S.border}`, padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 10 }}>
-<button onClick={() => router.push('/dashboard')}
-style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, height: 36, cursor: 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.sage }}>‹</button>
+<button onClick={() => { if (!(isOnboarding && activeCount === 0)) router.push('/dashboard') }} disabled={isOnboarding && activeCount === 0}
+style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, height: 36, cursor: (isOnboarding && activeCount === 0) ? 'not-allowed' : 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: (isOnboarding && activeCount === 0) ? S.border : S.sage, opacity: (isOnboarding && activeCount === 0) ? 0.5 : 1 }}>‹</button>
 <div style={{ flex: 1 }}>
 <span style={{ fontSize: 8, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase', display: 'block' }}>Your</span>
 <span style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.forest }}>Kitchen</span>
@@ -241,9 +255,14 @@ style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, h
 <div style={{ padding: '24px', maxWidth: 540, margin: '0 auto' }}>
 <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.sage, margin: '0 0 6px' }}>My Restaurants</p>
 <h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: S.forest, margin: '0 0 6px', letterSpacing: -0.5 }}>Favorite restaurants</h1>
-<p style={{ fontSize: 14, color: S.stone, margin: '0 0 20px', fontWeight: 300, lineHeight: 1.6 }}>
+<p style={{ fontSize: 14, color: S.stone, margin: '0 0 16px', fontWeight: 300, lineHeight: 1.6 }}>
 Add favorites and save your go-to meals with prices. Tag each as an adult or kids meal so your village always knows what to order.
 </p>
+<div style={{ background: S.sageLight, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+<p style={{ fontSize: 13, color: S.sage, margin: 0, lineHeight: 1.6, fontWeight: 400 }}>
+📋 <strong>A quick note:</strong> while we're in pilot, you'll enter your favorite dishes and their current menu prices manually. Yes, slightly inconvenient — open the restaurant's menu on your phone and add the dishes your family loves most.
+</p>
+</div>
 
 {/* Tier limit */}
 <div className={shakingLimit ? 'shake' : ''}
@@ -286,7 +305,7 @@ const isExpanded = expandedId === r.id
 const miles = kitchenLat && kitchenLng ? distanceFromKitchen(r, kitchenLat, kitchenLng) : null
 const mealCat = newMealCategory[r.id] || 'adult'
 return (
-<div key={r.id} style={{ background: S.white, border: `1.5px solid ${r.is_active ? S.sage : S.border}`, borderRadius: 14, overflow: 'hidden' }}>
+<div key={r.id} id={`restaurant-${r.id}`} style={{ background: S.white, border: `1.5px solid ${r.is_active ? S.sage : S.border}`, borderRadius: 14, overflow: 'hidden' }}>
 <div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
 <div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpandedId(isExpanded ? null : r.id)}>
 <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
@@ -298,7 +317,7 @@ return (
 </div>
 <div style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>
 {r.address || r.cuisine}
-{r.is_active && <span style={{ color: S.sageMid, marginLeft: 6 }}>· visible to coordinators ✓</span>}
+{r.is_active && <span style={{ color: S.sageMid, marginLeft: 6 }}>· visible to your village ✓</span>}
 </div>
 </div>
 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
@@ -319,7 +338,7 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, 
 <div style={{ borderTop: `0.5px solid ${S.border}`, padding: '16px', background: '#FAFDF9' }}>
 <p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 6px' }}>Favorite meals</p>
 <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 12px', lineHeight: 1.6 }}>
-Exact dish names + prices. Tag adult or kids so coordinators see them in the right section.
+Exact dish names + prices. Tag adult or kids so your village sees them in the right section.
 </p>
 {r.favorite_meals?.length > 0 ? (
 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
@@ -339,9 +358,9 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? 
 })}
 </div>
 ) : (
-<div style={{ background: S.amberLight, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
-<p style={{ fontSize: 12, color: S.amber, margin: 0, fontWeight: 500 }}>
-⚠️ No meals yet — coordinators will type the dish name manually.
+<div style={{ background: '#F8FAF9', border: `1px solid ${S.border}`, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+<p style={{ fontSize: 13, color: S.stone, margin: 0, fontWeight: 400 }}>
+No meals yet.
 </p>
 </div>
 )}
@@ -451,16 +470,24 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: atLi
 )}
 </div>
 
-<button onClick={() => router.push('/dashboard')}
-style={{ width: '100%', marginTop: 24, padding: '15px', borderRadius: 12, border: 'none', background: activeCount > 0 ? S.forest : S.sageLight, color: activeCount > 0 ? S.white : S.sage, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-{activeCount > 0 ? '✓ Done — Go to my Kitchen' : 'Go to my Kitchen'}
+<button onClick={() => { if (!(isOnboarding && activeCount === 0)) router.push('/dashboard') }} disabled={isOnboarding && activeCount === 0}
+style={{ width: '100%', marginTop: 24, padding: '15px', borderRadius: 12, border: 'none', background: (isOnboarding && activeCount === 0) ? S.border : S.forest, color: (isOnboarding && activeCount === 0) ? S.stone : S.white, fontSize: 15, fontWeight: 600, cursor: (isOnboarding && activeCount === 0) ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{activeCount > 0 ? '✓ Done — Go to my Kitchen' : isOnboarding ? 'Add a restaurant to continue' : 'Go to my Kitchen'}
 </button>
-{activeCount === 0 && (
+{isOnboarding && activeCount === 0 && (
 <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>
-Add at least one restaurant to unlock sharing — but you can always come back later.
+Search above and tap <strong>+ Add</strong> on one restaurant to finish setting up your Kitchen.
 </p>
 )}
 </div>
 </div>
+)
+}
+
+export default function KitchenRestaurantsPage() {
+return (
+<Suspense fallback={<div style={{ minHeight: '100vh', background: '#FAFAF5' }} />}>
+<KitchenRestaurantsContent />
+</Suspense>
 )
 }
