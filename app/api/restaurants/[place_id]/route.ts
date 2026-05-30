@@ -4,10 +4,10 @@ const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY!
 
 export async function GET(
   request: Request,
-  { params }: { params: { place_id: string } }
+  { params }: { params: Promise<{ place_id: string }> }
 ) {
   try {
-    const { place_id } = params
+    const { place_id } = await params
 
     const url = new URL('https://maps.googleapis.com/maps/api/place/details/json')
     url.searchParams.set('place_id', place_id)
