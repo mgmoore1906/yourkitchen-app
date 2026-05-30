@@ -220,13 +220,13 @@ export default function OnboardingPage() {
                 <p className="step-sub">Your village will see your name — not your phone or address.</p>
                 <div className="field-wrap">
                   <label className="field-label">Your name</label>
-                  <input className="field-input" value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="Danielle Moore" />
+                  <input className="field-input" value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="" />
                 </div>
                 <div className="field-wrap">
                   <label className="field-label">Phone number</label>
                   <div style={{ display: 'flex', gap: 8 }}>
                     <select className="field-input" style={{ width: 80, flexShrink: 0 }}><option>🇺🇸 +1</option></select>
-                    <input className="field-input" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(936) 555-0142" />
+                    <input className="field-input" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="" />
                   </div>
                   <p className="field-hint">Used only for Y/N meal confirmations via SMS.</p>
                 </div>
@@ -276,15 +276,15 @@ export default function OnboardingPage() {
                 <p className="step-sub">We use this to confirm restaurant availability in your area.</p>
                 <div className="field-wrap">
                   <label className="field-label">Street address</label>
-                  <input className="field-input" value={form.street} onChange={e => update('street', e.target.value)} placeholder="1422 Oak Creek Dr" />
+                  <input className="field-input" value={form.street} onChange={e => update('street', e.target.value)} placeholder="" />
                 </div>
                 <div className="field-wrap">
                   <label className="field-label">Apt / Suite <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-                  <input className="field-input" value={form.apt} onChange={e => update('apt', e.target.value)} placeholder="Apt 2B" />
+                  <input className="field-input" value={form.apt} onChange={e => update('apt', e.target.value)} placeholder="" />
                 </div>
                 <div className="field-wrap">
                   <label className="field-label">City</label>
-                  <input className="field-input" value={form.city} onChange={e => update('city', e.target.value)} placeholder="Waller" />
+                  <input className="field-input" value={form.city} onChange={e => update('city', e.target.value)} placeholder="" />
                 </div>
                 <div className="grid-2" style={{ marginBottom: 20 }}>
                   <div>
@@ -295,7 +295,7 @@ export default function OnboardingPage() {
                   </div>
                   <div>
                     <label className="field-label">ZIP code</label>
-                    <input className="field-input" value={form.zip} onChange={e => update('zip', e.target.value)} placeholder="77484" maxLength={5} />
+                    <input className="field-input" value={form.zip} onChange={e => update('zip', e.target.value)} placeholder="" maxLength={5} />
                   </div>
                 </div>
                 <div className="geo-note">📍 <strong>Launching in major US cities.</strong> We'll confirm restaurant availability at your ZIP — if we're not there yet, we'll notify you the moment we are.</div>
