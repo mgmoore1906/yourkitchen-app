@@ -39,33 +39,53 @@ type VillagePost = { id: string; content: string; posted_at: string }
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 function BottomNav({ active, set, badge }: { active: Tab; set: (t: Tab) => void; badge: number }) {
-  const tabs: { key: Tab; icon: string; label: string }[] = [
+  const leftTabs:  { key: Tab; icon: string; label: string }[] = [
     { key: 'home',     icon: '🏠', label: 'Home'     },
     { key: 'activity', icon: '📋', label: 'Activity' },
+  ]
+  const rightTabs: { key: Tab; icon: string; label: string }[] = [
     { key: 'insights', icon: '📊', label: 'Insights' },
-    { key: 'share',    icon: '🔗', label: 'Share'    },
     { key: 'village',  icon: '💬', label: 'Village'  },
   ]
+  const renderTab = (t: { key: Tab; icon: string; label: string }) => {
+    const isActive  = active === t.key
+    const showBadge = t.key === 'activity' && badge > 0
+    return (
+      <button key={t.key} onClick={() => set(t.key)}
+        style={{ flex:1, border:'none', background:'none', cursor:'pointer', padding:'10px 0 8px', display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative', fontFamily:"'DM Sans',sans-serif" }}>
+        {showBadge && (
+          <div style={{ position:'absolute', top:6, right:'50%', transform:'translateX(12px)', background:S.amber, color:S.white, borderRadius:'50%', width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700 }}>
+            {badge > 9 ? '9+' : badge}
+          </div>
+        )}
+        <div style={{ width:36, height:28, borderRadius:14, background:isActive?S.sageLight:'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.2s' }}>
+          <span style={{ fontSize:17 }}>{t.icon}</span>
+        </div>
+        <span style={{ fontSize:10, fontWeight:isActive?700:400, color:isActive?S.sage:S.stone, letterSpacing:'0.02em' }}>{t.label}</span>
+      </button>
+    )
+  }
   return (
-    <div style={{ position:'fixed', bottom:0, left:0, right:0, background:S.white, borderTop:`0.5px solid ${S.border}`, display:'flex', zIndex:200, paddingBottom:'env(safe-area-inset-bottom, 0px)' }}>
-      {tabs.map(t => {
-        const isActive  = active === t.key
-        const showBadge = t.key === 'activity' && badge > 0
-        return (
-          <button key={t.key} onClick={() => set(t.key)}
-            style={{ flex:1, border:'none', background:'none', cursor:'pointer', padding:'10px 0 8px', display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative', fontFamily:"'DM Sans',sans-serif" }}>
-            {showBadge && (
-              <div style={{ position:'absolute', top:6, right:'50%', transform:'translateX(12px)', background:S.amber, color:S.white, borderRadius:'50%', width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700 }}>
-                {badge > 9 ? '9+' : badge}
-              </div>
-            )}
-            <div style={{ width:36, height:28, borderRadius:14, background:isActive?S.sageLight:'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.2s' }}>
-              <span style={{ fontSize:17 }}>{t.icon}</span>
-            </div>
-            <span style={{ fontSize:10, fontWeight:isActive?700:400, color:isActive?S.sage:S.stone, letterSpacing:'0.02em' }}>{t.label}</span>
-          </button>
-        )
-      })}
+    <div style={{ position:'fixed', bottom:0, left:0, right:0, background:S.white, borderTop:`0.5px solid ${S.border}`, display:'flex', alignItems:'flex-end', zIndex:200, paddingBottom:'env(safe-area-inset-bottom, 0px)' }}>
+      {leftTabs.map(renderTab)}
+
+      {/* ── FAB — Share (raised heart button) ── */}
+      <button onClick={() => set('share')}
+        style={{ flex:1, border:'none', background:'none', cursor:'pointer', display:'flex', flexDirection:'column', alignItems:'center', gap:2, paddingBottom:8, fontFamily:"'DM Sans',sans-serif", position:'relative' }}>
+        <div style={{
+          width:52, height:52, borderRadius:'50%',
+          background: active==='share' ? S.sage : S.forest,
+          display:'flex', alignItems:'center', justifyContent:'center',
+          position:'relative', top:-14,
+          boxShadow:'0 2px 8px rgba(30,38,32,0.25)',
+          transition:'background 0.2s',
+        }}>
+          <span style={{ fontSize:22 }}>🤍</span>
+        </div>
+        <span style={{ fontSize:10, fontWeight:active==='share'?700:500, color:active==='share'?S.sage:S.forest, letterSpacing:'0.02em', marginTop:-8 }}>Share</span>
+      </button>
+
+      {rightTabs.map(renderTab)}
     </div>
   )
 }
@@ -170,7 +190,7 @@ function NotifPanel({ proposals, onClose, router }: { proposals: Proposal[]; onC
 }
 
 // ── HOME TAB ──────────────────────────────────────────────────────────────────
-function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, tier, router, userTier }: any) {
+function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, tier, router, userTier, onShare }: any) {
   const today     = new Date()
   const todayStr  = today.toISOString().split('T')[0]
   const [viewYear,  setViewYear]  = useState(today.getFullYear())
@@ -282,6 +302,21 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           {adding&&<p style={{ fontSize:11,color:S.stone,margin:'8px 0 0',fontWeight:300 }}>Adding…</p>}
         </div>
       )}
+
+      {/* ── Share CTA — fills the void space, most important next action ── */}
+      <div style={{ background:S.forest, borderRadius:16, padding:'18px 20px', marginBottom:14 }}>
+        <div style={{ display:'flex', alignItems:'center', gap:14, marginBottom:14 }}>
+          <div style={{ fontSize:28, lineHeight:1 }}>🤍</div>
+          <div>
+            <p style={{ fontFamily:"'Lora',serif", fontSize:15, fontWeight:600, color:S.white, margin:'0 0 3px' }}>Share with your village</p>
+            <p style={{ fontSize:12, color:'rgba(255,255,255,0.65)', fontWeight:300, margin:0, lineHeight:1.5 }}>The next step — let the people who love you know your kitchen is open.</p>
+          </div>
+        </div>
+        <button onClick={onShare}
+          style={{ width:'100%', padding:'12px', borderRadius:10, border:'none', background:S.sage, color:S.white, fontSize:14, fontWeight:600, cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
+          Share My Kitchen →
+        </button>
+      </div>
 
       <button onClick={()=>router.push('/settings')}
         style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:tier.bg,border:`1px solid ${tier.color}22`,borderRadius:14,padding:'12px 16px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
@@ -432,8 +467,8 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
   while(weekSet.has(cur.toISOString().split('T')[0])){ streak++; cur.setDate(cur.getDate()-7) }
   const stats = [
     { emoji:'🧡', label:'Total meals received',  val:totalMeals,                            sub:totalMeals===1?'meal':'meals' },
-    { emoji:'👥', label:'Village size',           val:villageSize,                            sub:'unique coordinators' },
-    { emoji:'🏆', label:'Top coordinator',        val:topCoord?.[0]||'—',                    sub:topCoord?`${topCoord[1]} meal${topCoord[1]!==1?'s':''}`:'' },
+    { emoji:'👥', label:'Village size',           val:villageSize,                            sub:'unique supporters' },
+    { emoji:'🏆', label:'Top supporter',          val:topCoord?.[0]||'—',                    sub:topCoord?`${topCoord[1]} meal${topCoord[1]!==1?'s':''}`:'' },
     { emoji:'🍽', label:'Favorite restaurant',    val:favRest?.[0]||'—',                     sub:favRest?`${favRest[1]} time${favRest[1]!==1?'s':''}`:'' },
     { emoji:'🔥', label:'Streak',                 val:streak>0?`${streak} week${streak!==1?'s':''}` :'—', sub:streak>0?'consecutive weeks':'no streak yet' },
   ]
@@ -537,23 +572,59 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router }: { kitchenUrl
         <button style={{ marginTop:10,padding:'8px 20px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,color:S.forest,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Download QR Code</button>
       </div>
       <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px 18px' }}>
-        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 12px' }}>Share to Social</p>
-        <div style={{ display:'flex',gap:8 }}>
+        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 6px' }}>Share to Social</p>
+        <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 14px',lineHeight:1.5 }}>Each button opens a pre-filled post — just add your message and share.</p>
+        <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
+
+          {/* WhatsApp */}
           <button onClick={()=>{
-            const text=`My village has a way to show up for me now 🧡\n\nMy Kitchen is live: ${kitchenUrl}\n\n#YourKitchen`
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}&quote=${encodeURIComponent(text)}`,'_blank')
-          }} style={{ flex:1,padding:'12px',borderRadius:10,border:`1px solid ${S.border}`,background:'transparent',fontSize:13,fontWeight:600,color:'#1877F2',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
-            👍 Facebook
+            const text=`My village has a way to show up for me now 🧡\n\nSend my family a meal through my YourKitchen:\n${kitchenUrl}`
+            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank')
+          }} style={{ display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:10,border:`1px solid #E5F5E5`,background:'#F0FBF0',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
+            <span style={{ fontSize:20,lineHeight:1,flexShrink:0 }}>💬</span>
+            <div>
+              <div style={{ fontSize:13,fontWeight:600,color:'#1A7C2A' }}>WhatsApp</div>
+              <div style={{ fontSize:11,color:'#2D8C3A',fontWeight:300 }}>Best for family &amp; friend groups</div>
+            </div>
           </button>
-          <button onClick={async()=>{
-            const text=`My village has a way to show up for me now 🧡\n\nMy YourKitchen is live: ${kitchenUrl}\n\n#YourKitchen`
-            try { await navigator.clipboard.writeText(text) } catch {}
-            window.open('https://www.instagram.com/','_blank')
-          }} style={{ flex:1,padding:'12px',borderRadius:10,border:`1px solid ${S.border}`,background:'transparent',fontSize:13,fontWeight:600,color:'#E1306C',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
-            📸 Instagram
+
+          {/* Facebook */}
+          <button onClick={()=>{
+            const quote=`My village has a way to show up for me now 🧡 Send my family a meal through my YourKitchen — no app needed, just open the link and pick a date. #YourKitchen`
+            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}&quote=${encodeURIComponent(quote)}`,'_blank')
+          }} style={{ display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:10,border:`1px solid #E0EAFF`,background:'#F0F5FF',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
+            <span style={{ fontSize:20,lineHeight:1,flexShrink:0 }}>👍</span>
+            <div>
+              <div style={{ fontSize:13,fontWeight:600,color:'#1877F2' }}>Facebook</div>
+              <div style={{ fontSize:11,color:'#2C6FD4',fontWeight:300 }}>Opens a pre-filled post with your link</div>
+            </div>
           </button>
+
+          {/* Twitter / X */}
+          <button onClick={()=>{
+            const text=`My village has a way to show up for us now 🧡 Send my family a meal — no app needed, just open the link and pick a date. #YourKitchen`
+            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(kitchenUrl)}`,'_blank')
+          }} style={{ display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:10,border:`1px solid #E5E5E5`,background:'#FAFAFA',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
+            <span style={{ fontSize:20,lineHeight:1,flexShrink:0 }}>𝕏</span>
+            <div>
+              <div style={{ fontSize:13,fontWeight:600,color:'#0F1419' }}>Twitter / X</div>
+              <div style={{ fontSize:11,color:'#536471',fontWeight:300 }}>Opens a pre-filled tweet with your link</div>
+            </div>
+          </button>
+
+          {/* LinkedIn */}
+          <button onClick={()=>{
+            const summary=`My village has a way to show up for us now. Send my family a meal through YourKitchen — no app needed.`
+            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(kitchenUrl)}&summary=${encodeURIComponent(summary)}`,'_blank')
+          }} style={{ display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:10,border:`1px solid #E0EDF8`,background:'#F0F7FF',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
+            <span style={{ fontSize:20,lineHeight:1,flexShrink:0 }}>💼</span>
+            <div>
+              <div style={{ fontSize:13,fontWeight:600,color:'#0A66C2' }}>LinkedIn</div>
+              <div style={{ fontSize:11,color:'#1A6DAA',fontWeight:300 }}>Opens a pre-filled post with your link</div>
+            </div>
+          </button>
+
         </div>
-        <p style={{ fontSize:11,color:S.stone,margin:'8px 0 0',fontWeight:300 }}>Instagram: caption is copied to clipboard, then Instagram opens.</p>
       </div>
     </div>
   )
@@ -906,7 +977,7 @@ export default function DashboardPage() {
                 </span>
               </div>
             )}
-            {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier}/>}
+            {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier} onShare={handleShare}/>}
             {activeTab==='activity' && <ActivityTab proposals={allProposals} router={router}/>}
             {activeTab==='insights' && <InsightsTab proposals={allProposals} kitchenName={kitchen.name}/>}
             {activeTab==='share'    && <ShareTab kitchenUrl={kitchenUrl} kitchen={kitchen} restaurantCount={restaurantCount} router={router}/>}
