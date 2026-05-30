@@ -526,9 +526,31 @@ You can change your plan anytime. Founding Member is limited to the first 100 me
 </div>
 </div>
 
-<div style={{ background: S.amberLight, border: `1px solid #F0E2B8`, borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
-<p style={{ fontSize: 13, color: '#7A5800', margin: 0, lineHeight: 1.6 }}>
-🏪 <strong>Next up:</strong> add the restaurants your village can order from. Your shareable link goes live as soon as you add the first one.
+<div style={{ background: S.white, border: `1.5px solid ${S.amber}`, borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
+<p style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: S.forest, margin: '0 0 10px' }}>
+🏪 Before you continue — have these ready
+</p>
+<p style={{ fontSize: 13, color: S.stone, fontWeight: 300, margin: '0 0 14px', lineHeight: 1.7 }}>
+The next step is adding your favorite restaurants and the exact dishes your family loves. While we're in pilot, you'll enter this manually — so it helps to have your go-to menus open on your phone before you tap the button below.
+</p>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+{[
+['🍽', '2–5 restaurants', 'Places you order from regularly — takeout or delivery-friendly.'],
+['📋', 'Exact dish names', 'As they appear on the menu — your village will see them.'],
+['💵', 'Current prices', 'Check the menu or app today — prices change.'],
+['👤🧒', 'Adult vs kids dishes', 'Know which meals are for the adults and which are for the kids.'],
+].map(([icon, label, desc]) => (
+<div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+<span style={{ fontSize: 16, lineHeight: 1.5, flexShrink: 0 }}>{icon}</span>
+<div>
+<span style={{ fontSize: 13, fontWeight: 600, color: S.forest }}>{label} </span>
+<span style={{ fontSize: 13, color: S.stone, fontWeight: 300 }}>{desc}</span>
+</div>
+</div>
+))}
+</div>
+<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '12px 0 0', lineHeight: 1.6, borderTop: `0.5px solid #F0E2B8`, paddingTop: 10 }}>
+Not ready right now? No problem — tap the button and you can always come back to add restaurants later. Your link goes live as soon as you add the first one.
 </p>
 </div>
 
