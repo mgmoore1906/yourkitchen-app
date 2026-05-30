@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
@@ -71,16 +71,17 @@ function BottomNav({ active, set, badge }: { active: Tab; set: (t: Tab) => void;
 }
 
 // ── Hamburger Drawer ──────────────────────────────────────────────────────────
-function Drawer({ name, tier, onClose, onSignOut, router }: { name: string; tier: any; onClose: () => void; onSignOut: () => void; router: any }) {
+function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onShare, onRefresh, router }: { name: string; tier: any; kitchenUrl: string; recipientName: string; onClose: () => void; onSignOut: () => void; onShare: () => void; onRefresh: () => void; router: any }) {
   const initial = (name || '?').charAt(0).toUpperCase()
   const items = [
-    { icon: '🏪', label: 'My Restaurants',  path: '/kitchen/restaurants' },
-    { icon: '📋', label: 'Order History',    path: '/kitchen/orders' },
-    { icon: '⚙️', label: 'Settings',          path: '/settings' },
-    { icon: '⏰', label: 'Delivery Windows', path: '/settings' },
-    { icon: '👥', label: 'Refer a Friend',   path: null },
-    { icon: '💬', label: 'Community',         path: null },
-    { icon: '❓', label: 'About & Help',      path: null },
+    { icon: '🏪', label: 'My Restaurants',  action: () => router.push('/kitchen/restaurants') },
+    { icon: '📋', label: 'Order History',    action: () => router.push('/kitchen/orders') },
+    { icon: '⚙️', label: 'Settings',          action: () => router.push('/settings') },
+    { icon: '⏰', label: 'Delivery Windows', action: () => router.push('/settings') },
+    { icon: '💎', label: 'Plans & Pricing',  action: () => router.push('/tiers') },
+    { icon: '👥', label: 'Share Your Kitchen', action: onShare },
+    { icon: '🔄', label: 'Refresh',          action: onRefresh },
+    { icon: '❓', label: 'About & Help',      action: () => router.push('/help') },
   ]
   return (
     <>
@@ -98,7 +99,7 @@ function Drawer({ name, tier, onClose, onSignOut, router }: { name: string; tier
         </div>
         <div style={{ flex:1, overflowY:'auto', padding:'8px 0' }}>
           {items.map(item => (
-            <button key={item.label} onClick={() => { onClose(); if (item.path) router.push(item.path) }}
+            <button key={item.label} onClick={() => { onClose(); item.action() }}
               style={{ width:'100%', padding:'14px 24px', display:'flex', alignItems:'center', gap:14, background:'none', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", borderBottom:`0.5px solid ${S.border}` }}>
               <span style={{ fontSize:18, width:24 }}>{item.icon}</span>
               <span style={{ fontSize:14, fontWeight:400, color:S.forest }}>{item.label}</span>
@@ -627,6 +628,10 @@ export default function DashboardPage() {
   const [notifOpen,     setNotifOpen]     = useState(false)
   const [loading,       setLoading]       = useState(true)
   const [isRefreshing,  setIsRefreshing]  = useState(false)   // ← NEW
+  const [pullDistance,  setPullDistance]  = useState(0)
+  const scrollRef = useRef<HTMLDivElement>(null)
+  const touchStartY = useRef(0)
+  const pulling = useRef(false)
   const [fullName,      setFullName]      = useState('')
   const [userTier,      setUserTier]      = useState('free')
   const [kitchen,       setKitchen]       = useState<Kitchen | null>(null)
@@ -732,6 +737,27 @@ export default function DashboardPage() {
     setIsRefreshing(false)
   }, [kitchen?.id, isRefreshing, loadProposals, loadCalDates, loadVillagePosts])
 
+  // ── Pull-to-refresh (mobile) ─────────────────────────────────────────────────
+  const PULL_THRESHOLD = 70
+  const onTouchStart = (e: React.TouchEvent) => {
+    const el = scrollRef.current
+    if (el && el.scrollTop <= 0) { touchStartY.current = e.touches[0].clientY; pulling.current = true }
+  }
+  const onTouchMove = (e: React.TouchEvent) => {
+    if (!pulling.current || isRefreshing) return
+    const dy = e.touches[0].clientY - touchStartY.current
+    if (dy > 0) {
+      const damped = Math.min(dy * 0.5, PULL_THRESHOLD + 20)
+      setPullDistance(damped)
+    }
+  }
+  const onTouchEnd = async () => {
+    if (!pulling.current) return
+    pulling.current = false
+    if (pullDistance >= PULL_THRESHOLD) { await handleRefresh() }
+    setPullDistance(0)
+  }
+
   // ── Calendar handlers ───────────────────────────────────────────────────────
   const handleAddSlot = async (mealType: string) => {
     if (!kitchen || !selectedDate) return
@@ -752,6 +778,25 @@ export default function DashboardPage() {
 
   const signOut = async () => { await supabase.auth.signOut(); router.push('/login') }
 
+  // ── Share kitchen link (native share sheet → clipboard fallback) ─────────────
+  const handleShare = useCallback(async () => {
+    const url = kitchenUrl || (typeof window !== 'undefined' ? `${window.location.origin}/k/${kitchen?.slug || ''}` : '')
+    if (!url) return
+    const shareText = `Help bring meals to ${firstName}'s family — pick a date and send a meal through their YourKitchen:`
+    if (typeof navigator !== 'undefined' && (navigator as any).share) {
+      try {
+        await (navigator as any).share({ title: `${firstName}'s Kitchen`, text: shareText, url })
+        return
+      } catch { /* user cancelled — fall through to clipboard */ }
+    }
+    try {
+      await navigator.clipboard.writeText(url)
+      alert('Kitchen link copied! Share it with your village.')
+    } catch {
+      alert(`Share this link with your village:\n\n${url}`)
+    }
+  }, [kitchenUrl, kitchen?.slug, firstName])
+
   // ── Derived counts ──────────────────────────────────────────────────────────
   const pendingCount = allProposals.filter(p => p.status === 'pending').length
   const activeCount  = allProposals.filter(p => p.status === 'confirmed' && p.doordash_status !== 'cancelled').length
@@ -769,7 +814,7 @@ export default function DashboardPage() {
     <div style={{ display:'flex',flexDirection:'column',height:'100vh',background:S.cream,fontFamily:"'DM Sans',sans-serif",overflow:'hidden' }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
-      {drawerOpen && <Drawer name={fullName} tier={tier} onClose={()=>setDrawerOpen(false)} onSignOut={signOut} router={router}/>}
+      {drawerOpen && <Drawer name={fullName} tier={tier} kitchenUrl={kitchenUrl} recipientName={firstName} onClose={()=>setDrawerOpen(false)} onSignOut={signOut} onShare={handleShare} onRefresh={handleRefresh} router={router}/>}
       {notifOpen  && <NotifPanel proposals={allProposals} onClose={()=>setNotifOpen(false)} router={router}/>}
 
       {/* Top Bar */}
@@ -791,17 +836,8 @@ export default function DashboardPage() {
           </div>
         </div>
 
-        {/* Right side: refresh + bell */}
+        {/* Right side: bell */}
         <div style={{ display:'flex',alignItems:'center',gap:2 }}>
-          {/* 🔄 Refresh button — visible always, essential for mobile PWA */}
-          <button
-            onClick={handleRefresh}
-            disabled={isRefreshing}
-            style={{ background:'none',border:'none',cursor:isRefreshing?'default':'pointer',padding:'4px 6px',opacity:isRefreshing?0.4:0.7,transition:'opacity 0.2s',lineHeight:1 }}
-            title="Refresh"
-          >
-            <span style={{ fontSize:15 }}>{isRefreshing ? '⏳' : '🔄'}</span>
-          </button>
 
           {/* 🔔 Notification bell */}
           <button onClick={()=>setNotifOpen(o=>!o)}
@@ -831,7 +867,15 @@ export default function DashboardPage() {
         </div>
       ) : (
         <>
-          <div style={{ flex:1,overflowY:'auto',paddingBottom:72 }}>
+          <div ref={scrollRef} onTouchStart={onTouchStart} onTouchMove={onTouchMove} onTouchEnd={onTouchEnd}
+            style={{ flex:1,overflowY:'auto',paddingBottom:72,position:'relative' }}>
+            {(pullDistance > 0 || isRefreshing) && (
+              <div style={{ height:isRefreshing?40:pullDistance, display:'flex',alignItems:'center',justifyContent:'center',overflow:'hidden',transition:isRefreshing?'height 0.2s':'none' }}>
+                <span style={{ fontSize:15,opacity:0.6,transform:`rotate(${pullDistance*3}deg)`,transition:isRefreshing?'none':'transform 0.1s' }}>
+                  {isRefreshing ? '⏳' : pullDistance >= 70 ? '↻' : '↓'}
+                </span>
+              </div>
+            )}
             {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier}/>}
             {activeTab==='activity' && <ActivityTab proposals={allProposals} router={router}/>}
             {activeTab==='insights' && <InsightsTab proposals={allProposals} kitchenName={kitchen.name}/>}
