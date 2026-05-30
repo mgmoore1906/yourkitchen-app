@@ -6,6 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
+// GET — return kitchen's favorite restaurants with their saved meals
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url)
   const kitchenSlug = searchParams.get('slug')
@@ -26,7 +27,7 @@ export async function GET(request: Request) {
 
   const { data } = await supabase
     .from('kitchen_restaurants')
-    .select('id, name, cuisine, place_id, address, phone, is_active')
+    .select('id, name, cuisine, place_id, address, phone, is_active, favorite_meals')
     .eq('kitchen_id', kId)
     .eq('is_active', true)
     .order('created_at', { ascending: true })
@@ -34,6 +35,7 @@ export async function GET(request: Request) {
   return NextResponse.json({ favorites: data || [] })
 }
 
+// POST — add a new favorite restaurant
 export async function POST(request: Request) {
   try {
     const { kitchen_id, place_id, name, address, cuisine, phone } = await request.json()
@@ -46,11 +48,10 @@ export async function POST(request: Request) {
       .from('kitchen_restaurants')
       .select('id, is_active')
       .eq('kitchen_id', kitchen_id)
-      .eq('name', name)
+      .ilike('name', name)
       .single()
 
     if (existing) {
-      // Re-activate if it was deactivated
       if (!existing.is_active) {
         await supabase.from('kitchen_restaurants')
           .update({ is_active: true, place_id: place_id || null })
@@ -63,12 +64,13 @@ export async function POST(request: Request) {
       .from('kitchen_restaurants')
       .insert({
         kitchen_id,
-        place_id:  place_id  || null,
+        place_id:       place_id  || null,
         name,
-        address:   address   || null,
-        phone:     phone      || null,
-        cuisine:   cuisine   || 'Restaurant',
-        is_active: true,
+        address:        address   || null,
+        phone:          phone     || null,
+        cuisine:        cuisine   || 'Restaurant',
+        is_active:      true,
+        favorite_meals: [],
       })
       .select('id')
       .single()
@@ -80,11 +82,28 @@ export async function POST(request: Request) {
   }
 }
 
+// PATCH — update favorite meals for a restaurant
+export async function PATCH(request: Request) {
+  try {
+    const { restaurant_id, favorite_meals } = await request.json()
+    if (!restaurant_id) {
+      return NextResponse.json({ error: 'restaurant_id required' }, { status: 400 })
+    }
+    await supabase.from('kitchen_restaurants')
+      .update({ favorite_meals: favorite_meals || [] })
+      .eq('id', restaurant_id)
+    return NextResponse.json({ success: true })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
+
+// DELETE — remove a favorite restaurant entirely
 export async function DELETE(request: Request) {
   try {
     const { restaurant_id } = await request.json()
     await supabase.from('kitchen_restaurants')
-      .update({ is_active: false })
+      .delete()
       .eq('id', restaurant_id)
     return NextResponse.json({ success: true })
   } catch (err: any) {
