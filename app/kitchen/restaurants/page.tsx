@@ -450,6 +450,16 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: atLi
 </div>
 )}
 </div>
+
+<button onClick={() => router.push('/dashboard')}
+style={{ width: '100%', marginTop: 24, padding: '15px', borderRadius: 12, border: 'none', background: activeCount > 0 ? S.forest : S.sageLight, color: activeCount > 0 ? S.white : S.sage, fontSize: 15, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{activeCount > 0 ? '✓ Done — Go to my Kitchen' : 'Go to my Kitchen'}
+</button>
+{activeCount === 0 && (
+<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>
+Add at least one restaurant to unlock sharing — but you can always come back later.
+</p>
+)}
 </div>
 </div>
 )
