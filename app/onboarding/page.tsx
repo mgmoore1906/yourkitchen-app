@@ -1,568 +1,476 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { haversineDistance, formatDistance } from '@/lib/distance'
 
 const S = {
 sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
 cream: '#FAFAF5', forest: '#1E2620', stone: '#6B7066',
-border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47', amberLight: '#FBF0E4',
-blue: '#4A8FA8',
+border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47',
+amberLight: '#FBF0E4', red: '#B94040', redLight: '#FDE8E8',
 }
 
-const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WA','WV','WI','WY']
-const DIET_OPTIONS = ['No shellfish', 'No nuts', 'No dairy', 'No gluten', 'Vegetarian', 'Vegan', 'Halal', 'Kosher']
+const TIER_LIMITS: Record<string, number> = { free: 3, trial: 10, care: 10, annual: 10, founding: 999 }
+const TIER_LABELS: Record<string, string> = { free: 'Free', trial: 'Free Trial', care: 'Care+', annual: 'Early Adopter', founding: 'Founding Member' }
 
-const MEAL_BADGE: Record<string, { label: string; color: string; bg: string }> = {
-breakfast: { label: '🌅 Breakfast', color: '#E8834A', bg: '#FFF0E8' },
-lunch: { label: '☀️ Lunch', color: '#4A8FA8', bg: '#E8F4F8' },
-dinner: { label: '🌙 Dinner', color: '#3D6B4F', bg: '#EAF2ED' },
+type Restaurant = {
+id: string; name: string; cuisine: string; is_active: boolean
+place_id: string | null; address: string | null
+lat: number | null; lng: number | null
+favorite_meals: string[]; favorite_meal_prices: number[]; favorite_meal_categories: string[]
+}
+type PlaceResult = {
+place_id: string; name: string; address: string
+lat: number | null; lng: number | null
+rating: number | null; is_open: boolean | null
 }
 
-const DELIVERY_WINDOWS = [
-{ key: '07:00-09:00', label: '7:00 AM – 9:00 AM', start: '07:00', end: '09:00', meal: 'breakfast' },
-{ key: '08:00-10:00', label: '8:00 AM – 10:00 AM', start: '08:00', end: '10:00', meal: 'breakfast' },
-{ key: '11:00-12:30', label: '11:00 AM – 12:30 PM', start: '11:00', end: '12:30', meal: 'lunch' },
-{ key: '12:00-13:30', label: '12:00 PM – 1:30 PM', start: '12:00', end: '13:30', meal: 'lunch' },
-{ key: '17:00-18:30', label: '5:00 PM – 6:30 PM', start: '17:00', end: '18:30', meal: 'dinner' },
-{ key: '17:30-19:00', label: '5:30 PM – 7:00 PM', start: '17:30', end: '19:00', meal: 'dinner' },
-{ key: '18:00-19:30', label: '6:00 PM – 7:30 PM', start: '18:00', end: '19:30', meal: 'dinner' },
-]
-
-const TIERS = [
-{ key: 'free', badge: 'Free', name: 'Kitchen', price: '$0', period: '/ always', blurb: 'Start free — 3 restaurants, 60-day calendar.' },
-{ key: 'care', badge: 'Care+', name: 'Care+', price: '$9.99', period: '/ month', highlight: 'Most popular', blurb: '10 restaurants, unlimited calendar, full SMS.' },
-{ key: 'annual', badge: 'Early Adopter', name: 'Care+ Annual', price: '$59', period: '/ year', highlight: 'Best value', blurb: 'Everything in Care+, 50% off, locked rate.' },
-{ key: 'founding', badge: 'Founding', name: 'Lifetime', price: '$149', period: 'once', highlight: 'First 100', blurb: 'Pay once. Every feature, forever.' },
-]
-
-type Step = 'profile' | 'address' | 'calendar' | 'delivery' | 'plan' | 'review'
-type DateSlots = Record<string, string[]>
-
-function formatDate(dateStr: string) {
-return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+function distanceFromKitchen(r: { lat: number | null; lng: number | null }, kitLat: number, kitLng: number): number | null {
+if (!r.lat || !r.lng) return null
+return haversineDistance(kitLat, kitLng, r.lat, r.lng)
 }
 
-export default function OnboardingPage() {
+function DistanceBadge({ miles }: { miles: number | null }) {
+if (miles === null) return null
+const color = miles < 7 ? S.sage : miles < 10 ? S.amber : S.red
+const bg = miles < 7 ? S.sageLight : miles < 10 ? S.amberLight : S.redLight
+return (
+<span style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 20, padding: '2px 8px', marginLeft: 6 }}>
+{formatDistance(miles)}
+</span>
+)
+}
+
+function KitchenRestaurantsContent() {
 const router = useRouter()
+const searchParams = useSearchParams()
+const isOnboarding = searchParams.get('welcome') === '1'
 const supabase = createClient()
 
-const [step, setStep] = useState<Step>('profile')
-const [loading, setLoading] = useState(false)
-const [error, setError] = useState('')
-const [userId, setUserId] = useState('')
-
-const [form, setForm] = useState({
-full_name: '', phone: '', sms_consent: false,
-household_adults: 2, household_children: 2,
-dietary_restrictions: [] as string[],
-street: '', apt: '', city: '', state: 'TX', zip: '',
-})
-const [addressConfirmed, setAddressConfirmed] = useState(false)
-const [selectedTier, setSelectedTier] = useState('free')
-
-const [dateSlots, setDateSlots] = useState<DateSlots>({})
-const [pickerDate, setPickerDate] = useState<string | null>(null)
-const [breakfastWindows, setBreakfastWindows] = useState<string[]>([])
-const [lunchWindows, setLunchWindows] = useState<string[]>([])
-const [dinnerWindows, setDinnerWindows] = useState<string[]>(['17:30-19:00'])
-
-const toggleWindow = (meal: 'breakfast'|'lunch'|'dinner', windowKey: string) => {
-const setters = { breakfast: setBreakfastWindows, lunch: setLunchWindows, dinner: setDinnerWindows }
-const values = { breakfast: breakfastWindows, lunch: lunchWindows, dinner: dinnerWindows }
-const current = values[meal]
-setters[meal](current.includes(windowKey) ? current.filter(w => w !== windowKey) : [...current, windowKey])
-}
-
-const today = new Date()
-const [viewYear, setViewYear] = useState(today.getFullYear())
-const [viewMonth, setViewMonth] = useState(today.getMonth())
-const todayStr = today.toISOString().split('T')[0]
-const monthName = new Date(viewYear, viewMonth, 1).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })
-const firstDay = new Date(viewYear, viewMonth, 1).getDay()
-const daysInMonth = new Date(viewYear, viewMonth + 1, 0).getDate()
-const prevMonth = () => { if (viewMonth === 0) { setViewYear(y => y - 1); setViewMonth(11) } else setViewMonth(m => m - 1) }
-const nextMonth = () => { if (viewMonth === 11) { setViewYear(y => y + 1); setViewMonth(0) } else setViewMonth(m => m + 1) }
-const cells: (number | null)[] = []
-for (let i = 0; i < firstDay; i++) cells.push(null)
-for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+const [loading, setLoading] = useState(true)
+const [kitchenId, setKitchenId] = useState('')
+const [kitchenLat, setKitchenLat] = useState<number | null>(null)
+const [kitchenLng, setKitchenLng] = useState<number | null>(null)
+const [userTier, setUserTier] = useState('free')
+const [restaurants, setRestaurants] = useState<Restaurant[]>([])
+const [saveMsg, setSaveMsg] = useState('')
+const [expandedId, setExpandedId] = useState<string | null>(null)
+const [newMealName, setNewMealName] = useState<Record<string, string>>({})
+const [newMealPrice, setNewMealPrice] = useState<Record<string, string>>({})
+const [newMealCategory, setNewMealCategory] = useState<Record<string, 'adult'|'kids'>>({})
+const [savingMeals, setSavingMeals] = useState<string | null>(null)
+const [deleting, setDeleting] = useState<string | null>(null)
+const [shakingLimit, setShakingLimit] = useState(false)
+const [searchQuery, setSearchQuery] = useState('')
+const [searchResults, setSearchResults]= useState<PlaceResult[]>([])
+const [searching, setSearching] = useState(false)
+const [adding, setAdding] = useState<string | null>(null)
 
 useEffect(() => {
 const load = async () => {
 const { data: { user } } = await supabase.auth.getUser()
 if (!user) { router.push('/login'); return }
-setUserId(user.id)
-// If they already have a kitchen, onboarding is done — go to dashboard
-const { data: existing } = await supabase.from('kitchens').select('id').eq('organizer_id', user.id).limit(1)
-if (existing && existing.length > 0) { router.push('/dashboard'); return }
-// Pre-fill name from auth metadata if present
-const metaName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || ''
-if (metaName) setForm(f => ({ ...f, full_name: metaName }))
+const { data: profile } = await supabase.from('profiles').select('tier').eq('id', user.id).single()
+setUserTier(profile?.tier || 'free')
+const { data: kitchen } = await supabase.from('kitchens')
+.select('id, latitude, longitude').eq('organizer_id', user.id)
+.order('created_at', { ascending: false }).limit(1)
+if (!kitchen || kitchen.length === 0) { router.push('/kitchen/setup'); return }
+const k = kitchen[0]
+setKitchenId(k.id)
+setKitchenLat(k.latitude || null)
+setKitchenLng(k.longitude || null)
+await loadRestaurants(k.id)
+setLoading(false)
 }
 load()
 }, [])
 
-const update = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }))
-const toggleDiet = (d: string) => setForm(prev => ({
-...prev,
-dietary_restrictions: prev.dietary_restrictions.includes(d) ? prev.dietary_restrictions.filter(x => x !== d) : [...prev.dietary_restrictions, d],
-}))
-const toggleMealSlot = (dateStr: string, mealType: string) => {
-setDateSlots(prev => {
-const current = prev[dateStr] || []
-const updated = current.includes(mealType) ? current.filter(m => m !== mealType) : [...current, mealType]
-if (updated.length === 0) { const { [dateStr]: _, ...rest } = prev; return rest }
-return { ...prev, [dateStr]: updated }
-})
+const loadRestaurants = async (kId: string) => {
+const { data } = await supabase
+.from('kitchen_restaurants')
+.select('id, name, cuisine, is_active, place_id, address, lat, lng, favorite_meals, favorite_meal_prices, favorite_meal_categories')
+.eq('kitchen_id', kId).order('created_at', { ascending: true })
+setRestaurants((data || []).map((r: any) => ({
+...r,
+favorite_meals: r.favorite_meals || [],
+favorite_meal_prices: r.favorite_meal_prices || [],
+favorite_meal_categories: r.favorite_meal_categories || [],
+})))
 }
 
-const address = `${form.street}${form.apt ? ` ${form.apt}` : ''}, ${form.city}, ${form.state} ${form.zip}`.replace(/^,\s*/, '').trim()
-const calendarDatesPayload = Object.entries(dateSlots).flatMap(([date, meals]) => meals.map(meal_type => ({ date, meal_type })))
-const totalDateCount = Object.keys(dateSlots).length
-const totalSlotCount = calendarDatesPayload.length
+const limit = TIER_LIMITS[userTier] || 3
+const activeCount = restaurants.filter(r => r.is_active).length
+const atLimit = activeCount >= limit
+const shakeLimit = () => { setShakingLimit(true); setTimeout(() => setShakingLimit(false), 600) }
 
-const addressValid = form.street.trim().length > 3 && form.city.trim() && form.zip.trim().length >= 5
-const profileValid = form.full_name.trim() && form.phone.trim() && form.sms_consent
+const searchRestaurants = useCallback(async () => {
+if (!searchQuery.trim() || !kitchenLat || !kitchenLng) return
+setSearching(true)
+try {
+const res = await fetch(`/api/restaurants/search?lat=${kitchenLat}&lng=${kitchenLng}&query=${encodeURIComponent(searchQuery)}`)
+const data = await res.json()
+setSearchResults(data.restaurants || [])
+} catch { setSearchResults([]) }
+setSearching(false)
+}, [searchQuery, kitchenLat, kitchenLng])
 
-const allSelectedWindowKeys = [...breakfastWindows, ...lunchWindows, ...dinnerWindows]
-const hasWindows = allSelectedWindowKeys.length > 0
-const defaultWindow = DELIVERY_WINDOWS.find(w => w.key === allSelectedWindowKeys[0]) || DELIVERY_WINDOWS[5]
-
-const handleFinish = async () => {
-setLoading(true); setError('')
-const { data: { user } } = await supabase.auth.getUser()
-if (!user) { router.push('/login'); return }
-const { data: existing } = await supabase.from('kitchens').select('id').eq('organizer_id', user.id).limit(1)
-if (existing && existing.length > 0) { router.push('/dashboard'); return }
-
-const res = await fetch('/api/onboarding', {
+const addFavorite = async (place: PlaceResult) => {
+if (atLimit) { shakeLimit(); return }
+setAdding(place.place_id)
+const res = await fetch('/api/restaurants/favorites', {
 method: 'POST', headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({
-user_id: user.id,
-full_name: form.full_name.trim(),
-phone: form.phone,
-sms_consent: form.sms_consent,
-address,
-street: form.street, apt: form.apt, city: form.city, state: form.state, zip: form.zip,
-household_adults: form.household_adults,
-household_children: form.household_children,
-household_size: `${form.household_adults + form.household_children}`,
-dietary_restrictions: form.dietary_restrictions,
-tier: selectedTier,
-restaurants: [],
-calendar_dates: calendarDatesPayload,
-breakfast_windows: breakfastWindows,
-lunch_windows: lunchWindows,
-dinner_windows: dinnerWindows,
-delivery_window_start: defaultWindow.start,
-delivery_window_end: defaultWindow.end,
+kitchen_id: kitchenId, place_id: place.place_id,
+name: place.name, address: place.address,
+lat: place.lat, lng: place.lng,
 }),
 })
 const data = await res.json()
-if (!res.ok) { setError(data.error || 'Something went wrong.'); setLoading(false); return }
-await new Promise(r => setTimeout(r, 800))
-router.push('/kitchen/restaurants?welcome=1')
+if (data.success) {
+await loadRestaurants(kitchenId)
+setSaveMsg(`${place.name} added!`)
+setTimeout(() => setSaveMsg(''), 3000)
+setSearchResults(prev => prev.filter(r => r.place_id !== place.place_id))
+}
+setAdding(null)
 }
 
-const steps: Step[] = ['profile', 'address', 'calendar', 'delivery', 'plan', 'review']
-const stepIndex = steps.indexOf(step)
-const stepLabels = ['Profile', 'Address', 'Dates', 'Delivery', 'Plan', 'Review']
+const toggleActive = async (id: string, currentActive: boolean) => {
+if (!currentActive && atLimit) { shakeLimit(); return }
+const newActive = !currentActive
+setRestaurants(prev => prev.map(r => r.id === id ? { ...r, is_active: newActive } : r))
+await fetch('/api/restaurants/favorites', {
+method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ restaurant_id: id, is_active: newActive }),
+})
+setSaveMsg(newActive ? 'Shown to coordinators' : 'Hidden from coordinators')
+setTimeout(() => setSaveMsg(''), 2500)
+}
+
+const deleteRestaurant = async (id: string, name: string) => {
+if (!confirm(`Remove ${name}?`)) return
+setDeleting(id)
+const res = await fetch('/api/restaurants/favorites', {
+method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ restaurant_id: id }),
+})
+const data = await res.json()
+if (data.success) {
+setRestaurants(prev => prev.filter(r => r.id !== id))
+setSaveMsg(`${name} removed`)
+setTimeout(() => setSaveMsg(''), 2500)
+}
+setDeleting(null)
+}
+
+const deleteAll = async () => {
+if (!confirm('Remove ALL favorites? This cannot be undone.')) return
+const res = await fetch('/api/restaurants/favorites', {
+method: 'DELETE', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ kitchen_id: kitchenId, delete_all: true }),
+})
+const data = await res.json()
+if (data.success) { setRestaurants([]); setSaveMsg('All favorites removed'); setTimeout(() => setSaveMsg(''), 3000) }
+}
+
+const addMeal = async (restaurantId: string) => {
+const name = (newMealName[restaurantId] || '').trim()
+const price = parseFloat(newMealPrice[restaurantId] || '0') || 15
+const category = newMealCategory[restaurantId] || 'adult'
+if (!name) return
+setSavingMeals(restaurantId)
+const rest = restaurants.find(r => r.id === restaurantId)!
+const updatedMeals = [...(rest.favorite_meals || []), name]
+const updatedPrices = [...(rest.favorite_meal_prices || []), price]
+const updatedCategories = [...(rest.favorite_meal_categories || []), category]
+const res = await fetch('/api/restaurants/favorites', {
+method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories }),
+})
+const data = await res.json()
+if (data.success) {
+setRestaurants(prev => prev.map(r => r.id === restaurantId
+? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories } : r))
+setNewMealName(prev => ({ ...prev, [restaurantId]: '' }))
+setNewMealPrice(prev => ({ ...prev, [restaurantId]: '' }))
+setNewMealCategory(prev => ({ ...prev, [restaurantId]: 'adult' }))
+}
+setSavingMeals(null)
+}
+
+const removeMeal = async (restaurantId: string, index: number) => {
+const rest = restaurants.find(r => r.id === restaurantId)!
+const updatedMeals = rest.favorite_meals.filter((_, i) => i !== index)
+const updatedPrices = rest.favorite_meal_prices.filter((_, i) => i !== index)
+const updatedCategories = (rest.favorite_meal_categories || []).filter((_, i) => i !== index)
+await fetch('/api/restaurants/favorites', {
+method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories }),
+})
+setRestaurants(prev => prev.map(r => r.id === restaurantId
+? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories } : r))
+}
+
+const alreadySaved = (place: PlaceResult) =>
+restaurants.some(r => r.place_id === place.place_id || r.name.toLowerCase() === place.name.toLowerCase())
+
+if (loading) return (
+<div style={{ minHeight: '100vh', background: S.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
+<p style={{ color: S.stone, fontSize: 14 }}>Loading…</p>
+</div>
+)
 
 return (
-<div style={{ minHeight: '100vh', background: S.cream, fontFamily: "'DM Sans', sans-serif" }}>
+<div style={{ minHeight: '100vh', background: S.cream, fontFamily: "'DM Sans', sans-serif", paddingBottom: 60 }}>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+<style>{`
+@keyframes shake { 0%,100%{transform:translateX(0)} 20%{transform:translateX(-6px)} 40%{transform:translateX(6px)} 60%{transform:translateX(-4px)} 80%{transform:translateX(4px)} }
+.shake { animation: shake 0.5s ease; }
+`}</style>
 
-<nav style={{ background: S.white, borderBottom: `0.5px solid ${S.border}`, padding: '14px 28px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', position: 'sticky', top: 0, zIndex: 100 }}>
-<div style={{ display: 'flex', flexDirection: 'column', lineHeight: 1 }}>
-<span style={{ fontSize: 8, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase' }}>Your</span>
-<span style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.forest, letterSpacing: -0.5 }}>Kitchen</span>
+<nav style={{ background: S.white, borderBottom: `0.5px solid ${S.border}`, padding: '14px 24px', display: 'flex', alignItems: 'center', gap: 12, position: 'sticky', top: 0, zIndex: 10 }}>
+<button onClick={() => { if (!(isOnboarding && activeCount === 0)) router.push('/dashboard') }} disabled={isOnboarding && activeCount === 0}
+style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, height: 36, cursor: (isOnboarding && activeCount === 0) ? 'not-allowed' : 'pointer', fontSize: 18, display: 'flex', alignItems: 'center', justifyContent: 'center', color: (isOnboarding && activeCount === 0) ? S.border : S.sage, opacity: (isOnboarding && activeCount === 0) ? 0.5 : 1 }}>‹</button>
+<div style={{ flex: 1 }}>
+<span style={{ fontSize: 8, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase', display: 'block' }}>Your</span>
+<span style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.forest }}>Kitchen</span>
 </div>
-<div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-{steps.map((s, i) => (
-<div key={s} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-{i > 0 && <div style={{ width: 14, height: 1, background: S.border }} />}
-<div style={{
-width: 22, height: 22, borderRadius: '50%',
-background: i < stepIndex ? S.sage : i === stepIndex ? S.forest : S.border,
-color: i <= stepIndex ? S.white : S.stone,
-display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 10, fontWeight: 700,
-}}>{i < stepIndex ? '✓' : i + 1}</div>
-</div>
-))}
-</div>
-<button onClick={async () => { await supabase.auth.signOut(); router.push('/signup') }}
-style={{ background: 'none', border: 'none', fontSize: 12, fontWeight: 500, color: S.stone, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-Sign out
-</button>
+{saveMsg && <span style={{ fontSize: 12, color: S.sage, fontWeight: 600 }}>{saveMsg}</span>}
 </nav>
 
-<div style={{ maxWidth: 560, margin: '0 auto', padding: '36px 24px 80px' }}>
-
-{/* STEP 1: PROFILE */}
-{step === 'profile' && (
-<div>
-<p style={eyebrow}>Step 1 of 6</p>
-<h1 style={title}>Tell us about<br />your household</h1>
-<p style={sub}>Your village will see your name — never your phone or address.</p>
-
-<label style={lbl}>Your name</label>
-<input value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="" style={inputSt} />
-
-<label style={lbl}>Phone number</label>
-<input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="" style={inputSt} />
-<p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '-8px 0 16px' }}>Used only for Y/N meal confirmations via SMS.</p>
-
-<div style={{ background: S.sageLight, border: `1.5px solid ${S.border}`, borderRadius: 10, padding: 16, marginBottom: 20 }}>
-<label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
-<input type="checkbox" checked={form.sms_consent} onChange={e => update('sms_consent', e.target.checked)} style={{ width: 18, height: 18, accentColor: S.sage, flexShrink: 0, marginTop: 2 }} />
-<span style={{ fontSize: 12, color: S.stone, lineHeight: 1.6, fontWeight: 300 }}>
-I agree to receive recurring SMS from YourKitchen — meal proposals, confirmations, and delivery updates. Message frequency varies. Message &amp; data rates may apply. Reply STOP to opt out, HELP for help. <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: S.sage }}>Terms of Service</a>
-</span>
-</label>
-</div>
-
-<label style={lbl}>Household — adults</label>
-<div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-{[1,2,3,4,5,6].map(n => (
-<button key={n} onClick={() => update('household_adults', n)}
-style={{ flex: 1, padding: '11px 4px', borderRadius: 10, border: 'none', background: form.household_adults === n ? S.sage : S.sageLight, color: form.household_adults === n ? S.white : S.sage, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>{n}</button>
-))}
-</div>
-
-<label style={lbl}>Household — children</label>
-<div style={{ display: 'flex', gap: 8, marginBottom: 16 }}>
-{[0,1,2,3,4,5].map(n => (
-<button key={n} onClick={() => update('household_children', n)}
-style={{ flex: 1, padding: '11px 4px', borderRadius: 10, border: 'none', background: form.household_children === n ? S.amber : S.amberLight, color: form.household_children === n ? S.white : S.amber, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>{n}</button>
-))}
-</div>
-
-<label style={lbl}>Dietary restrictions</label>
-<div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
-{DIET_OPTIONS.map(d => (
-<button key={d} onClick={() => toggleDiet(d)}
-style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', background: form.dietary_restrictions.includes(d) ? S.sage : S.sageLight, color: form.dietary_restrictions.includes(d) ? S.white : S.sage, fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>{d}</button>
-))}
-</div>
-
-<button onClick={() => setStep('address')} disabled={!profileValid} style={btnPrimary(!profileValid)}>Next: Delivery Address →</button>
-</div>
-)}
-
-{/* STEP 2: ADDRESS */}
-{step === 'address' && (
-<div>
-<p style={eyebrow}>Step 2 of 6</p>
-<h1 style={title}>Where should<br />meals be delivered?</h1>
-<p style={sub}>Double-check it's right — we use it to find restaurants near you.</p>
-
-<label style={lbl}>Street address</label>
-<input value={form.street} onChange={e => update('street', e.target.value)} placeholder="" style={inputSt} />
-
-<label style={lbl}>Apt / Suite <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-<input value={form.apt} onChange={e => update('apt', e.target.value)} placeholder="" style={inputSt} />
-
-<label style={lbl}>City</label>
-<input value={form.city} onChange={e => update('city', e.target.value)} placeholder="" style={inputSt} />
-
-<div style={{ display: 'flex', gap: 12 }}>
-<div style={{ flex: 1 }}>
-<label style={lbl}>State</label>
-<select value={form.state} onChange={e => update('state', e.target.value)} style={inputSt}>
-{US_STATES.map(s => <option key={s}>{s}</option>)}
-</select>
-</div>
-<div style={{ flex: 1 }}>
-<label style={lbl}>ZIP</label>
-<input value={form.zip} onChange={e => update('zip', e.target.value)} placeholder="" maxLength={5} style={inputSt} />
-</div>
-</div>
-
-{addressValid && (
-<div style={{ background: S.sageLight, border: `1px solid #C8DDD0`, borderRadius: 12, padding: '14px 16px', margin: '4px 0 20px' }}>
-<p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 6px' }}>We'll deliver to</p>
-<p style={{ fontSize: 14, color: S.forest, fontWeight: 500, margin: '0 0 10px', lineHeight: 1.5 }}>{address}</p>
-<label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
-<input type="checkbox" checked={addressConfirmed} onChange={e => setAddressConfirmed(e.target.checked)} style={{ width: 16, height: 16, accentColor: S.sage }} />
-<span style={{ fontSize: 13, color: '#2D5240', fontWeight: 500 }}>Yes, this address is correct</span>
-</label>
-</div>
-)}
-
-<div style={{ display: 'flex', gap: 10 }}>
-<button onClick={() => setStep('profile')} style={btnBack}>← Back</button>
-<button onClick={() => setStep('calendar')} disabled={!addressValid || !addressConfirmed} style={{ ...btnPrimary(!addressValid || !addressConfirmed), flex: 1 }}>Next: Set My Calendar →</button>
-</div>
-</div>
-)}
-
-{/* STEP 3: CALENDAR */}
-{step === 'calendar' && (
-<div>
-<p style={eyebrow}>Step 3 of 6</p>
-<h1 style={title}>Which days do you<br />need meals?</h1>
-<p style={sub}>Tap a date, then choose which meals you need. Your village sees these as open.</p>
-
-<div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 16, padding: 18, marginBottom: 16 }}>
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-<button onClick={prevMonth} style={navBtn}>‹</button>
-<p style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 500, color: S.forest, margin: 0 }}>{monthName}</p>
-<button onClick={nextMonth} style={navBtn}>›</button>
-</div>
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 4 }}>
-{['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: S.stone, padding: '2px 0' }}>{d}</div>)}
-</div>
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
-{cells.map((day, i) => {
-if (!day) return <div key={i} />
-const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-const isPast = dateStr <= todayStr
-const isToday = dateStr === todayStr
-const isPicker = pickerDate === dateStr
-const slots = dateSlots[dateStr] || []
-const hasSlots = slots.length > 0
-return (
-<button key={i} onClick={() => { if (!isPast) setPickerDate(isPicker ? null : dateStr) }} disabled={isPast}
-style={{
-background: isPicker ? S.sageLight : hasSlots ? '#F8FAF8' : S.white,
-border: `${isPicker || isToday ? 2 : 1}px solid ${isPicker ? S.sage : isToday ? S.sageMid : hasSlots ? '#C8DDD0' : S.border}`,
-borderRadius: 10, padding: '8px 2px', minHeight: 52, cursor: isPast ? 'default' : 'pointer',
-display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
-fontFamily: "'DM Sans', sans-serif", opacity: isPast ? 0.3 : 1,
-}}>
-<span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: isPicker ? S.sage : S.forest, lineHeight: 1 }}>{day}</span>
-{hasSlots ? (
-<div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
-{slots.map((m, mi) => <div key={mi} style={{ width: 6, height: 6, borderRadius: '50%', background: MEAL_BADGE[m]?.color || S.sage }} />)}
-</div>
-) : !isPast ? <div style={{ fontSize: 14, color: S.border }}>+</div> : null}
-</button>
-)
-})}
-</div>
-<div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginTop: 12, paddingTop: 12, borderTop: `0.5px solid ${S.border}` }}>
-{Object.entries(MEAL_BADGE).map(([k, v]) => (
-<div key={k} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-<div style={{ width: 7, height: 7, borderRadius: '50%', background: v.color }} />
-<span style={{ fontSize: 10, color: S.stone, fontWeight: 500 }}>{v.label}</span>
-</div>
-))}
-</div>
-</div>
-
-{pickerDate && (
-<div style={{ background: S.white, border: `2px solid ${S.sage}`, borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
-<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-<p style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 500, color: S.forest, margin: 0 }}>{formatDate(pickerDate)}</p>
-<button onClick={() => setPickerDate(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: S.stone }}>✕</button>
-</div>
-<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 12px' }}>Which meals do you need this day?</p>
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8 }}>
-{(['breakfast', 'lunch', 'dinner'] as const).map(mealType => {
-const mb = MEAL_BADGE[mealType]
-const isOn = (dateSlots[pickerDate] || []).includes(mealType)
-return (
-<button key={mealType} onClick={() => toggleMealSlot(pickerDate, mealType)}
-style={{ background: isOn ? mb.bg : S.white, border: `2px solid ${isOn ? mb.color : S.border}`, borderRadius: 10, padding: '12px 8px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'center' }}>
-<div style={{ fontSize: 18, marginBottom: 4 }}>{mb.label.split(' ')[0]}</div>
-<div style={{ fontSize: 11, fontWeight: 600, color: isOn ? mb.color : S.stone }}>{isOn ? '✓ Added' : mb.label.split(' ')[1]}</div>
-</button>
-)
-})}
-</div>
-</div>
-)}
-
-{totalDateCount > 0 && (
-<div style={{ background: S.sageLight, borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
-<p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 8px' }}>
-{totalDateCount} date{totalDateCount > 1 ? 's' : ''} · {totalSlotCount} meal slot{totalSlotCount > 1 ? 's' : ''}
+<div style={{ padding: '24px', maxWidth: 540, margin: '0 auto' }}>
+<p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.sage, margin: '0 0 6px' }}>My Restaurants</p>
+<h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: S.forest, margin: '0 0 6px', letterSpacing: -0.5 }}>Favorite restaurants</h1>
+<p style={{ fontSize: 14, color: S.stone, margin: '0 0 20px', fontWeight: 300, lineHeight: 1.6 }}>
+Add favorites and save your go-to meals with prices. Tag each as an adult or kids meal so your village always knows what to order.
 </p>
-<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-{Object.entries(dateSlots).sort(([a],[b]) => a.localeCompare(b)).map(([date, meals]) => (
-<div key={date} style={{ display: 'flex', alignItems: 'center', gap: 4, background: S.white, border: '1px solid #C8DDD0', borderRadius: 8, padding: '4px 10px' }}>
-<span style={{ fontSize: 11, color: '#2D5240', fontWeight: 500 }}>{formatDate(date)}</span>
-<div style={{ display: 'flex', gap: 2 }}>{meals.map(m => <div key={m} style={{ width: 6, height: 6, borderRadius: '50%', background: MEAL_BADGE[m]?.color || S.sage }} />)}</div>
-</div>
-))}
-</div>
-</div>
-)}
 
-<div style={{ display: 'flex', gap: 10 }}>
-<button onClick={() => setStep('address')} style={btnBack}>← Back</button>
-<button onClick={() => setStep('delivery')} disabled={totalSlotCount === 0} style={{ ...btnPrimary(totalSlotCount === 0), flex: 1 }}>Next: Delivery Window →</button>
+{/* Tier limit */}
+<div className={shakingLimit ? 'shake' : ''}
+style={{ background: S.white, border: `1.5px solid ${shakingLimit ? S.red : atLimit ? S.amber : S.border}`, borderRadius: 14, padding: '14px 16px', marginBottom: 20, transition: 'border-color 0.2s' }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: atLimit ? 10 : 0 }}>
+<span style={{ fontSize: 13, fontWeight: 600, color: shakingLimit ? S.red : S.forest }}>
+{activeCount} / {limit === 999 ? '∞' : limit} active · {TIER_LABELS[userTier]}
+</span>
+<div style={{ width: 80, height: 6, background: S.sageLight, borderRadius: 3, overflow: 'hidden', marginLeft: 12 }}>
+<div style={{ height: '100%', background: atLimit ? S.amber : S.sage, borderRadius: 3, width: limit === 999 ? '20%' : `${Math.min((activeCount / limit) * 100, 100)}%`, transition: 'width 0.3s' }} />
 </div>
 </div>
-)}
-
-{/* STEP 4: DELIVERY */}
-{step === 'delivery' && (
-<div>
-<p style={eyebrow}>Step 4 of 6</p>
-<h1 style={title}>When should<br />meals arrive?</h1>
-<p style={sub}>Select all the windows that work for you — your village picks from these. Change them anytime.</p>
-
-{(['breakfast', 'lunch', 'dinner'] as const).map(mt => {
-const mb = MEAL_BADGE[mt]
-const windows = DELIVERY_WINDOWS.filter(w => w.meal === mt)
-const current = { breakfast: breakfastWindows, lunch: lunchWindows, dinner: dinnerWindows }[mt]
-return (
-<div key={mt} style={{ marginBottom: 20 }}>
-<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-<span style={{ background: mb.bg, color: mb.color, fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20 }}>{mb.label}</span>
-</div>
-<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-{windows.map(w => {
-const on = current.includes(w.key)
-return (
-<button key={w.key} onClick={() => toggleWindow(mt, w.key)}
-style={{ background: on ? `${mb.color}15` : S.white, border: `1.5px solid ${on ? mb.color : S.border}`, borderRadius: 12, padding: '13px 16px', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12, fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
-<div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${on ? mb.color : S.border}`, background: on ? mb.color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-{on && <span style={{ color: S.white, fontSize: 11, fontWeight: 700 }}>✓</span>}
-</div>
-<span style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: on ? 600 : 500, color: on ? mb.color : S.forest }}>{w.label}</span>
-</button>
-)
-})}
-</div>
-</div>
-)
-})}
-
-<div style={{ display: 'flex', gap: 10 }}>
-<button onClick={() => setStep('calendar')} style={btnBack}>← Back</button>
-<button onClick={() => setStep('plan')} disabled={!hasWindows} style={{ ...btnPrimary(!hasWindows), flex: 1 }}>Next: Choose a Plan →</button>
-</div>
-</div>
-)}
-
-{/* STEP 5: PLAN */}
-{step === 'plan' && (
-<div>
-<p style={eyebrow}>Step 5 of 6</p>
-<h1 style={title}>Choose<br />your plan</h1>
-<p style={sub}>Most people start free and upgrade when they see how much their village shows up.</p>
-
-<div style={{ background: S.sageLight, borderRadius: 14, padding: '16px 20px', marginBottom: 20 }}>
-<p style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 500, color: S.forest, margin: '0 0 4px' }}>✦ Every paid plan starts with a 14-day free trial</p>
-<p style={{ fontSize: 13, color: S.stone, fontWeight: 300, lineHeight: 1.6, margin: 0 }}>No card required. You're never charged without choosing to upgrade.</p>
-</div>
-
-<div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
-{TIERS.map(t => {
-const sel = selectedTier === t.key
-return (
-<button key={t.key} onClick={() => setSelectedTier(t.key)}
-style={{ background: sel ? S.sageLight : S.white, border: `2px solid ${sel ? S.sage : S.border}`, borderRadius: 14, padding: '16px 18px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left', position: 'relative' }}>
-{t.highlight && <span style={{ position: 'absolute', top: -9, right: 16, background: t.key === 'founding' ? S.amber : S.sage, color: S.white, fontSize: 10, fontWeight: 700, padding: '2px 10px', borderRadius: 10 }}>{t.highlight}</span>}
+{atLimit && userTier !== 'founding' && (
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-<div>
-<div style={{ display: 'flex', alignItems: 'baseline', gap: 8 }}>
-<span style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 600, color: S.forest }}>{t.name}</span>
-<span style={{ fontSize: 16, fontWeight: 700, color: t.key === 'founding' ? S.amber : S.forest }}>{t.price}</span>
-<span style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>{t.period}</span>
-</div>
-<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '4px 0 0', lineHeight: 1.5 }}>{t.blurb}</p>
-</div>
-<div style={{ width: 22, height: 22, borderRadius: '50%', border: `2px solid ${sel ? S.sage : S.border}`, background: sel ? S.sage : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white, fontSize: 12, flexShrink: 0, marginLeft: 12 }}>
-{sel ? '✓' : ''}
-</div>
-</div>
+<p style={{ fontSize: 12, color: S.amber, margin: 0, fontWeight: 500 }}>Limit reached — upgrade to add more.</p>
+<button onClick={() => router.push('/settings')}
+style={{ background: S.amber, color: S.white, border: 'none', borderRadius: 20, padding: '5px 14px', fontSize: 11, fontWeight: 700, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", whiteSpace: 'nowrap', marginLeft: 12 }}>
+Upgrade →
 </button>
+</div>
+)}
+</div>
+
+{/* Saved favorites */}
+{restaurants.length > 0 && (
+<div style={{ marginBottom: 28 }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+<p style={{ fontSize: 11, fontWeight: 600, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
+Your favorites ({restaurants.length})
+</p>
+<button onClick={deleteAll}
+style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: S.red, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", padding: '4px 8px' }}>
+Clear all
+</button>
+</div>
+
+<div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+{restaurants.map(r => {
+const isExpanded = expandedId === r.id
+const miles = kitchenLat && kitchenLng ? distanceFromKitchen(r, kitchenLat, kitchenLng) : null
+const mealCat = newMealCategory[r.id] || 'adult'
+return (
+<div key={r.id} style={{ background: S.white, border: `1.5px solid ${r.is_active ? S.sage : S.border}`, borderRadius: 14, overflow: 'hidden' }}>
+<div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
+<div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpandedId(isExpanded ? null : r.id)}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
+<span style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: S.forest }}>{r.name}</span>
+{miles !== null && <DistanceBadge miles={miles} />}
+{r.favorite_meals?.length > 0
+? <span style={{ fontSize: 9, fontWeight: 700, background: S.amberLight, color: S.amber, borderRadius: 20, padding: '2px 8px' }}>{r.favorite_meals.length} meal{r.favorite_meals.length !== 1 ? 's' : ''}</span>
+: <span style={{ fontSize: 9, fontWeight: 700, background: S.redLight, color: S.red, borderRadius: 20, padding: '2px 8px' }}>no meals</span>}
+</div>
+<div style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>
+{r.address || r.cuisine}
+{r.is_active && <span style={{ color: S.sageMid, marginLeft: 6 }}>· visible to coordinators ✓</span>}
+</div>
+</div>
+<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+<button onClick={() => setExpandedId(isExpanded ? null : r.id)}
+style={{ background: isExpanded ? S.sageLight : 'none', border: `1px solid ${isExpanded ? S.sage : S.border}`, borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: isExpanded ? S.sage : S.stone, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{isExpanded ? 'Done' : '✏️ Meals'}
+</button>
+<button onClick={() => (r.is_active || !atLimit) ? toggleActive(r.id, r.is_active) : shakeLimit()}
+style={{ width: 44, height: 24, borderRadius: 12, border: 'none', background: r.is_active ? S.sage : S.border, cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+<div style={{ width: 18, height: 18, borderRadius: '50%', background: S.white, position: 'absolute', top: 3, left: r.is_active ? 23 : 3, transition: 'left 0.2s' }} />
+</button>
+<button onClick={() => deleteRestaurant(r.id, r.name)} disabled={deleting === r.id}
+style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, fontSize: 16, padding: '4px', opacity: deleting === r.id ? 0.4 : 1 }}>🗑</button>
+</div>
+</div>
+
+{isExpanded && (
+<div style={{ borderTop: `0.5px solid ${S.border}`, padding: '16px', background: '#FAFDF9' }}>
+<p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 6px' }}>Favorite meals</p>
+<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 12px', lineHeight: 1.6 }}>
+Exact dish names + prices. Tag adult or kids so coordinators see them in the right section.
+</p>
+{r.favorite_meals?.length > 0 ? (
+<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+{r.favorite_meals.map((meal, i) => {
+const cat = (r.favorite_meal_categories?.[i] || 'adult')
+const isKids = cat === 'kids'
+return (
+<div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: isKids ? S.amberLight : S.sageLight, border: `1px solid ${isKids ? S.amber : S.sage}`, borderRadius: 10, padding: '8px 12px' }}>
+<span style={{ fontSize: 14 }}>{isKids ? '🧒' : '👤'}</span>
+<span style={{ flex: 1, fontSize: 13, color: S.forest, fontWeight: 500 }}>{meal}</span>
+<span style={{ fontSize: 9, fontWeight: 700, color: isKids ? S.amber : S.sage, background: S.white, borderRadius: 20, padding: '2px 7px' }}>{isKids ? 'KIDS' : 'ADULT'}</span>
+<span style={{ fontSize: 13, fontWeight: 700, color: isKids ? S.amber : S.sage }}>${(r.favorite_meal_prices[i] || 15).toFixed(2)}</span>
+<button onClick={() => removeMeal(r.id, i)}
+style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 14, padding: 0 }}>✕</button>
+</div>
 )
 })}
 </div>
-
-<div style={{ display: 'flex', gap: 10 }}>
-<button onClick={() => setStep('delivery')} style={btnBack}>← Back</button>
-<button onClick={() => setStep('review')} style={{ ...btnPrimary(false), flex: 1 }}>Next: Review →</button>
-</div>
-<p style={{ fontSize: 11, color: S.stone, textAlign: 'center', margin: '16px 0 0', fontWeight: 300, lineHeight: 1.6 }}>
-You can change your plan anytime. Founding Member is limited to the first 100 members.
+) : (
+<div style={{ background: S.amberLight, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}>
+<p style={{ fontSize: 12, color: S.amber, margin: 0, fontWeight: 500 }}>
+⚠️ No meals yet — coordinators will type the dish name manually.
 </p>
 </div>
 )}
 
-{/* STEP 6: REVIEW */}
-{step === 'review' && (
-<div>
-<p style={eyebrow}>Step 6 of 6</p>
-<h1 style={title}>Your Kitchen<br />is almost ready.</h1>
-<p style={sub}>One last look. Next, you'll add the restaurants your village can order from.</p>
-
-<div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 16, padding: '18px 20px', marginBottom: 14 }}>
-<p style={sectionLabel}>Your details</p>
-{[
-['Name', form.full_name || '—'],
-['Phone', form.phone || '—'],
-['Delivery address', address || '—'],
-['Household', `${form.household_adults} adult${form.household_adults !== 1 ? 's' : ''}, ${form.household_children} child${form.household_children !== 1 ? 'ren' : ''}`],
-['Dietary', form.dietary_restrictions.join(', ') || 'None'],
-['Plan', TIERS.find(t => t.key === selectedTier)?.name || 'Free'],
-].map(([l, v]) => (
-<div key={l} style={{ display: 'flex', justifyContent: 'space-between', padding: '8px 0', borderBottom: `0.5px solid ${S.sageLight}` }}>
-<span style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>{l}</span>
-<span style={{ fontSize: 12, color: S.forest, fontWeight: 500, textAlign: 'right', maxWidth: '55%' }}>{v}</span>
-</div>
+{/* Adult / Kids toggle */}
+<div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+{(['adult','kids'] as const).map(cat => (
+<button key={cat} onClick={() => setNewMealCategory(p => ({ ...p, [r.id]: cat }))}
+style={{ flex: 1, padding: '9px', borderRadius: 9, border: `1.5px solid ${mealCat===cat?(cat==='adult'?S.sage:S.amber):S.border}`, background: mealCat===cat?(cat==='adult'?S.sageLight:S.amberLight):S.white, color: mealCat===cat?(cat==='adult'?S.sage:S.amber):S.stone, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{cat==='adult'?'👤 Adult meal':'🧒 Kids meal'}
+</button>
 ))}
 </div>
 
-<div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 16, padding: '18px 20px', marginBottom: 14 }}>
-<p style={sectionLabel}>Open dates ({totalDateCount}) · {totalSlotCount} slot{totalSlotCount !== 1 ? 's' : ''}</p>
-<div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-{Object.entries(dateSlots).sort(([a],[b]) => a.localeCompare(b)).map(([date, meals]) => (
-<div key={date} style={{ display: 'flex', alignItems: 'center', gap: 4, background: S.sageLight, borderRadius: 8, padding: '5px 10px' }}>
-<span style={{ fontSize: 11, color: '#2D5240', fontWeight: 500 }}>{formatDate(date)}</span>
-<div style={{ display: 'flex', gap: 2 }}>{meals.map(m => <div key={m} style={{ width: 6, height: 6, borderRadius: '50%', background: MEAL_BADGE[m]?.color || S.sage }} />)}</div>
+<div style={{ display: 'flex', gap: 8 }}>
+<input value={newMealName[r.id] || ''} onChange={e => setNewMealName(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
+placeholder={mealCat==='kids'?'e.g. Kids mac & cheese':'e.g. Smash Burger with fries'}
+style={{ flex: 1, padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+<div style={{ position: 'relative', flexShrink: 0 }}>
+<span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: S.stone }}>$</span>
+<input type="number" value={newMealPrice[r.id] || ''} onChange={e => setNewMealPrice(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
+placeholder="0.00"
+style={{ width: 76, padding: '10px 10px 10px 22px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 </div>
-))}
-</div>
-<div style={{ marginTop: 10, paddingTop: 10, borderTop: `0.5px solid ${S.sageLight}` }}>
-<span style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>Delivery windows: </span>
-<span style={{ fontSize: 12, color: S.forest, fontWeight: 500 }}>
-{allSelectedWindowKeys.map(k => DELIVERY_WINDOWS.find(w => w.key === k)?.label).filter(Boolean).join(' · ')}
-</span>
-</div>
-</div>
-
-<div style={{ background: S.amberLight, border: `1px solid #F0E2B8`, borderRadius: 12, padding: '14px 16px', marginBottom: 20 }}>
-<p style={{ fontSize: 13, color: '#7A5800', margin: 0, lineHeight: 1.6 }}>
-🏪 <strong>Next up:</strong> add the restaurants your village can order from. Your shareable link goes live as soon as you add the first one.
-</p>
-</div>
-
-{error && (
-<div style={{ background: '#FDE8E8', border: `1.5px solid #B94040`, borderRadius: 12, padding: '12px 16px', marginBottom: 16 }}>
-<p style={{ fontSize: 13, color: '#B94040', margin: 0 }}>⚠️ {error}</p>
-</div>
-)}
-
-<div style={{ display: 'flex', gap: 10 }}>
-<button onClick={() => setStep('plan')} style={btnBack}>← Back</button>
-<button onClick={handleFinish} disabled={loading} style={{ ...btnPrimary(loading), flex: 1 }}>
-{loading ? 'Creating your Kitchen…' : 'Create Kitchen → Add Restaurants'}
+<button onClick={() => addMeal(r.id)} disabled={!(newMealName[r.id]||'').trim()||savingMeals===r.id}
+style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(newMealName[r.id]||'').trim()?S.border:(mealCat==='kids'?S.amber:S.sage), color: S.white, fontSize: 13, fontWeight: 600, cursor: !(newMealName[r.id]||'').trim()?'default':'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+{savingMeals===r.id?'…':'+ Add'}
 </button>
 </div>
 </div>
 )}
+</div>
+)
+})}
+</div>
+</div>
+)}
 
+{/* Search & add */}
+<div style={{ background: S.white, border: `1.5px solid ${S.border}`, borderRadius: 16, padding: '20px' }}>
+<p style={{ fontSize: 13, fontWeight: 600, color: S.forest, margin: '0 0 4px' }}>
+{restaurants.length === 0 ? 'Add your first favorites' : '+ Add more restaurants'}
+</p>
+<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 14px', lineHeight: 1.6 }}>
+Search within 8 miles of your delivery address. Restaurants over 7 miles may need a larger tip.
+</p>
+{!kitchenLat && (
+<div style={{ background: S.amberLight, borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+<p style={{ fontSize: 12, color: S.amber, margin: 0 }}>Add your delivery address in Settings to enable nearby search.</p>
+</div>
+)}
+<div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+<input value={searchQuery} onChange={e => setSearchQuery(e.target.value)} onKeyDown={e => e.key==='Enter'&&searchRestaurants()}
+placeholder="e.g. Chipotle, Thai food, pizza"
+disabled={!kitchenLat}
+style={{ flex: 1, padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${S.border}`, fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none', background: kitchenLat ? S.white : '#F5F5F5' }} />
+<button onClick={searchRestaurants} disabled={!kitchenLat||searching||!searchQuery.trim()}
+style={{ padding: '12px 18px', borderRadius: 10, border: 'none', background: !searchQuery.trim()||!kitchenLat?S.border:S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !searchQuery.trim()?'default':'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+{searching ? '…' : 'Search'}
+</button>
+</div>
+{searchResults.length > 0 && (
+<div>
+<p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }}>Within 8 miles</p>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+{searchResults.map(place => {
+const saved = alreadySaved(place)
+const isAdding = adding === place.place_id
+const miles = kitchenLat && kitchenLng && place.lat && place.lng
+? haversineDistance(kitchenLat, kitchenLng, place.lat, place.lng)
+: null
+const distColor = miles === null ? S.stone : miles < 7 ? S.sage : miles < 10 ? S.amber : S.red
+const distBg = miles === null ? S.border : miles < 7 ? S.sageLight : miles < 10 ? S.amberLight : S.redLight
+return (
+<div key={place.place_id} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '12px 14px', borderRadius: 12, border: `1px solid ${saved ? S.sageLight : S.border}`, background: saved ? S.sageLight : S.white }}>
+<div style={{ flex: 1 }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
+<span style={{ fontSize: 14, fontWeight: 600, color: S.forest }}>{place.name}</span>
+{miles !== null && (
+<span style={{ fontSize: 10, fontWeight: 700, color: distColor, background: distBg, borderRadius: 20, padding: '2px 8px' }}>
+{formatDistance(miles)}
+{miles >= 7 && miles < 10 && ' · larger tip recommended'}
+{miles >= 10 && ' · very long delivery'}
+</span>
+)}
+</div>
+<div style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>
+{place.address}
+{place.rating && <span style={{ color: S.amber, marginLeft: 8 }}>★ {place.rating}</span>}
+{place.is_open === true && <span style={{ color: S.sage, marginLeft: 8, fontWeight: 500 }}>Open now</span>}
+{place.is_open === false && <span style={{ color: S.red, marginLeft: 8 }}>Closed</span>}
+</div>
+</div>
+{saved ? (
+<span style={{ fontSize: 11, fontWeight: 700, color: S.sage, padding: '4px 12px', borderRadius: 20, background: S.sageLight }}>✓ Saved</span>
+) : (
+<button onClick={() => atLimit ? shakeLimit() : !isAdding && addFavorite(place)} disabled={isAdding}
+style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: atLimit ? S.redLight : S.sage, color: atLimit ? S.red : S.white, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+{isAdding ? '…' : atLimit ? 'Limit reached' : '+ Add'}
+</button>
+)}
+</div>
+)
+})}
+</div>
+</div>
+)}
+</div>
+
+<button onClick={() => { if (!(isOnboarding && activeCount === 0)) router.push('/dashboard') }} disabled={isOnboarding && activeCount === 0}
+style={{ width: '100%', marginTop: 24, padding: '15px', borderRadius: 12, border: 'none', background: (isOnboarding && activeCount === 0) ? S.border : S.forest, color: (isOnboarding && activeCount === 0) ? S.stone : S.white, fontSize: 15, fontWeight: 600, cursor: (isOnboarding && activeCount === 0) ? 'not-allowed' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{activeCount > 0 ? '✓ Done — Go to my Kitchen' : isOnboarding ? 'Add a restaurant to continue' : 'Go to my Kitchen'}
+</button>
+{isOnboarding && activeCount === 0 && (
+<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, textAlign: 'center', margin: '10px 0 0', lineHeight: 1.5 }}>
+Search above and tap <strong>+ Add</strong> on one restaurant to finish setting up your Kitchen.
+</p>
+)}
 </div>
 </div>
 )
 }
 
-const eyebrow: React.CSSProperties = { fontSize: 10, fontWeight: 600, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#3D6B4F', margin: '0 0 8px' }
-const title: React.CSSProperties = { fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 500, color: '#1E2620', letterSpacing: -0.5, margin: '0 0 8px', lineHeight: 1.2 }
-const sub: React.CSSProperties = { fontSize: 14, color: '#6B7066', fontWeight: 300, margin: '0 0 28px', lineHeight: 1.6 }
-const sectionLabel: React.CSSProperties = { fontSize: 10, fontWeight: 700, color: '#6B7066', letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 12px' }
-const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: '#6B7066', letterSpacing: 1.5, textTransform: 'uppercase', display: 'block', marginBottom: 8 }
-const navBtn: React.CSSProperties = { background: '#EAF2ED', border: 'none', borderRadius: 8, width: 34, height: 34, cursor: 'pointer', fontSize: 18, color: '#3D6B4F', display: 'flex', alignItems: 'center', justifyContent: 'center' }
-const btnBack: React.CSSProperties = { padding: '14px 18px', background: 'transparent', color: '#6B7066', border: '1.5px solid #DDE8E0', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
-const inputSt: React.CSSProperties = { width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: '#1E2620', background: '#fff', outline: 'none', boxSizing: 'border-box', marginBottom: 16 }
-const btnPrimary = (disabled: boolean): React.CSSProperties => ({
-width: '100%', padding: '14px', background: disabled ? '#DDE8E0' : '#1E2620',
-color: disabled ? '#6B7066' : '#fff', border: 'none', borderRadius: 10,
-fontSize: 14, fontWeight: 600, cursor: disabled ? 'default' : 'pointer',
-fontFamily: "'DM Sans', sans-serif",
-})
+export default function KitchenRestaurantsPage() {
+return (
+<Suspense fallback={<div style={{ minHeight: '100vh', background: '#FAFAF5' }} />}>
+<KitchenRestaurantsContent />
+</Suspense>
+)
+}
