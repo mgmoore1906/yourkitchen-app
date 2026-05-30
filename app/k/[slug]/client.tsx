@@ -1,8 +1,8 @@
 'use client'
 // FILE: app/k/[slug]/client.tsx
-// v5: Inline restaurant+meal selection, distance badges, dynamic tip defaults
+// v6: Browser back button fix, distance-based delivery fee, recommended tip UI
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { haversineDistance, getTipTier } from '@/lib/distance'
 
 const S = {
@@ -24,6 +24,15 @@ const DELIVERY_PREFS = [
   { value: 'hand_to_recipient', icon: '🤝', title: 'Hand to me',     subtitle: 'Driver hands order directly' },
 ]
 
+// Distance-based courier delivery fee estimate
+function getDeliveryFee(miles: number | null): number {
+  if (miles === null) return 6.99
+  if (miles < 4)  return 4.99
+  if (miles < 7)  return 6.99
+  if (miles < 10) return 8.99
+  return 11.99
+}
+
 type FavRestaurant = {
   id: string; name: string; address: string | null
   place_id: string | null; lat: number | null; lng: number | null
@@ -31,20 +40,18 @@ type FavRestaurant = {
 }
 type SelectedMeal  = { name: string; price: number; isCustom: boolean }
 type GroupSelection = {
-  mealType:   string
-  slots:      any[]
+  mealType: string; slots: any[]
   restaurant: FavRestaurant | null
-  meal:       SelectedMeal | null
-  customMeal: string
-  customPrice: string
+  meal: SelectedMeal | null
+  customMeal: string; customPrice: string
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
 function MealHistory({ meals, recipientFirstName }: { meals: any[]; recipientFirstName: string }) {
   const [expanded, setExpanded] = useState(false)
   if (!meals?.length) return null
-  const sevenAgo  = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0]
-  const recent7   = meals.filter(m => m.delivery_date >= sevenAgo)
+  const sevenAgo = new Date(Date.now() - 7*24*60*60*1000).toISOString().split('T')[0]
+  const recent7  = meals.filter(m => m.delivery_date >= sevenAgo)
   const tally: Record<string,number> = {}
   meals.forEach(m => { tally[m.restaurant_name] = (tally[m.restaurant_name]||0)+1 })
   const sorted = Object.entries(tally).sort((a,b)=>b[1]-a[1])
@@ -170,29 +177,77 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
   const [currentGroupIdx,    setCurrentGroupIdx]    = useState(0)
   const [favorites,          setFavorites]          = useState<FavRestaurant[]>([])
   const [loadingFavs,        setLoadingFavs]        = useState(true)
-  // Step 3 fields
   const [name,               setName]               = useState('')
   const [email,              setEmail]              = useState('')
   const [phone,              setPhone]              = useState('')
   const [note,               setNote]               = useState('')
   const [tipAmount,          setTipAmount]          = useState(300)
   const [tipInitialized,     setTipInitialized]     = useState(false)
+  const [showTipAdjust,      setShowTipAdjust]      = useState(false)
   const [deliveryPreference, setDeliveryPreference] = useState<'leave_at_door'|'hand_to_recipient'>('leave_at_door')
   const [deliveryNote,       setDeliveryNote]       = useState('')
   const [loading,            setLoading]            = useState(false)
   const [errorMsg,           setErrorMsg]           = useState('')
+
+  // Ref to track if popstate is firing (prevents history push loop)
+  const isPoppingRef = useRef(false)
 
   const sevenAgo        = new Date(Date.now()-7*24*60*60*1000).toISOString().split('T')[0]
   const recentRestNames = new Set(recentMeals.filter((m:any)=>m.delivery_date>=sevenAgo).map((m:any)=>m.restaurant_name?.toLowerCase()))
   const selectedSlots   = availableDates.filter((d:any)=>selectedIds.has(d.id))
   const recipientFirst  = kitchen.name?.split("'")[0]||'them'
 
+  // ── Load favorites ────────────────────────────────────────────────────────
   useEffect(()=>{
     fetch(`/api/restaurants/favorites?slug=${kitchen.slug}`)
       .then(r=>r.json()).then(d=>{ setFavorites(d.favorites||[]); setLoadingFavs(false) })
       .catch(()=>setLoadingFavs(false))
   },[kitchen.slug])
 
+  // ── Browser back button intercept ────────────────────────────────────────
+  // Push a history entry on mount so browser back has something to catch
+  useEffect(()=>{
+    window.history.pushState({ ykStep:1, ykGroup:0 }, '')
+
+    const handlePop = () => {
+      isPoppingRef.current = true
+      setStep(prev => {
+        if (prev === 3) {
+          window.history.pushState({ ykStep:2 }, '')
+          return 2
+        }
+        if (prev === 2) {
+          setCurrentGroupIdx(gi => {
+            if (gi > 0) {
+              window.history.pushState({ ykStep:2, ykGroup:gi-1 }, '')
+              return gi - 1
+            }
+            return 0
+          })
+          if (currentGroupIdx === 0) {
+            window.history.pushState({ ykStep:1 }, '')
+            return 1
+          }
+          return 2
+        }
+        return 1
+      })
+      setTimeout(() => { isPoppingRef.current = false }, 50)
+    }
+
+    window.addEventListener('popstate', handlePop)
+    return () => window.removeEventListener('popstate', handlePop)
+  }, [currentGroupIdx])
+
+  // Push history state when step advances
+  const goToStep = (s: 1|2|3, groupIdx = 0) => {
+    if (!isPoppingRef.current) {
+      window.history.pushState({ ykStep:s, ykGroup:groupIdx }, '')
+    }
+    setStep(s)
+  }
+
+  // ── Slot toggles ──────────────────────────────────────────────────────────
   const toggleSlot = (slot:any) => setSelectedIds(prev=>{ const n=new Set(prev);if(n.has(slot.id))n.delete(slot.id);else n.add(slot.id);return n })
   const removeSlot = (id:string) => setSelectedIds(prev=>{ const n=new Set(prev);n.delete(id);return n })
 
@@ -203,15 +258,17 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
     return order.filter(mt=>map[mt]).map(mt=>({ mealType:mt,slots:map[mt],restaurant:null,meal:null,customMeal:'',customPrice:'' }))
   }
 
-  const handleProceed = () => { const g=buildGroups();setGroups(g);setCurrentGroupIdx(0);setStep(2) }
+  const handleProceed = () => {
+    const g=buildGroups(); setGroups(g); setCurrentGroupIdx(0)
+    goToStep(2, 0)
+  }
+
   const currentGroup  = groups[currentGroupIdx]
   const updateGroup   = (i:number,u:Partial<GroupSelection>)=>setGroups(prev=>prev.map((g,idx)=>idx===i?{...g,...u}:g))
 
-  // When restaurant is selected, auto-set tip default based on distance
   const handleRestaurantSelect = (fav: FavRestaurant) => {
     const miles = kitchen.latitude && kitchen.longitude && fav.lat && fav.lng
-      ? haversineDistance(kitchen.latitude, kitchen.longitude, fav.lat, fav.lng)
-      : null
+      ? haversineDistance(kitchen.latitude, kitchen.longitude, fav.lat, fav.lng) : null
     updateGroup(currentGroupIdx, { restaurant:fav, meal:null, customMeal:'', customPrice:'' })
     if (!tipInitialized && miles !== null) {
       const tier = getTipTier(miles)
@@ -225,8 +282,12 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
   }
 
   const handleGroupNext = () => {
-    if (currentGroupIdx<groups.length-1) setCurrentGroupIdx(i=>i+1)
-    else setStep(3)
+    if (currentGroupIdx < groups.length-1) {
+      setCurrentGroupIdx(i => i+1)
+      window.history.pushState({ ykStep:2, ykGroup:currentGroupIdx+1 }, '')
+    } else {
+      goToStep(3)
+    }
   }
 
   const getNotePlaceholder = () => {
@@ -237,22 +298,23 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
     return "Hope dinner tonight is one less thing to worry about 🧡"
   }
 
-  // Price estimate for Step 3
+  // Distance of selected restaurant (used for fee + tip)
+  const activeMiles = (() => {
+    const fav = groups.find(g => g.restaurant)?.restaurant
+    if (!fav || !kitchen.latitude || !kitchen.longitude || !fav.lat || !fav.lng) return null
+    return haversineDistance(kitchen.latitude, kitchen.longitude, fav.lat, fav.lng)
+  })()
+  const activeTipTier  = activeMiles !== null ? getTipTier(activeMiles) : null
+  const deliveryFee    = getDeliveryFee(activeMiles)
+
+  // Price estimate
   const mealSubtotal = groups.reduce((sum,g)=>{
     const price = g.meal?.price || parseFloat(g.customPrice||'0') || 0
     return sum + price * g.slots.length
-  },0)
-  const platformFee  = Math.round(mealSubtotal * 0.03 * 100) / 100
-  const deliveryFee  = 5.99
-  const tipDollars   = tipAmount / 100
-  const grandTotal   = mealSubtotal + platformFee + deliveryFee + tipDollars
-
-  // Distance for currently active restaurant (for warning)
-  const activeRestaurant = currentGroup?.restaurant
-  const activeMiles = activeRestaurant && kitchen.latitude && kitchen.longitude && activeRestaurant.lat && activeRestaurant.lng
-    ? haversineDistance(kitchen.latitude, kitchen.longitude, activeRestaurant.lat, activeRestaurant.lng)
-    : null
-  const activeTipTier = activeMiles !== null ? getTipTier(activeMiles) : null
+  }, 0)
+  const platformFee = Math.round(mealSubtotal * 0.03 * 100) / 100
+  const tipDollars  = tipAmount / 100
+  const grandTotal  = mealSubtotal + platformFee + deliveryFee + tipDollars
 
   const handleSubmit = async () => {
     setLoading(true); setErrorMsg('')
@@ -268,7 +330,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
     })))
     try {
       const res=await fetch('/api/proposal',{
-        method:'POST',headers:{'Content-Type':'application/json'},
+        method:'POST', headers:{'Content-Type':'application/json'},
         body:JSON.stringify({ name,email,phone,note,proposals,kitchen_slug:kitchen.slug,tip_amount:tipAmount,delivery_preference:deliveryPreference,delivery_note:deliveryNote.trim()||null,use_places:true }),
       })
       const data=await res.json()
@@ -305,7 +367,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
 
       <div style={{ padding:'24px',maxWidth:500,margin:'0 auto',flex:1,width:'100%' }}>
 
-        {/* ── Step 1: Dates ── */}
+        {/* ── Step 1 ── */}
         {step===1&&(<>
           <h2 style={h2}>Choose your dates</h2>
           <p style={sub}>Tap any highlighted date to claim it.</p>
@@ -344,13 +406,11 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
           </div>
         </>)}
 
-        {/* ── Step 2: Restaurant + Meal (inline) ── */}
+        {/* ── Step 2 ── */}
         {step===2&&currentGroup&&(<>
           {groups.length>1&&(
             <div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:12,padding:'12px 16px',marginBottom:16 }}>
-              <p style={{ fontSize:11,fontWeight:600,color:S.stone,letterSpacing:1.5,textTransform:'uppercase',margin:'0 0 10px' }}>
-                Meal group {currentGroupIdx+1} of {groups.length}
-              </p>
+              <p style={{ fontSize:11,fontWeight:600,color:S.stone,letterSpacing:1.5,textTransform:'uppercase',margin:'0 0 10px' }}>Meal group {currentGroupIdx+1} of {groups.length}</p>
               <div style={{ display:'flex',gap:8 }}>
                 {groups.map((g,i)=>{const mc=MEAL_TYPE_COLORS[g.mealType]||MEAL_TYPE_COLORS.dinner;const done=i<currentGroupIdx,cur=i===currentGroupIdx;return(
                   <div key={i} style={{ flex:1 }}>
@@ -361,9 +421,8 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
               </div>
             </div>
           )}
-
           <h2 style={h2}>{groups.length>1?`Choose a ${currentGroup.mealType} restaurant & meal`:'Choose a restaurant & meal'}</h2>
-          <p style={sub}>{recipientFirst}'s saved favorites — tap to expand and select a meal</p>
+          <p style={sub}>{recipientFirst}'s saved favorites — tap to expand</p>
 
           {loadingFavs&&<div style={{ padding:'20px',textAlign:'center',color:S.stone,fontSize:13 }}>Loading…</div>}
 
@@ -384,23 +443,15 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
 
             return (
               <div key={fav.id} style={{ background:S.white,border:`2px solid ${isSelected?S.sage:S.border}`,borderRadius:14,marginBottom:10,overflow:'hidden',transition:'all 0.15s' }}>
-
-                {/* Restaurant header — tap to select/expand */}
                 <button onClick={()=>handleRestaurantSelect(isSelected?{...fav,id:''}:fav)}
                   style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap:12,background:isSelected?S.sageLight:'transparent',border:'none',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
                   <div style={{ flex:1 }}>
                     <div style={{ display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:3 }}>
                       <span style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:600,color:S.forest }}>{fav.name}</span>
-                      {/* Distance badge */}
-                      {miles!==null&&(
-                        <span style={{ fontSize:10,fontWeight:700,color:tipTier!.badge.color,background:tipTier!.badge.bg,borderRadius:20,padding:'2px 8px' }}>
-                          {tipTier!.badge.text}
-                        </span>
-                      )}
+                      {miles!==null&&<span style={{ fontSize:10,fontWeight:700,color:tipTier!.badge.color,background:tipTier!.badge.bg,borderRadius:20,padding:'2px 8px' }}>{tipTier!.badge.text}</span>}
                       {isRecent&&<span style={{ fontSize:9,fontWeight:700,background:S.redLight,color:S.red,borderRadius:20,padding:'2px 7px' }}>Ordered recently</span>}
                     </div>
                     {fav.address&&<div style={{ fontSize:12,color:S.stone,fontWeight:300,marginBottom:4 }}>{fav.address}</div>}
-                    {/* Meal preview pills */}
                     {hasMeals?(
                       <div style={{ display:'flex',gap:4,flexWrap:'wrap' }}>
                         {fav.favorite_meals.slice(0,3).map((meal,i)=>(
@@ -419,18 +470,13 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
                   </span>
                 </button>
 
-                {/* Inline meal selection — only when restaurant is selected */}
                 {isSelected&&(
                   <div style={{ borderTop:`0.5px solid ${S.border}`,padding:'14px 16px',background:'#FAFDF9' }}>
-
-                    {/* Distance tip warning */}
                     {tipTier?.warning&&(
-                      <div style={{ background: miles!<10?'#FFF8E8':S.redLight, border:`1px solid ${miles!<10?'#F0E2B8':'#F5C0C0'}`, borderRadius:10, padding:'10px 14px', marginBottom:14 }}>
+                      <div style={{ background:miles!<10?'#FFF8E8':S.redLight,border:`1px solid ${miles!<10?'#F0E2B8':'#F5C0C0'}`,borderRadius:10,padding:'10px 14px',marginBottom:14 }}>
                         <p style={{ fontSize:12,color:miles!<10?'#7A5800':S.red,margin:0,fontWeight:500 }}>{tipTier.warning}</p>
                       </div>
                     )}
-
-                    {/* 7-day repeat warning */}
                     {recentMeals.filter((m:any)=>m.delivery_date>=sevenAgo&&m.restaurant_name?.toLowerCase()===fav.name.toLowerCase()).length>0&&(
                       <div style={{ background:'#FFF8E8',border:'1px solid #F0E2B8',borderRadius:10,padding:'10px 14px',marginBottom:14 }}>
                         <p style={{ fontSize:12,fontWeight:600,color:'#7A5800',margin:'0 0 4px' }}>⚠️ Ordered from here in the last 7 days</p>
@@ -441,8 +487,6 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
                         ))}
                       </div>
                     )}
-
-                    {/* Saved favorite meals */}
                     {hasMeals?(
                       <>
                         <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>⭐ {recipientFirst}'s favorites</p>
@@ -473,29 +517,20 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
                     ):(
                       <div style={{ background:S.amberLight,border:`1px solid ${S.amber}`,borderRadius:10,padding:'10px 14px',marginBottom:14 }}>
                         <p style={{ fontSize:12,fontWeight:600,color:'#7A5800',margin:'0 0 2px' }}>No meals saved yet</p>
-                        <p style={{ fontSize:12,color:'#7A5800',margin:0,fontWeight:300,lineHeight:1.5 }}>
-                          Enter the exact dish name below. Be specific so {recipientFirst} recognizes it.
-                        </p>
+                        <p style={{ fontSize:12,color:'#7A5800',margin:0,fontWeight:300,lineHeight:1.5 }}>Enter the exact dish name so {recipientFirst} recognizes it.</p>
                       </div>
                     )}
-
-                    {/* Custom meal entry */}
                     <div style={{ display:'flex',gap:8 }}>
-                      <input value={currentGroup.customMeal}
-                        onChange={e=>updateGroup(currentGroupIdx,{customMeal:e.target.value,meal:null})}
+                      <input value={currentGroup.customMeal} onChange={e=>updateGroup(currentGroupIdx,{customMeal:e.target.value,meal:null})}
                         placeholder={`Exact dish name from ${fav.name}`}
-                        style={{ flex:1,padding:'10px 12px',borderRadius:9,border:`1.5px solid ${S.border}`,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:S.forest,outline:'none' }}
-                      />
+                        style={{ flex:1,padding:'10px 12px',borderRadius:9,border:`1.5px solid ${S.border}`,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:S.forest,outline:'none' }}/>
                       <div style={{ position:'relative',flexShrink:0 }}>
                         <span style={{ position:'absolute',left:10,top:'50%',transform:'translateY(-50%)',fontSize:13,color:S.stone }}>$</span>
-                        <input type="number" value={currentGroup.customPrice}
-                          onChange={e=>updateGroup(currentGroupIdx,{customPrice:e.target.value})}
+                        <input type="number" value={currentGroup.customPrice} onChange={e=>updateGroup(currentGroupIdx,{customPrice:e.target.value})}
                           placeholder="0.00"
-                          style={{ width:76,padding:'10px 10px 10px 22px',borderRadius:9,border:`1.5px solid ${S.border}`,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:S.forest,outline:'none' }}
-                        />
+                          style={{ width:76,padding:'10px 10px 10px 22px',borderRadius:9,border:`1.5px solid ${S.border}`,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:S.forest,outline:'none' }}/>
                       </div>
                     </div>
-
                   </div>
                 )}
               </div>
@@ -503,19 +538,18 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
           })}
 
           <div style={{ display:'flex',gap:10,marginTop:16 }}>
-            <button onClick={()=>{ if(currentGroupIdx>0)setCurrentGroupIdx(i=>i-1);else setStep(1) }} style={back}>← Back</button>
+            <button onClick={()=>{ if(currentGroupIdx>0){setCurrentGroupIdx(i=>i-1)}else{goToStep(1)} }} style={back}>← Back</button>
             <button onClick={handleGroupNext} disabled={!groupReady(currentGroup)} style={{ ...btn(!groupReady(currentGroup)),flex:1 }}>
               {currentGroupIdx<groups.length-1?`Next: ${MEAL_TYPE_LABELS[groups[currentGroupIdx+1]?.mealType]} →`:'Next: Your Info →'}
             </button>
           </div>
         </>)}
 
-        {/* ── Step 3: Info + Submit ── */}
+        {/* ── Step 3 ── */}
         {step===3&&(<>
           <h2 style={h2}>Almost done!</h2>
           <p style={sub}>Let {recipientFirst} know who's sending dinner.</p>
 
-          {/* Order summary */}
           <div style={{ background:S.sageLight,borderRadius:14,padding:'16px',marginBottom:20 }}>
             {groups.map((g,i)=>{const mc=MEAL_TYPE_COLORS[g.mealType]||MEAL_TYPE_COLORS.dinner;return(
               <div key={g.mealType} style={{ paddingBottom:i<groups.length-1?10:0,marginBottom:i<groups.length-1?10:0,borderBottom:i<groups.length-1?'1px solid #C8DDD0':'none' }}>
@@ -553,22 +587,50 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
           <label style={lbl}>Delivery note <span style={{ fontWeight:300,textTransform:'none',letterSpacing:0 }}>(optional)</span></label>
           <input value={deliveryNote} onChange={e=>setDeliveryNote(e.target.value)} placeholder="Gate code 4521 · leave at back door" style={inp}/>
 
-          {/* Dynamic tip selector */}
+          {/* ── Recommended tip ── */}
           <label style={lbl}>Tip for your Dasher</label>
-          {activeTipTier?.warning&&(
-            <div style={{ background:activeMiles!<10?'#FFF8E8':S.redLight,border:`1px solid ${activeMiles!<10?'#F0E2B8':'#F5C0C0'}`,borderRadius:10,padding:'10px 14px',marginBottom:10 }}>
-              <p style={{ fontSize:12,color:activeMiles!<10?'#7A5800':S.red,margin:0,fontWeight:500 }}>{activeTipTier.warning}</p>
+
+          {/* Recommendation card */}
+          <div style={{ background:S.sageLight,border:`1.5px solid ${S.sage}`,borderRadius:14,padding:'14px 16px',marginBottom:12 }}>
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6 }}>
+              <div>
+                <p style={{ fontSize:14,fontWeight:700,color:S.forest,margin:'0 0 3px' }}>
+                  🚗 Recommended tip: ${(activeTipTier?.default||300)/100}
+                </p>
+                <p style={{ fontSize:12,color:S.stone,margin:0,fontWeight:300,lineHeight:1.5 }}>
+                  {activeMiles !== null
+                    ? `For a ${activeMiles.toFixed(1)} mi delivery — helps ensure quick pickup`
+                    : 'Helps ensure prompt pickup and a happy Dasher'}
+                </p>
+              </div>
+              <span style={{ fontSize:22,fontWeight:700,color:S.sage,marginLeft:16,flexShrink:0 }}>
+                ${tipDollars.toFixed(2)}
+              </span>
+            </div>
+            {activeTipTier?.warning&&(
+              <div style={{ background:'rgba(255,255,255,0.6)',borderRadius:8,padding:'8px 10px',marginTop:8 }}>
+                <p style={{ fontSize:11,color:activeMiles!<10?'#7A5800':S.red,margin:0,fontWeight:600 }}>{activeTipTier.warning}</p>
+              </div>
+            )}
+          </div>
+
+          {/* Adjust toggle */}
+          <button onClick={()=>setShowTipAdjust(s=>!s)}
+            style={{ background:'none',border:'none',cursor:'pointer',fontSize:12,color:S.stone,fontFamily:"'DM Sans',sans-serif",padding:'0 0 14px',display:'flex',alignItems:'center',gap:4 }}>
+            <span>{showTipAdjust?'▲':'▼'}</span>
+            <span>{showTipAdjust?'Hide':'Adjust tip'}</span>
+          </button>
+
+          {showTipAdjust&&(
+            <div style={{ display:'flex',gap:8,marginBottom:20 }}>
+              {(activeTipTier?.options||[{label:'No tip',value:0},{label:'$2',value:200},{label:'$3',value:300},{label:'$5',value:500}]).map(opt=>(
+                <button key={opt.value} onClick={()=>setTipAmount(opt.value)}
+                  style={{ flex:1,padding:'11px 4px',borderRadius:10,border:'none',background:tipAmount===opt.value?S.sage:S.sageLight,color:tipAmount===opt.value?S.white:S.sage,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
+                  {opt.label}
+                </button>
+              ))}
             </div>
           )}
-          <div style={{ display:'flex',gap:8,marginBottom:8 }}>
-            {(activeTipTier?.options||[{label:'No tip',value:0},{label:'$2',value:200},{label:'$3',value:300},{label:'$5',value:500}]).map(opt=>(
-              <button key={opt.value} onClick={()=>setTipAmount(opt.value)}
-                style={{ flex:1,padding:'11px 4px',borderRadius:10,border:'none',background:tipAmount===opt.value?S.sage:S.sageLight,color:tipAmount===opt.value?S.white:S.sage,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
-                {opt.label}
-              </button>
-            ))}
-          </div>
-          <p style={{ fontSize:12,color:S.stone,marginBottom:20,fontWeight:300 }}>Tips go directly to your Dasher. 🚗</p>
 
           {/* Price breakdown */}
           {mealSubtotal > 0 && (
@@ -585,7 +647,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
                 )
               })}
               <div style={{ display:'flex',justifyContent:'space-between',marginBottom:4 }}>
-                <span style={{ fontSize:13,color:S.stone }}>Delivery fee</span>
+                <span style={{ fontSize:13,color:S.stone }}>Courier delivery fee</span>
                 <span style={{ fontSize:13,color:S.forest }}>${deliveryFee.toFixed(2)}</span>
               </div>
               <div style={{ display:'flex',justifyContent:'space-between',marginBottom:4 }}>
@@ -614,7 +676,7 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
           {errorMsg&&<p style={{ color:S.red,fontSize:13,marginBottom:16 }}>{errorMsg}</p>}
 
           <div style={{ display:'flex',gap:10 }}>
-            <button onClick={()=>{ setStep(2);setCurrentGroupIdx(groups.length-1) }} style={back}>← Back</button>
+            <button onClick={()=>goToStep(2)} style={back}>← Back</button>
             <button onClick={handleSubmit} disabled={!name||!email||!phone||loading} style={{ ...btn(!name||!email||!phone||loading),flex:1 }}>
               {loading?'Sending…':totalDates>1?`Send ${totalDates} Proposals 🧡`:'Send Proposal 🧡'}
             </button>
