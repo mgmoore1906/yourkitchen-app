@@ -35,7 +35,7 @@ type Proposal = {
   doordash_tracking_url: string | null; doordash_delivery_id: string | null
   doordash_status: string | null; proposed_at: string
 }
-type VillagePost = { id: string; content: string; posted_at: string }
+type VillagePost = { id: string; content: string; author_name: string | null; author_type: string | null; posted_at: string }
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 function BottomNav({ active, set, badge }: { active: Tab; set: (t: Tab) => void; badge: number }) {
@@ -608,7 +608,6 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router }: { kitchenUrl
 
 // ── VILLAGE TAB ───────────────────────────────────────────────────────────────
 function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitchen: Kitchen; villagePosts: VillagePost[]; proposals: Proposal[]; onPostUpdate: () => void }) {
-  const supabase = createClient()
   const [newPost, setNewPost]   = useState('')
   const [posting, setPosting]   = useState(false)
   const uniqueCoords = Object.values(
@@ -618,17 +617,38 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
       return acc
     }, {})
   ) as any[]
+
   const submitPost = async () => {
     if(!newPost.trim()||!kitchen?.id) return
     setPosting(true)
-    await supabase.from('village_posts').insert({kitchen_id:kitchen.id,content:newPost.trim()})
+    await fetch('/api/village-posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kitchen_id: kitchen.id,
+        content: newPost.trim(),
+        author_name: kitchen.name?.split("'")[0] || 'You',
+        author_type: 'recipient',
+      }),
+    })
     setNewPost(''); setPosting(false); onPostUpdate()
   }
-  const fmt = (s:string) => new Date(s).toLocaleDateString('en-US',{month:'short',day:'numeric'})
+
+  const fmt = (s:string) => {
+    const d = new Date(s), now = new Date()
+    const diffH = Math.floor((now.getTime()-d.getTime())/3600000)
+    if(diffH<1) return 'Just now'
+    if(diffH<24) return `${diffH}h ago`
+    if(diffH<48) return 'Yesterday'
+    return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})
+  }
+
+  const recipientFirst = kitchen.name?.split("'")[0] || 'You'
+
   return (
     <div style={{ padding:'16px 20px' }}>
       <p style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.forest,margin:'0 0 4px',letterSpacing:-0.5 }}>Your Village</p>
-      <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 20px',lineHeight:1.6 }}>Share life updates, say thank you, keep your community close.</p>
+      <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 20px',lineHeight:1.6 }}>Share updates with the people who show up for you — they see your posts when they send a meal.</p>
       <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
         <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Share a life update</p>
         <textarea value={newPost} onChange={e=>setNewPost(e.target.value)}
@@ -641,21 +661,25 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
       </div>
       {villagePosts.length>0&&(
         <div style={{ marginBottom:24 }}>
-          <p style={sLabel}>Recent Updates</p>
-          {villagePosts.map(post=>(
-            <div key={post.id} style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:14,padding:'14px 16px',marginBottom:10 }}>
+          <p style={sLabel}>Village feed</p>
+          {villagePosts.map(post=>{
+            const isRecipient = !post.author_type||post.author_type==='recipient'
+            const authorName = post.author_name||(isRecipient?recipientFirst:'A supporter')
+            return (
+            <div key={post.id} style={{ background:S.white,border:`0.5px solid ${isRecipient?S.border:'#E0C89A'}`,borderRadius:14,padding:'14px 16px',marginBottom:10,marginLeft:isRecipient?0:20 }}>
               <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:8 }}>
-                <div style={{ width:32,height:32,borderRadius:10,background:S.sage,display:'flex',alignItems:'center',justifyContent:'center',color:S.white,fontSize:14,fontWeight:700,flexShrink:0 }}>
-                  {kitchen.name?.charAt(0)||'K'}
+                <div style={{ width:32,height:32,borderRadius:10,background:isRecipient?S.sage:S.amber,display:'flex',alignItems:'center',justifyContent:'center',color:S.white,fontSize:13,fontWeight:700,flexShrink:0 }}>
+                  {(authorName||'?').charAt(0).toUpperCase()}
                 </div>
-                <div>
-                  <div style={{ fontSize:13,fontWeight:600,color:S.forest }}>{kitchen.name?.split("'")[0]||'You'}</div>
-                  <div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{fmt(post.posted_at)}</div>
+                <div style={{ flex:1 }}>
+                  <div style={{ fontSize:13,fontWeight:600,color:S.forest }}>{authorName}</div>
+                  <div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{isRecipient?'Kitchen update':'Supporter reply'} · {fmt(post.posted_at)}</div>
                 </div>
+                {!isRecipient&&<span style={{ fontSize:9,fontWeight:700,background:'#F5ECD8',color:'#7A4F10',borderRadius:20,padding:'2px 8px',flexShrink:0 }}>FROM YOUR VILLAGE</span>}
               </div>
               <p style={{ fontSize:14,color:S.forest,margin:0,lineHeight:1.7 }}>{post.content}</p>
             </div>
-          ))}
+          )})}
         </div>
       )}
       {uniqueCoords.length>0&&(
@@ -733,7 +757,7 @@ export default function DashboardPage() {
 
   const loadVillagePosts = useCallback(async (kitchenId: string) => {
     const { data } = await supabase.from('village_posts')
-      .select('id, content, posted_at')
+      .select('id, content, author_name, author_type, posted_at')
       .eq('kitchen_id', kitchenId)
       .order('posted_at', { ascending: false })
     setVillagePosts(data || [])
