@@ -502,19 +502,21 @@ export default function AdminPage() {
   const [cancelReasons, setCancelReasons] = useState<Record<string, string>>({})
   const [view, setView] = useState<AdminView>('dispatch')
 
-  const loadOrders = useCallback(async () => {
-    const { data } = await supabase
-      .from('meal_proposals')
-      .select(`id, status, delivery_status, meal_type, delivery_date, delivery_preference, delivery_note, coordinator_name, restaurant_name, meal_name, tip_amount, doordash_tracking_url, doordash_delivery_id, kitchens:kitchen_id(name, address)`)
-      .eq('status', 'confirmed')
-      .order('delivery_date', { ascending: true })
-    setOrders((data || []).map((r: any) => ({ ...r, kitchen_name: r.kitchens?.name || '', kitchen_address: r.kitchens?.address || '' })))
+  const loadOrders = useCallback(async (secret?: string) => {
+    const key = secret || sessionStorage.getItem('yk_admin_secret') || ''
+    try {
+      const res = await fetch('/api/admin-orders', { headers: { 'x-admin-secret': key } })
+      const json = await res.json()
+      setOrders(json.orders || [])
+    } catch {
+      setOrders([])
+    }
     setLoading(false)
   }, [])
 
   useEffect(() => {
     const saved = sessionStorage.getItem('yk_admin_secret')
-    if (saved) { setAdminSecret(saved); setAuthed(true); loadOrders() }
+    if (saved) { setAdminSecret(saved); setAuthed(true); loadOrders(saved) }
     else setLoading(false)
   }, [])
 
@@ -526,7 +528,7 @@ export default function AdminPage() {
     const res = await fetch('/api/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret }, body: JSON.stringify({ proposal_id: 'auth-test' }) })
     if (res.status === 401) { setAuthErr('Wrong admin secret'); return }
     sessionStorage.setItem('yk_admin_secret', adminSecret)
-    setAuthed(true); loadOrders()
+    setAuthed(true); loadOrders(adminSecret)
   }
 
   const handleDispatch = async (orderId: string) => {
