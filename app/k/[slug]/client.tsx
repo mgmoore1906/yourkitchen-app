@@ -194,7 +194,7 @@ style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?
 
 function CoordFooter() {
 return (
-<footer style={{ background:S.headerBg,padding:'32px 24px',textAlign:'center',marginTop:8,fontFamily:"'DM Sans',sans-serif" }}>
+<footer style={{ background:S.headerBg,padding:'20px 24px',textAlign:'center',marginTop:0,fontFamily:"'DM Sans',sans-serif" }}>
 <div style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.white,letterSpacing:-0.5,marginBottom:6 }}>YourKitchen</div>
 <p style={{ fontFamily:"'Lora',serif",fontStyle:'italic',fontSize:13,color:'rgba(255,255,255,0.55)',margin:'0 0 16px' }}>"Your kitchen, covered."</p>
 <p style={{ fontSize:10,color:'rgba(255,255,255,0.2)',margin:0 }}>© 2026 YourKitchen LLC</p>
@@ -397,7 +397,7 @@ const totalDates = groups.reduce((sum,g)=>sum+g.slots.length,0)
 const groupReady = (g:GroupSelection)=> !!g.restaurant && g.cart.length>0
 
 return (
-<div style={{ minHeight:'100vh',background:S.cream,fontFamily:"'DM Sans',sans-serif",display:'flex',flexDirection:'column' }}>
+<div style={{ background:S.cream,fontFamily:"'DM Sans',sans-serif",display:'flex',flexDirection:'column' }}>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
 <div style={{ background:S.headerBg, padding:'10px 24px', textAlign:'center' }}>
@@ -418,7 +418,7 @@ return (
 {[1,2,3].map(i=><div key={i} style={{ flex:1,height:4,borderRadius:4,background:i<=step?S.amber:S.amberBorder,transition:'background 0.3s' }}/>)}
 </div>
 
-<div style={{ padding:'16px 24px 24px',maxWidth:500,margin:'0 auto',flex:1,width:'100%' }}>
+<div style={{ padding:'16px 24px',maxWidth:500,margin:'0 auto',width:'100%' }}>
 
 {/* ── Step 1 ── */}
 {step===1&&(<>
@@ -455,7 +455,7 @@ return (
 <button onClick={handleProceed} disabled={selectedSlots.length===0} style={btn(selectedSlots.length===0)}>
 {selectedSlots.length===0?'Select at least one date':`Next: Choose Meals → (${selectedSlots.length} date${selectedSlots.length>1?'s':''})`}
 </button>
-<div style={{ marginTop:24,paddingTop:24,borderTop:`0.5px solid ${S.amberBorder}`,textAlign:'center' }}>
+<div style={{ marginTop:16,paddingTop:16,borderTop:`0.5px solid ${S.amberBorder}`,textAlign:'center' }}>
 <p style={{ fontSize:12,color:S.walnut,fontWeight:300,margin:'0 0 8px',lineHeight:1.6 }}>Does someone you love need their village to show up?</p>
 <a href="/signup" style={{ fontSize:13,color:S.amber,fontWeight:500,textDecoration:'none' }}>Create a free Kitchen →</a>
 </div>
