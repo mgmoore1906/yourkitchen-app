@@ -401,7 +401,7 @@ return (
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
 <div style={{ background:S.headerBg, padding:'12px 24px 14px', textAlign:'center' }}>
-<div style={{ fontFamily:"'Lora',serif", fontSize:13, fontWeight:500, color:S.sageMid, letterSpacing:1, marginBottom:8 }}>YourKitchen</div>
+<div style={{ fontFamily:"'Lora',serif", fontSize:13, fontWeight:500, color:S.amberMid, letterSpacing:1, marginBottom:8 }}>YourKitchen</div>
 <div style={{ fontSize:10, fontWeight:400, letterSpacing:3, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', marginBottom:4 }}>Sending a meal to</div>
 <div style={{ fontFamily:"'Lora',serif", fontSize:22, fontWeight:600, color:S.white, letterSpacing:-0.5 }}>{kitchen.name}</div>
 </div>
