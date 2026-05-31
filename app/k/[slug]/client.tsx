@@ -128,7 +128,7 @@ return (
 )
 }
 
-function CoordCalendar({ availableDates,selectedIds,onToggle }: { availableDates:any[];selectedIds:Set<string>;onToggle:(s:any)=>void }) {
+function CoordCalendar({ availableDates,selectedIds,onToggle,recipientFirst,kitchenSlug }: { availableDates:any[];selectedIds:Set<string>;onToggle:(s:any)=>void;recipientFirst:string;kitchenSlug:string }) {
 const today=new Date()
 const [viewYear,setViewYear]=useState(today.getFullYear())
 const [viewMonth,setViewMonth]=useState(today.getMonth())
