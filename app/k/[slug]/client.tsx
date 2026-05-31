@@ -146,14 +146,17 @@ for(let d=1;d<=daysInMonth;d++)cells.push(d)
 return (
 <div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:18,padding:'16px',marginBottom:20 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
+<p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>{recipientFirst}'s Calendar</p>
+<div style={{ display:'flex',alignItems:'center',gap:6 }}>
 <button onClick={prev} style={{ background:S.amberLight,border:'none',borderRadius:7,width:28,height:28,cursor:'pointer',fontSize:14,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>‹</button>
-<p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>{monthName}</p>
+<span style={{ fontSize:12,fontWeight:500,color:S.forest,minWidth:108,textAlign:'center' }}>{monthName}</span>
 <button onClick={next} style={{ background:S.amberLight,border:'none',borderRadius:7,width:28,height:28,cursor:'pointer',fontSize:14,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>›</button>
 </div>
-<div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:3,marginBottom:3 }}>
-{['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=><div key={d} style={{ textAlign:'center',fontSize:11,fontWeight:600,color:S.stone,padding:'3px 0' }}>{d}</div>)}
 </div>
-<div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:3 }}>
+<div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2,marginBottom:3 }}>
+{['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=><div key={d} style={{ textAlign:'center',fontSize:11,fontWeight:600,color:S.stone,padding:'2px 0' }}>{d}</div>)}
+</div>
+<div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2 }}>
 {cells.map((day,i)=>{
 if(!day)return<div key={i}/>
 const ds=`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
@@ -162,22 +165,28 @@ const slots=dateMap[ds]||[],has=slots.length>0
 const isSel=slots.some((s:any)=>selectedIds.has(s.id))
 return (
 <button key={i} onClick={()=>{ if(!has||isPast)return;slots.forEach((s:any)=>onToggle(s)) }} disabled={isPast||!has}
-style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?`2px solid ${S.amber}`:isToday?`1.5px solid ${S.amber}`:has?`1px solid ${S.amberBorder}`:'1px solid transparent',borderRadius:10,padding:'clamp(4px,1.5vw,8px) 2px',minHeight:'clamp(44px,12vw,56px)',cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
+style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?`2px solid ${S.amber}`:isToday?`1.5px solid ${S.amber}`:has?`1px solid ${S.amberBorder}`:'1px solid transparent',borderRadius:10,padding:'clamp(4px,1.5vw,8px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
 <span style={{ fontSize:13,fontWeight:isToday?700:500,color:isPast?'#C8D5CA':isSel?S.amber:S.mahogany,lineHeight:1 }}>{day}</span>
 {has&&<div style={{ display:'flex',gap:2 }}>{slots.map((s:any,si:number)=>{const mc=MEAL_TYPE_COLORS[s.meal_type]||MEAL_TYPE_COLORS.dinner;return<div key={si} style={{ width:6,height:6,borderRadius:'50%',background:selectedIds.has(s.id)?mc.color:'#C8D5CA' }}/>})}</div>}
 </button>
 )
 })}
 </div>
-<div style={{ display:'flex',gap:12,flexWrap:'wrap',marginTop:14,paddingTop:12,borderTop:`1px solid ${S.amberBorder}` }}>
-{[{dot:'#E8834A',label:'Breakfast'},{dot:'#4A8FA8',label:'Lunch'},{dot:S.sage,label:'Dinner'},{dot:'#C8D5CA',label:'Not selected'}].map(({dot,label})=>(
-<div key={label} style={{ display:'flex',alignItems:'center',gap:5 }}>
-<div style={{ width:7,height:7,borderRadius:'50%',background:dot }}/>
-<span style={{ fontSize:11,color:S.stone,fontWeight:500 }}>{label}</span>
+<div style={{ display:'flex',gap:12,flexWrap:'wrap',marginTop:10,paddingTop:10,borderTop:`0.5px solid ${S.border}` }}>
+{([['#E8834A','🌅','Breakfast'],['#4A8FA8','☀️','Lunch'],[S.sage,'🌙','Dinner']] as [string,string,string][]).map(([color,emoji,label])=>(
+<div key={label} style={{ display:'flex',alignItems:'center',gap:3 }}>
+<div style={{ width:6,height:6,borderRadius:'50%',background:color }}/>
+<span style={{ fontSize:9,color:S.stone,fontWeight:500 }}>{emoji} {label}</span>
 </div>
 ))}
 </div>
 </div>
+<button
+  onClick={()=>window.open(`/k/${kitchenSlug}?tab=village`,'_blank')}
+  style={{ marginTop:14,width:'100%',padding:'13px 16px',background:S.forest,color:S.white,border:'none',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:8,minHeight:44,boxSizing:'border-box' as const }}>
+  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15C21 15.55 20.55 16 20 16H7L3 20V4C3 3.45 3.45 3 4 3H20C20.55 3 21 3.45 21 4V15Z" stroke="white" strokeWidth="1.7" strokeLinejoin="round"/></svg>
+  Connect with {recipientFirst}'s Village
+</button>
 )
 }
 
@@ -420,7 +429,7 @@ return (
 <p style={{ color:S.mahogany,margin:0 }}>No open dates right now. Check back soon!</p>
 </div>
 ):(
-<CoordCalendar availableDates={availableDates} selectedIds={selectedIds} onToggle={toggleSlot}/>
+<CoordCalendar availableDates={availableDates} selectedIds={selectedIds} onToggle={toggleSlot} recipientFirst={recipientFirst} kitchenSlug={kitchen.slug}/>
 )}
 {selectedSlots.length>0&&(
 <div style={{ background:S.amberLight,borderRadius:14,padding:'14px 16px',marginBottom:16,border:`1px solid ${S.amberBorder}` }}>
