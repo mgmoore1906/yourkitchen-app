@@ -98,7 +98,7 @@ return (
 <div style={{ borderTop:`0.5px solid ${S.border}`,padding:'14px 16px' }}>
 {sorted.map(([name,count])=>(
 <div key={name} style={{ display:'flex',alignItems:'center',gap:10,marginBottom:7 }}>
-<span style={{ fontSize:12,color:S.forest,fontWeight:500,width:140,flexShrink:0,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{name}</span>
+<span style={{ fontSize:12,color:S.forest,fontWeight:500,maxWidth:140,flex:'1 1 auto',overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{name}</span>
 <div style={{ flex:1,height:6,background:S.amberBorder,borderRadius:3,overflow:'hidden' }}>
 <div style={{ height:'100%',background:S.amber,borderRadius:3,width:`${(count/max)*100}%` }}/>
 </div>
@@ -150,10 +150,10 @@ return (
 <p style={{ fontFamily:"'Lora',serif",fontSize:16,fontWeight:500,color:S.forest,margin:0 }}>{monthName}</p>
 <button onClick={next} style={{ background:S.amberLight,border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',fontSize:16,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>›</button>
 </div>
-<div style={{ display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:3,marginBottom:3 }}>
+<div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:3,marginBottom:3 }}>
 {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=><div key={d} style={{ textAlign:'center',fontSize:10,fontWeight:600,color:S.stone,padding:'3px 0' }}>{d}</div>)}
 </div>
-<div style={{ display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:3 }}>
+<div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:3 }}>
 {cells.map((day,i)=>{
 if(!day)return<div key={i}/>
 const ds=`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
@@ -162,7 +162,7 @@ const slots=dateMap[ds]||[],has=slots.length>0
 const isSel=slots.some((s:any)=>selectedIds.has(s.id))
 return (
 <button key={i} onClick={()=>{ if(!has||isPast)return;slots.forEach((s:any)=>onToggle(s)) }} disabled={isPast||!has}
-style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isToday?`2px solid ${S.amber}`:isSel?`2px solid ${S.amber}`:has?`1.5px solid ${S.border}`:`1.5px solid transparent`,borderRadius:10,padding:'8px 2px',minHeight:52,cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
+style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isToday?`2px solid ${S.amber}`:isSel?`2px solid ${S.amber}`:has?`1.5px solid ${S.border}`:`1.5px solid transparent`,borderRadius:10,padding:'clamp(4px,1.5vw,8px) 2px',minHeight:'clamp(44px,12vw,56px)',cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
 <span style={{ fontSize:13,fontWeight:isToday?700:500,color:isPast?'#C8D5CA':isSel?S.amber:S.mahogany,lineHeight:1 }}>{day}</span>
 {has&&<div style={{ display:'flex',gap:2 }}>{slots.map((s:any,si:number)=>{const mc=MEAL_TYPE_COLORS[s.meal_type]||MEAL_TYPE_COLORS.dinner;return<div key={si} style={{ width:6,height:6,borderRadius:'50%',background:selectedIds.has(s.id)?mc.color:'#C8D5CA' }}/>})}</div>}
 </button>
