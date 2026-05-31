@@ -5,7 +5,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { haversineDistance, getTipTier } from '@/lib/distance'
 
-// ── Coordinator palette — standard YourKitchen (matches dashboard) ──
+// ── Coordinator palette — INVERTED YourKitchen (dark mode of the same brand colors) ──
 const S = {
 // Page — cream, matches dashboard
 cream:      '#FAFAF5',   // page background
@@ -13,16 +13,16 @@ cream:      '#FAFAF5',   // page background
 warmWhite:  '#FFFFFF',   // card surface
 headerBg:   '#FFFFFF',   // header/footer bar
 // Accent — deep sage (dashboard primary action color)
-amber:      '#3D6B4F',
+amber:      '#3D6B4F',   // primary in-card action color
 amberMid:   '#6B9E7E',
-amberLight: '#EAF2ED',   // selected/active tint
+amberLight: '#EAF2ED',   // light tint for selected/active states
 amberBorder:'#DDE8E0',   // card border
 // Text on light cards
-mahogany:   '#1E2620',   // headings/content
-walnut:     '#6B7066',   // muted body text
+mahogany:   '#1E2620',   // forest — headings/content on light cards
+walnut:     '#6B7066',   // stone — muted body text on light cards
 // Functional
 white:      '#FFFFFF',
-border:     '#DDE8E0',
+border:     '#DDE8E0',   // sage-tinted light border
 red:        '#B94040',
 redLight:   '#FDECEA',
 blue:       '#4A8FA8',
@@ -31,7 +31,7 @@ blueLight:  '#E8F4F8',
 sage:       '#3D6B4F',
 sageLight:  '#EAF2ED',
 forest:     '#1E2620',
-stone:      '#6B7066',   // muted text (dark, for light cards)
+stone:      '#6B7066',   // muted text — dark, for use on light cards
 }
 const MEAL_TYPE_LABELS: Record<string, string> = {
 breakfast: '🌅 Breakfast', lunch: '☀️ Lunch', dinner: '🌙 Dinner',
@@ -802,4 +802,4 @@ const sub: React.CSSProperties = { fontSize:14,color:'#5E6B60',margin:'0 0 20px'
 const btn = (d:boolean): React.CSSProperties => ({ width:'100%',padding:'14px',borderRadius:10,border:'none',background:d?'#C5D0C3':'#3D6B4F',color:d?'#7C877E':'#FFFFFF',fontSize:14,fontWeight:600,cursor:d?'default':'pointer',fontFamily:"'DM Sans',sans-serif" })
 const back: React.CSSProperties = { padding:'14px 20px',borderRadius:10,border:'1.5px solid #C5D0C3',background:'transparent',fontSize:14,color:'#5E6B60',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }
 const lbl: React.CSSProperties = { fontSize:11,fontWeight:600,color:'#5E6B60',letterSpacing:1.5,textTransform:'uppercase',display:'block',marginBottom:8 }
-const inp: React.CSSProperties = { width:'100%',padding:'13px 16px',borderRadius:10,border:'1.5px solid #3D5145',fontSize:16,background:'#243029',outline:'none',boxSizing:'border-box',marginBottom:20,fontFamily:"'DM Sans',sans-serif",color:'#F2F1E9' }
+const inp: React.CSSProperties = { width:'100%',padding:'13px 16px',borderRadius:10,border:'1.5px solid #DDE8E0',fontSize:16,background:'#FFFFFF',outline:'none',boxSizing:'border-box',marginBottom:20,fontFamily:"'DM Sans',sans-serif",color:'#1E2620' }
