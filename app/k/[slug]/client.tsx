@@ -42,8 +42,8 @@ lunch: { color: '#4A8FA8', bg: '#E8F4F8' },
 dinner: { color: S.sage, bg: S.sageLight },
 }
 const DELIVERY_PREFS = [
-{ value: 'leave_at_door', icon: '🚪', title: 'Leave at door', subtitle: 'Text when arrived — no knock' },
-{ value: 'hand_to_recipient', icon: '🤝', title: 'Hand to me', subtitle: 'Driver hands order directly' },
+{ value: 'leave_at_door', title: 'Leave at door', subtitle: 'Text when arrived — no knock' },
+{ value: 'hand_to_recipient', title: 'Hand to me', subtitle: 'Driver hands order directly' },
 ]
 
 // Distance-based courier delivery fee estimate
@@ -144,11 +144,11 @@ const cells:(number|null)[]=[]
 for(let i=0;i<firstDay;i++)cells.push(null)
 for(let d=1;d<=daysInMonth;d++)cells.push(d)
 return (
-<div style={{ background:S.warmWhite,border:`1px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
+<div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:18,padding:'16px',marginBottom:20 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
-<button onClick={prev} style={{ background:S.amberLight,border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',fontSize:16,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>‹</button>
-<p style={{ fontFamily:"'Lora',serif",fontSize:16,fontWeight:500,color:S.forest,margin:0 }}>{monthName}</p>
-<button onClick={next} style={{ background:S.amberLight,border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',fontSize:16,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>›</button>
+<button onClick={prev} style={{ background:S.amberLight,border:'none',borderRadius:7,width:28,height:28,cursor:'pointer',fontSize:14,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>‹</button>
+<p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>{monthName}</p>
+<button onClick={next} style={{ background:S.amberLight,border:'none',borderRadius:7,width:28,height:28,cursor:'pointer',fontSize:14,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>›</button>
 </div>
 <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:3,marginBottom:3 }}>
 {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=><div key={d} style={{ textAlign:'center',fontSize:11,fontWeight:600,color:S.stone,padding:'3px 0' }}>{d}</div>)}
@@ -434,7 +434,7 @@ return (
 <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
 <span style={{ background:mc.bg,color:mc.color,borderRadius:20,fontSize:10,fontWeight:600,padding:'2px 8px',border:`1px solid ${mc.color}` }}>{MEAL_TYPE_LABELS[slot.meal_type]}</span>
 <span style={{ fontSize:13,color:S.mahogany,fontWeight:500 }}>{d}</span>
-<span style={{ fontSize:11,color:S.walnut,fontWeight:400 }}>· 👤{a} 🧒{c}</span>
+<span style={{ fontSize:11,color:S.walnut,fontWeight:400 }}>· {a}A {c}K</span>
 </div>
 <button onClick={()=>removeSlot(slot.id)} style={{ background:'none',border:'none',cursor:'pointer',color:S.walnut,fontSize:16,padding:'0 4px' }}>✕</button>
 </div>
@@ -550,7 +550,7 @@ style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap
 
 {/* ── ADULTS SECTION ── */}
 {adultMeals.length>0&&(<>
-<p style={{ fontSize:10,fontWeight:700,color:S.amber,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>👤 For the adults</p>
+<p style={{ fontSize:10,fontWeight:700,color:S.amber,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{marginRight:5,display:'inline'}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke={S.amber} strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="7" r="4" stroke={S.amber} strokeWidth="2"/></svg>For the adults</p>
 <div style={{ display:'flex',flexDirection:'column',gap:8,marginBottom:16 }}>
 {adultMeals.map((m,i)=>{
 const qty=cartGet(m.name,'adult')?.qty||0
@@ -569,7 +569,7 @@ return (
 
 {/* ── KIDS SECTION ── */}
 {kidsMeals.length>0&&(<>
-<p style={{ fontSize:10,fontWeight:700,color:S.amber,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>🧒 For the kids</p>
+<p style={{ fontSize:10,fontWeight:700,color:S.amber,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{marginRight:5,display:'inline'}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke={S.amber} strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="7" r="3" stroke={S.amber} strokeWidth="2"/></svg>For the kids</p>
 <div style={{ display:'flex',flexDirection:'column',gap:8,marginBottom:16 }}>
 {kidsMeals.map((m,i)=>{
 const qty=cartGet(m.name,'kids')?.qty||0
@@ -676,7 +676,7 @@ return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 
 <span style={{ background:mc.bg,color:mc.color,borderRadius:20,fontSize:10,fontWeight:600,padding:'2px 8px',border:`1px solid ${mc.color}`,display:'inline-block',marginBottom:6 }}>{MEAL_TYPE_LABELS[g.mealType]} · {g.slots.length} date{g.slots.length>1?'s':''}</span>
 <div style={{ fontSize:12,color:S.walnut,fontWeight:300,marginBottom:4 }}>{g.restaurant?.name}</div>
 {g.cart.map((c,ci)=>(
-<div key={ci} style={{ fontSize:13,color:S.mahogany,fontWeight:500 }}>{c.category==='kids'?'🧒':'👤'} {c.name} ×{c.qty}</div>
+<div key={ci} style={{ fontSize:13,color:S.mahogany,fontWeight:500 }}><>{c.category==='kids'?(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{display:'inline',marginRight:4,verticalAlign:'middle'}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke={S.walnut} strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="7" r="4" stroke={S.walnut} strokeWidth="2"/></svg>):(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{display:'inline',marginRight:4,verticalAlign:'middle'}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke={S.mahogany} strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="7" r="4" stroke={S.mahogany} strokeWidth="2"/></svg>)}{c.name} ×{c.qty}</></div>
 ))}
 </div>
 )})}
@@ -699,7 +699,7 @@ return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 
 {DELIVERY_PREFS.map(pref=>(
 <button key={pref.value} onClick={()=>setDeliveryPreference(pref.value as any)}
 style={{ flex:1,padding:'14px 12px',borderRadius:12,border:`2px solid ${deliveryPreference===pref.value?S.amber:S.amberBorder}`,background:deliveryPreference===pref.value?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'left',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
-<div style={{ fontSize:22,marginBottom:6 }}>{pref.icon}</div>
+{pref.value==='leave_at_door'?(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{marginBottom:6,display:'block'}}><rect x="3" y="3" width="18" height="18" rx="2" stroke={deliveryPreference===pref.value?S.amber:S.stone} strokeWidth="1.7"/><path d="M8 21V11h8v10M12 11v4" stroke={deliveryPreference===pref.value?S.amber:S.stone} strokeWidth="1.7" strokeLinecap="round"/></svg>):(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{marginBottom:6,display:'block'}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke={deliveryPreference===pref.value?S.amber:S.stone} strokeWidth="1.7" strokeLinecap="round"/><circle cx="12" cy="7" r="4" stroke={deliveryPreference===pref.value?S.amber:S.stone} strokeWidth="1.7"/></svg>)}
 <div style={{ fontSize:13,fontWeight:600,color:deliveryPreference===pref.value?S.amber:S.mahogany,marginBottom:3 }}>{pref.title}</div>
 <div style={{ fontSize:11,color:S.stone,fontWeight:300,lineHeight:1.4 }}>{pref.subtitle}</div>
 </button>
@@ -713,7 +713,7 @@ style={{ flex:1,padding:'14px 12px',borderRadius:12,border:`2px solid ${delivery
 <div style={{ background:S.amberLight,border:`1.5px solid ${S.amberBorder}`,borderRadius:14,padding:'14px 16px',marginBottom:12 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6 }}>
 <div>
-<p style={{ fontSize:14,fontWeight:700,color:S.forest,margin:'0 0 3px' }}>🚗 Recommended tip: ${(activeTipTier?.default||300)/100}</p>
+<p style={{ fontSize:14,fontWeight:700,color:S.forest,margin:'0 0 3px',display:'flex',alignItems:'center',gap:6 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-2" stroke={S.sage} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><circle cx="7.5" cy="17.5" r="2.5" stroke={S.sage} strokeWidth="1.7"/><circle cx="17.5" cy="17.5" r="2.5" stroke={S.sage} strokeWidth="1.7"/></svg> Recommended tip: ${(activeTipTier?.default||300)/100}</p>
 <p style={{ fontSize:12,color:S.stone,margin:0,fontWeight:300,lineHeight:1.5 }}>
 {activeMiles !== null ? `For a ${activeMiles.toFixed(1)} mi delivery — helps ensure quick pickup` : 'Helps ensure prompt pickup and a happy Dasher'}
 </p>
@@ -778,7 +778,7 @@ Price reflects what {recipientFirst} saved. Actual price may vary slightly.
 )}
 
 <div style={{ background:S.warmWhite,border:`1px solid ${S.border}`,borderRadius:12,padding:'14px 16px',marginBottom:20 }}>
-<p style={{ fontSize:13,color:S.stone,margin:0,lineHeight:1.6 }}>💳 You won't be charged until {recipientFirst} confirms. No money moves until they say yes.</p>
+<p style={{ fontSize:13,color:S.stone,margin:0,lineHeight:1.6,display:'flex',alignItems:'center',gap:8 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="1" y="4" width="22" height="16" rx="2" stroke={S.stone} strokeWidth="1.7"/><path d="M1 10h22" stroke={S.stone} strokeWidth="1.7"/></svg><span>You won't be charged until {recipientFirst} confirms. No money moves until they say yes.</span></p>
 </div>
 
 {errorMsg&&<p style={{ color:S.red,fontSize:13,marginBottom:16 }}>{errorMsg}</p>}
