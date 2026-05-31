@@ -504,6 +504,8 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<Filter>('today')
   const [cancelReasons, setCancelReasons] = useState<Record<string, string>>({})
   const [view, setView] = useState<AdminView>('dispatch')
+  const [backfilling, setBackfilling] = useState(false)
+  const [backfillMsg, setBackfillMsg] = useState('')
 
   const loadOrders = useCallback(async (secret?: string) => {
     const key = secret || sessionStorage.getItem('yk_admin_secret') || ''
@@ -560,6 +562,28 @@ export default function AdminPage() {
     setCancelling(null)
   }
 
+  const runBackfill = async () => {
+    if (!confirm('Fix all restaurant addresses now? This is a one-time cleanup — safe to run, but only needed once.')) return
+    setBackfilling(true); setBackfillMsg('Fixing addresses…')
+    try {
+      const res = await fetch('/api/admin-backfill-addresses', {
+        method: 'POST',
+        headers: { 'x-admin-secret': adminSecret || sessionStorage.getItem('yk_admin_secret') || '' },
+      })
+      const data = await res.json()
+      if (!res.ok) { setBackfillMsg(`❌ ${data.error || 'Failed'}`); setBackfilling(false); return }
+      const s = data.summary || {}
+      setBackfillMsg(`✅ Done — ${s.updated || 0} fixed · ${s.skipped || 0} already complete · ${s.failed || 0} failed`)
+      // If any failed, surface the first failure reason (usually "details failed" = Places Details API not enabled)
+      const firstFail = (data.results || []).find((r: any) => r.status !== 'updated' && r.status !== undefined && r.status.includes('fail'))
+      if (firstFail) setBackfillMsg(m => m + ` · e.g. "${firstFail.name}": ${firstFail.status}`)
+      await loadOrders()
+    } catch (err: any) {
+      setBackfillMsg(`❌ ${err.message}`)
+    }
+    setBackfilling(false)
+  }
+
   if (!authed) return (
     <div style={{ minHeight: '100vh', background: S.forest, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans',sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
@@ -588,6 +612,10 @@ export default function AdminPage() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           {urgentToday > 0 && <div style={{ background: S.red, color: S.white, borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700 }}>🔴 {urgentToday} due today</div>}
+          <button onClick={runBackfill} disabled={backfilling} title="One-time: fetch full addresses for existing restaurants"
+            style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '8px 14px', color: S.white, fontSize: 12, cursor: backfilling ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif", opacity: backfilling ? 0.6 : 1 }}>
+            {backfilling ? 'Fixing…' : 'Fix Addresses'}
+          </button>
           <button onClick={() => loadOrders()} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '8px 14px', color: S.white, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>Refresh</button>
         </div>
       </div>
@@ -600,6 +628,13 @@ export default function AdminPage() {
           </button>
         ))}
       </div>
+
+      {backfillMsg && (
+        <div style={{ background: backfillMsg.startsWith('❌') ? '#FDECEA' : '#EAF2ED', borderBottom: `1px solid ${S.border}`, padding: '10px 24px', fontSize: 13, color: backfillMsg.startsWith('❌') ? S.red : S.forest, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <span>{backfillMsg}</span>
+          <button onClick={() => setBackfillMsg('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, fontSize: 14 }}>✕</button>
+        </div>
+      )}
 
       {view === 'dispatch' && (
         <DispatchTab orders={orders} loading={loading} filter={filter} setFilter={setFilter} dispatching={dispatching} cancelling={cancelling} msgs={msgs} cancelReasons={cancelReasons} setCancelReasons={setCancelReasons} handleDispatch={handleDispatch} handleCancel={handleCancel} />
