@@ -144,7 +144,7 @@ const cells:(number|null)[]=[]
 for(let i=0;i<firstDay;i++)cells.push(null)
 for(let d=1;d<=daysInMonth;d++)cells.push(d)
 return (
-<div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:18,padding:'16px',marginBottom:20 }}>
+<div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:18,padding:'16px',marginBottom:8 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
 <p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>{recipientFirst}'s Calendar</p>
 <div style={{ display:'flex',alignItems:'center',gap:6 }}>
@@ -180,19 +180,21 @@ style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?
 </div>
 ))}
 </div>
-<button
-  onClick={()=>window.open(`/k/${kitchenSlug}?tab=village`,'_blank')}
-  style={{ marginTop:14,width:'100%',padding:'13px 16px',background:S.forest,color:S.white,border:'none',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:8,minHeight:44,boxSizing:'border-box' as const }}>
-  <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15C21 15.55 20.55 16 20 16H7L3 20V4C3 3.45 3.45 3 4 3H20C20.55 3 21 3.45 21 4V15Z" stroke="white" strokeWidth="1.7" strokeLinejoin="round"/></svg>
-  Connect with {recipientFirst}'s Village
+<div style={{ background:S.forest,borderRadius:16,padding:'16px 18px',marginTop:14 }}>
+<p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:600,color:S.white,margin:'0 0 4px' }}>Connect with the village</p>
+<p style={{ fontSize:12,color:'rgba(255,255,255,0.65)',fontWeight:300,margin:'0 0 12px',lineHeight:1.5 }}>See what others have sent and leave {recipientFirst} a message.</p>
+<button onClick={()=>window.open(`/k/${kitchenSlug}?tab=village`,'_blank')}
+  style={{ width:'100%',padding:'12px',borderRadius:10,border:'none',background:S.sage,color:S.white,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:44 }}>
+  {recipientFirst}'s Village →
 </button>
+</div>
 </div>
 )
 }
 
 function CoordFooter() {
 return (
-<footer style={{ background:S.headerBg,padding:'48px 24px',textAlign:'center',marginTop:40,fontFamily:"'DM Sans',sans-serif" }}>
+<footer style={{ background:S.headerBg,padding:'32px 24px',textAlign:'center',marginTop:8,fontFamily:"'DM Sans',sans-serif" }}>
 <div style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.white,letterSpacing:-0.5,marginBottom:6 }}>YourKitchen</div>
 <p style={{ fontFamily:"'Lora',serif",fontStyle:'italic',fontSize:13,color:'rgba(255,255,255,0.55)',margin:'0 0 16px' }}>"Your kitchen, covered."</p>
 <p style={{ fontSize:10,color:'rgba(255,255,255,0.2)',margin:0 }}>© 2026 YourKitchen LLC</p>
@@ -244,7 +246,7 @@ const KH_CHILDREN = kitchen.household_children ?? 2
 const sevenAgo = new Date(Date.now()-7*24*60*60*1000).toISOString().split('T')[0]
 const recentRestNames = new Set(recentMeals.filter((m:any)=>m.delivery_date>=sevenAgo).map((m:any)=>m.restaurant_name?.toLowerCase()))
 const selectedSlots = availableDates.filter((d:any)=>selectedIds.has(d.id))
-const recipientFirst = kitchen.name?.split("'")[0]||'them'
+const recipientFirst = kitchen.name?.split(/[\s']/)[0]||'them'
 
 useEffect(()=>{
 fetch(`/api/restaurants/favorites?slug=${kitchen.slug}`)
@@ -398,10 +400,10 @@ return (
 <div style={{ minHeight:'100vh',background:S.cream,fontFamily:"'DM Sans',sans-serif",display:'flex',flexDirection:'column' }}>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
-<div style={{ background:S.headerBg, padding:'16px 24px', textAlign:'center' }}>
+<div style={{ background:S.headerBg, padding:'12px 24px 14px', textAlign:'center' }}>
+<div style={{ fontFamily:"'Lora',serif", fontSize:13, fontWeight:500, color:S.sageMid, letterSpacing:1, marginBottom:8 }}>YourKitchen</div>
 <div style={{ fontSize:10, fontWeight:400, letterSpacing:3, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', marginBottom:4 }}>Sending a meal to</div>
-<div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:S.white, letterSpacing:-0.5 }}>{kitchen.name}</div>
-<div style={{ fontSize:10, fontWeight:300, color:'rgba(255,255,255,0.45)', marginTop:6, letterSpacing:1 }}>via YourKitchen</div>
+<div style={{ fontFamily:"'Lora',serif", fontSize:22, fontWeight:600, color:S.white, letterSpacing:-0.5 }}>{kitchen.name}</div>
 </div>
 {kitchen.dietary_restrictions?.length>0&&(
 <div style={{ background:S.amberLight, borderBottom:`1px solid ${S.amberBorder}`, padding:'12px 24px' }}>
@@ -413,11 +415,11 @@ return (
 </div>
 )}
 
-<div style={{ display:'flex',gap:6,padding:'16px 24px 0',maxWidth:500,margin:'0 auto',width:'100%' }}>
+<div style={{ display:'flex',gap:6,padding:'8px 24px 0',maxWidth:500,margin:'0 auto',width:'100%' }}>
 {[1,2,3].map(i=><div key={i} style={{ flex:1,height:4,borderRadius:4,background:i<=step?S.amber:S.amberBorder,transition:'background 0.3s' }}/>)}
 </div>
 
-<div style={{ padding:'24px',maxWidth:500,margin:'0 auto',flex:1,width:'100%' }}>
+<div style={{ padding:'16px 24px 24px',maxWidth:500,margin:'0 auto',flex:1,width:'100%' }}>
 
 {/* ── Step 1 ── */}
 {step===1&&(<>
