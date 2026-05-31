@@ -314,10 +314,10 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 <p style={{ fontFamily: "'Lora', serif", fontSize: 16, fontWeight: 500, color: S.forest, margin: 0 }}>{monthName}</p>
 <button onClick={nextMonth} style={navBtn}>›</button>
 </div>
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3, marginBottom: 4 }}>
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3, marginBottom: 4 }}>
 {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: S.stone, padding: '2px 0' }}>{d}</div>)}
 </div>
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, 1fr)', gap: 3 }}>
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3 }}>
 {cells.map((day, i) => {
 if (!day) return <div key={i} />
 const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
@@ -331,7 +331,7 @@ return (
 style={{
 background: isPicker ? S.sageLight : hasSlots ? '#F8FAF8' : S.white,
 border: `${isPicker || isToday ? 2 : 1}px solid ${isPicker ? S.sage : isToday ? S.sageMid : hasSlots ? '#C8DDD0' : S.border}`,
-borderRadius: 10, padding: '8px 2px', minHeight: 52, cursor: isPast ? 'default' : 'pointer',
+borderRadius: 10, padding: '8px 2px', minHeight: 'clamp(44px,12vw,56px)', cursor: isPast ? 'default' : 'pointer',
 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
 fontFamily: "'DM Sans', sans-serif", opacity: isPast ? 0.3 : 1,
 }}>
