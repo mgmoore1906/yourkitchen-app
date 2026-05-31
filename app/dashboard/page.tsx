@@ -87,7 +87,7 @@ function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onS
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(30,38,32,0.5)', zIndex:300 }} />
-      <div style={{ position:'fixed', top:0, left:0, bottom:0, width:280, background:S.white, zIndex:301, display:'flex', flexDirection:'column', boxShadow:'4px 0 24px rgba(30,38,32,0.15)', animation:'slideIn 0.22s ease' }}>
+      <div style={{ position:'fixed', top:0, left:0, bottom:0, width:'min(280px,88vw)', background:S.white, zIndex:301, display:'flex', flexDirection:'column', boxShadow:'4px 0 24px rgba(30,38,32,0.15)', animation:'slideIn 0.22s ease' }}>
         <style>{`@keyframes slideIn{from{transform:translateX(-100%)}to{transform:translateX(0)}}`}</style>
         <div style={{ background:S.forest, padding:'52px 24px 24px', display:'flex', alignItems:'center', gap:14 }}>
           <div style={{ width:48, height:48, borderRadius:14, background:S.sage, display:'flex', alignItems:'center', justifyContent:'center', color:S.white, fontFamily:"'Lora',serif", fontSize:20, fontWeight:600, flexShrink:0 }}>
@@ -138,7 +138,7 @@ function NotifPanel({ proposals, onClose, router }: { proposals: Proposal[]; onC
   return (
     <>
       <div onClick={onClose} style={{ position:'fixed',inset:0,zIndex:150 }} />
-      <div style={{ position:'fixed',top:58,right:16,width:300,background:S.white,borderRadius:16,boxShadow:'0 8px 32px rgba(30,38,32,0.15)',border:`0.5px solid ${S.border}`,zIndex:151,overflow:'hidden',maxHeight:'70vh',overflowY:'auto' }}>
+      <div style={{ position:'fixed',top:58,right:16,width:'min(300px,calc(100vw - 32px))',background:S.white,borderRadius:16,boxShadow:'0 8px 32px rgba(30,38,32,0.15)',border:`0.5px solid ${S.border}`,zIndex:151,overflow:'hidden',maxHeight:'70vh',overflowY:'auto' }}>
         <div style={{ padding:'14px 16px',borderBottom:`0.5px solid ${S.border}`,display:'flex',justifyContent:'space-between',alignItems:'center' }}>
           <span style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest }}>Notifications</span>
           <button onClick={onClose} style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:16 }}>✕</button>
@@ -203,12 +203,12 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
             <button onClick={nextMonth} style={{ background:S.sageLight,border:'none',borderRadius:7,width:28,height:28,cursor:'pointer',fontSize:14,color:S.sage,display:'flex',alignItems:'center',justifyContent:'center' }}>›</button>
           </div>
         </div>
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2,marginBottom:3 }}>
+        <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2,marginBottom:3 }}>
           {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>(
             <div key={d} style={{ textAlign:'center',fontSize:9,fontWeight:700,color:S.stone,padding:'2px 0' }}>{d}</div>
           ))}
         </div>
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(7,1fr)',gap:2 }}>
+        <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2 }}>
           {cells.map((day,i) => {
             if(!day) return <div key={i}/>
             const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
@@ -218,7 +218,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
             const slots   = dateMap[dateStr]||[]
             return (
               <button key={i} onClick={() => { if(!isPast) setSelectedDate((p:string|null)=>p===dateStr?null:dateStr) }} disabled={isPast}
-                style={{ background:isSel?S.sageLight:slots.length?'#F8FAF8':S.white,border:`${isSel||isToday?2:1}px solid ${isSel?S.sage:isToday?S.sageMid:slots.length?'#C8DDD0':S.border}`,borderRadius:8,padding:'6px 2px',minHeight:50,cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
+                style={{ background:isSel?S.sageLight:slots.length?'#F8FAF8':S.white,border:`${isSel||isToday?2:1}px solid ${isSel?S.sage:isToday?S.sageMid:slots.length?'#C8DDD0':S.border}`,borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
                 <span style={{ fontSize:12,fontWeight:isToday?700:500,color:isSel?S.sage:S.forest,lineHeight:1 }}>{day}</span>
                 {slots.length
                   ? <div style={{ display:'flex',gap:2,flexWrap:'wrap',justifyContent:'center' }}>
