@@ -7,30 +7,31 @@ import { haversineDistance, getTipTier } from '@/lib/distance'
 
 // ── Coordinator palette — INVERTED YourKitchen (dark mode of the same brand colors) ──
 const S = {
-// Inverted background: forest becomes the canvas
-cream:      '#1E2620',   // forest — now the page background (was the light cream)
-warmWhite:  '#2A352D',   // lifted dark surface for cards
-// Accent: sage, brightened so it pops on dark
-amber:      '#7FB89A',   // bright sage — primary action color (replaces dark sage on dark bg)
-amberMid:   '#6B9E7E',   // sageMid
-amberLight: '#2A352D',   // dark surface tint for selected/active backgrounds
-amberBorder:'#3D5145',   // subtle sage-tinted dark border
-// Text on dark
-mahogany:   '#F5F3EC',   // near-white cream — headings/hero text (replaces dark forest text)
-walnut:     '#A8B5AC',   // muted sage-gray — body text (replaces stone)
-headerBg:   '#141A16',   // deepest forest — header/footer bar in dark mode
+// Page — soft, light (lifts the oppressive all-dark page)
+cream:      '#EBF0EA',   // soft sage-tinted light page background
+// Dark surfaces — calendar, cards, inputs float on the soft page
+warmWhite:  '#243029',   // dark forest card surface
+headerBg:   '#161C18',   // deepest forest — header/footer bar
+// Accent — bright sage that pops on dark cards
+amber:      '#7FB89A',   // bright sage — primary in-card action color
+amberMid:   '#6B9E7E',
+amberLight: '#2E3D31',   // lifted dark tint for selected/active states inside cards
+amberBorder:'#3D5145',   // sage-tinted dark border on cards
+// Text on dark cards
+mahogany:   '#F2F1E9',   // cream — headings/content on dark cards
+walnut:     '#AEBBB0',   // muted sage-gray — body text on dark cards
 // Functional
 white:      '#FFFFFF',
-border:     '#3D5145',   // sage-tinted dark border
-red:        '#E08585',   // brightened red for dark bg
+border:     '#3D5145',   // sage-tinted dark border (on dark cards)
+red:        '#E08585',
 redLight:   '#3A2424',
 blue:       '#7FB8CC',
 blueLight:  '#243238',
-// Meal-type dots — keep recognizable on dark
+// Meal-type dots
 sage:       '#7FB89A',
-sageLight:  '#2A352D',
+sageLight:  '#2E3D31',
 forest:     '#1E2620',
-stone:      '#6B7066',
+stone:      '#9DACA1',   // muted text — now LIGHT, for use inside dark cards
 }
 const MEAL_TYPE_LABELS: Record<string, string> = {
 breakfast: '🌅 Breakfast', lunch: '☀️ Lunch', dinner: '🌙 Dinner',
@@ -796,9 +797,9 @@ Price reflects what {recipientFirst} saved. Actual price may vary slightly.
 )
 }
 
-const h2: React.CSSProperties = { fontFamily:"'Lora',serif",fontSize:22,fontWeight:500,color:'#F5F3EC',margin:'0 0 6px' }
-const sub: React.CSSProperties = { fontSize:14,color:'#A8B5AC',margin:'0 0 20px',fontWeight:300 }
-const btn = (d:boolean): React.CSSProperties => ({ width:'100%',padding:'14px',borderRadius:10,border:'none',background:d?'#2A352D':'#7FB89A',color:d?'#A8B5AC':'#141A16',fontSize:14,fontWeight:600,cursor:d?'default':'pointer',fontFamily:"'DM Sans',sans-serif" })
-const back: React.CSSProperties = { padding:'14px 20px',borderRadius:10,border:`1.5px solid #3D5145`,background:'transparent',fontSize:14,color:'#A8B5AC',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }
-const lbl: React.CSSProperties = { fontSize:11,fontWeight:600,color:'#A8B5AC',letterSpacing:1.5,textTransform:'uppercase',display:'block',marginBottom:8 }
-const inp: React.CSSProperties = { width:'100%',padding:'13px 16px',borderRadius:10,border:'1.5px solid #3D5145',fontSize:16,background:'#2A352D',outline:'none',boxSizing:'border-box',marginBottom:20,fontFamily:"'DM Sans',sans-serif",color:'#F5F3EC' }
+const h2: React.CSSProperties = { fontFamily:"'Lora',serif",fontSize:22,fontWeight:500,color:'#1E2620',margin:'0 0 6px' }
+const sub: React.CSSProperties = { fontSize:14,color:'#5E6B60',margin:'0 0 20px',fontWeight:300 }
+const btn = (d:boolean): React.CSSProperties => ({ width:'100%',padding:'14px',borderRadius:10,border:'none',background:d?'#C5D0C3':'#3D6B4F',color:d?'#7C877E':'#FFFFFF',fontSize:14,fontWeight:600,cursor:d?'default':'pointer',fontFamily:"'DM Sans',sans-serif" })
+const back: React.CSSProperties = { padding:'14px 20px',borderRadius:10,border:'1.5px solid #C5D0C3',background:'transparent',fontSize:14,color:'#5E6B60',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }
+const lbl: React.CSSProperties = { fontSize:11,fontWeight:600,color:'#5E6B60',letterSpacing:1.5,textTransform:'uppercase',display:'block',marginBottom:8 }
+const inp: React.CSSProperties = { width:'100%',padding:'13px 16px',borderRadius:10,border:'1.5px solid #3D5145',fontSize:16,background:'#243029',outline:'none',boxSizing:'border-box',marginBottom:20,fontFamily:"'DM Sans',sans-serif",color:'#F2F1E9' }
