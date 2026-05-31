@@ -28,6 +28,23 @@ function buildItems(proposal: any) {
   return [{ name: proposal.meal_name || 'Meal', quantity: 1, unitPrice: 20 }]
 }
 
+// Places "Nearby Search" returns a short `vicinity` address (street + city, no
+// state/ZIP). An ambiguous string like "813 Cibolo Valley Dr, Cibolo" can geocode
+// hundreds of miles off. We borrow the state + ZIP from the recipient's full
+// address (the restaurant is always local to them) when the restaurant address
+// lacks a state, so Shipday geocodes the pickup correctly.
+function regionFromKitchen(kitchenAddress: string): string {
+  // Pull a trailing ", ST 12345" or ", ST" from the kitchen address
+  const m = kitchenAddress?.match(/,\s*([A-Z]{2})(\s+\d{5})?\s*$/)
+  return m ? `${m[1]}${m[2] || ''}`.trim() : ''
+}
+function completeAddress(addr: string, region: string): string {
+  if (!addr) return addr
+  // Already has a 2-letter state token near the end? Leave it.
+  if (/,\s*[A-Z]{2}(\s+\d{5})?\s*$/.test(addr)) return addr
+  return region ? `${addr}, ${region}` : addr
+}
+
 async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: string) {
   const restaurant = proposal.kitchen_restaurants
   const coordName  = proposal.coordinator_name || 'Coordinator'
@@ -46,7 +63,7 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
     orderNumber,
     orderTime:           new Date().toISOString(),
     restaurantName:      restaurant?.name || 'Restaurant',
-    restaurantAddress:   restaurant?.address || '',
+    restaurantAddress:   completeAddress(restaurant?.address || '', regionFromKitchen(kitchen?.address || '')),
     restaurantPhone:     restaurant?.phone || '',
     customerName:        kitchen?.name || 'Recipient',
     customerAddress:     kitchen?.address || '',
