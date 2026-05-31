@@ -5,33 +5,33 @@
 import { useState, useEffect, useRef } from 'react'
 import { haversineDistance, getTipTier } from '@/lib/distance'
 
-// ── Coordinator palette — INVERTED YourKitchen (dark mode of the same brand colors) ──
+// ── Coordinator palette — standard YourKitchen (matches dashboard) ──
 const S = {
-// Page — soft, light (lifts the oppressive all-dark page)
-cream:      '#EBF0EA',   // soft sage-tinted light page background
-// Dark surfaces — calendar, cards, inputs float on the soft page
-warmWhite:  '#243029',   // dark forest card surface
-headerBg:   '#161C18',   // deepest forest — header/footer bar
-// Accent — bright sage that pops on dark cards
-amber:      '#7FB89A',   // bright sage — primary in-card action color
+// Page — cream, matches dashboard
+cream:      '#FAFAF5',   // page background
+// Card surfaces — white cards float on cream page
+warmWhite:  '#FFFFFF',   // card surface
+headerBg:   '#FFFFFF',   // header/footer bar
+// Accent — deep sage (dashboard primary action color)
+amber:      '#3D6B4F',
 amberMid:   '#6B9E7E',
-amberLight: '#2E3D31',   // lifted dark tint for selected/active states inside cards
-amberBorder:'#3D5145',   // sage-tinted dark border on cards
-// Text on dark cards
-mahogany:   '#F2F1E9',   // cream — headings/content on dark cards
-walnut:     '#AEBBB0',   // muted sage-gray — body text on dark cards
+amberLight: '#EAF2ED',   // selected/active tint
+amberBorder:'#DDE8E0',   // card border
+// Text on light cards
+mahogany:   '#1E2620',   // headings/content
+walnut:     '#6B7066',   // muted body text
 // Functional
 white:      '#FFFFFF',
-border:     '#3D5145',   // sage-tinted dark border (on dark cards)
-red:        '#E08585',
-redLight:   '#3A2424',
-blue:       '#7FB8CC',
-blueLight:  '#243238',
+border:     '#DDE8E0',
+red:        '#B94040',
+redLight:   '#FDECEA',
+blue:       '#4A8FA8',
+blueLight:  '#E8F4F8',
 // Meal-type dots
-sage:       '#7FB89A',
-sageLight:  '#2E3D31',
+sage:       '#3D6B4F',
+sageLight:  '#EAF2ED',
 forest:     '#1E2620',
-stone:      '#9DACA1',   // muted text — now LIGHT, for use inside dark cards
+stone:      '#6B7066',   // muted text (dark, for light cards)
 }
 const MEAL_TYPE_LABELS: Record<string, string> = {
 breakfast: '🌅 Breakfast', lunch: '☀️ Lunch', dinner: '🌙 Dinner',
