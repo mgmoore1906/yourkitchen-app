@@ -28,7 +28,7 @@ function buildItems(proposal: any) {
   return [{ name: proposal.meal_name || 'Meal', quantity: 1, unitPrice: 20 }]
 }
 
-async function dispatchShipday(proposal: any, kitchen: any) {
+async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: string) {
   const restaurant = proposal.kitchen_restaurants
   const coordName  = proposal.coordinator_name || 'Coordinator'
   const orderNumber = `YK-${proposal.id.slice(0, 8).toUpperCase()}`
@@ -51,7 +51,7 @@ async function dispatchShipday(proposal: any, kitchen: any) {
     customerName:        kitchen?.name || 'Recipient',
     customerAddress:     kitchen?.address || '',
     customerEmail:       '',
-    customerPhone:       kitchen?.recipient_phone || '',
+    customerPhone:       recipientPhone || '',
     deliveryInstruction: instruction,
     items:                   buildItems(proposal),
     orderSource:             'YourKitchen',
@@ -111,7 +111,7 @@ export async function POST(request: Request) {
         coordinator_name, restaurant_name, meal_name, meal_items,
         claims(calendar_date_id, guest_coordinators(phone)),
         kitchen_restaurants(name, address, phone, lat, lng),
-        kitchens:kitchen_id(id, name, address, recipient_id, recipient_phone, latitude, longitude)
+        kitchens:kitchen_id(id, name, address, recipient_id, latitude, longitude)
       `)
       .eq('id', proposal_id)
       .single()
@@ -130,7 +130,15 @@ export async function POST(request: Request) {
 
     const kitchen = (proposal as any).kitchens
 
-    const { orderNumber, shipdayOrderId, trackingUrl } = await dispatchShipday(proposal as any, kitchen)
+    // Recipient phone lives on the profile, not the kitchen — fetch it for Shipday
+    let recipientPhone = ''
+    if (kitchen?.recipient_id) {
+      const { data: rp } = await supabase
+        .from('profiles').select('phone').eq('id', kitchen.recipient_id).single()
+      recipientPhone = rp?.phone || ''
+    }
+
+    const { orderNumber, shipdayOrderId, trackingUrl } = await dispatchShipday(proposal as any, kitchen, recipientPhone)
 
     await supabase.from('meal_proposals').update({
       doordash_delivery_id:  shipdayOrderId ? String(shipdayOrderId) : orderNumber,
