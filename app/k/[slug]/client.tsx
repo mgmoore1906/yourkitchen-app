@@ -180,13 +180,13 @@ style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?
 </div>
 ))}
 </div>
-</div>
 <button
   onClick={()=>window.open(`/k/${kitchenSlug}?tab=village`,'_blank')}
   style={{ marginTop:14,width:'100%',padding:'13px 16px',background:S.forest,color:S.white,border:'none',borderRadius:12,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:8,minHeight:44,boxSizing:'border-box' as const }}>
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M21 15C21 15.55 20.55 16 20 16H7L3 20V4C3 3.45 3.45 3 4 3H20C20.55 3 21 3.45 21 4V15Z" stroke="white" strokeWidth="1.7" strokeLinejoin="round"/></svg>
   Connect with {recipientFirst}'s Village
 </button>
+</div>
 )
 }
 
