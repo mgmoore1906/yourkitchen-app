@@ -315,7 +315,7 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 <button onClick={nextMonth} style={navBtn}>›</button>
 </div>
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3, marginBottom: 4 }}>
-{['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: 10, fontWeight: 700, color: S.stone, padding: '2px 0' }}>{d}</div>)}
+{['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: S.stone, padding: '2px 0' }}>{d}</div>)}
 </div>
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3 }}>
 {cells.map((day, i) => {
@@ -330,7 +330,7 @@ return (
 <button key={i} onClick={() => { if (!isPast) setPickerDate(isPicker ? null : dateStr) }} disabled={isPast}
 style={{
 background: isPicker ? S.sageLight : hasSlots ? '#F8FAF8' : S.white,
-border: `${isPicker || isToday ? 2 : 1}px solid ${isPicker ? S.sage : isToday ? S.sageMid : hasSlots ? '#C8DDD0' : S.border}`,
+border: isPicker ? `2px solid ${S.sage}` : isToday ? `2px solid ${S.sageMid}` : hasSlots ? `1px solid #C8DDD0` : '1px solid transparent',
 borderRadius: 10, padding: '8px 2px', minHeight: 'clamp(44px,12vw,56px)', cursor: isPast ? 'default' : 'pointer',
 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
 fontFamily: "'DM Sans', sans-serif", opacity: isPast ? 0.3 : 1,
