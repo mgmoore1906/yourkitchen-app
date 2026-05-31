@@ -42,7 +42,7 @@ async function dispatchShipday(proposal: any, kitchen: any) {
   const customNote  = proposal.delivery_note ? ` Note: ${proposal.delivery_note}` : ''
   const instruction = `YourKitchen delivery — sent by ${coordName}. ${prefNote}${customNote}`
 
-  const payload = {
+  const payload: any = {
     orderNumber,
     orderTime:           new Date().toISOString(),
     restaurantName:      restaurant?.name || 'Restaurant',
@@ -57,6 +57,18 @@ async function dispatchShipday(proposal: any, kitchen: any) {
     orderSource:             'YourKitchen',
     tip:                     (proposal.tip_amount || 0) / 100,
     requestOnDemandDelivery: true,
+  }
+
+  // Explicit coordinates remove geocoding ambiguity — the usual cause of a
+  // false "address not in service area" rejection from Uber/DoorDash fleets.
+  // Only attach when present so we never send null/0 (which geocodes to the ocean).
+  if (restaurant?.lat != null && restaurant?.lng != null) {
+    payload.pickupLatitude  = restaurant.lat
+    payload.pickupLongitude = restaurant.lng
+  }
+  if (kitchen?.latitude != null && kitchen?.longitude != null) {
+    payload.deliveryLatitude  = kitchen.latitude
+    payload.deliveryLongitude = kitchen.longitude
   }
 
   const res = await fetch('https://api.shipday.com/orders', {
@@ -98,8 +110,8 @@ export async function POST(request: Request) {
         delivery_preference, delivery_note, meal_type,
         coordinator_name, restaurant_name, meal_name, meal_items,
         claims(calendar_date_id, guest_coordinators(phone)),
-        kitchen_restaurants(name, address, phone),
-        kitchens:kitchen_id(id, name, address, recipient_id)
+        kitchen_restaurants(name, address, phone, lat, lng),
+        kitchens:kitchen_id(id, name, address, recipient_id, recipient_phone, latitude, longitude)
       `)
       .eq('id', proposal_id)
       .single()
