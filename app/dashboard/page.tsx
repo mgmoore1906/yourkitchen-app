@@ -438,7 +438,7 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
                 )}
                 <div style={{ display:'flex',gap:8 }}>
                   <button onClick={()=>handleShare(p,'instagram')} style={{ flex:1,padding:'9px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>📸 Instagram</button>
-                  <button onClick={()=>handleShare(p,'facebook')} style={{ flex:1,padding:'9px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>👍 Facebook</button>
+                  <button onClick={()=>handleShare(p,'facebook')} style={{ flex:1,padding:'9px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{marginRight:5,flexShrink:0}}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>Share</button>
                 </div>
               </div>
             </div>
@@ -499,11 +499,20 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
 
 // ── INSIGHTS TAB ──────────────────────────────────────────────────────────────
 function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitchenName: string }) {
-  const delivered  = proposals.filter(p => ['confirmed','delivered'].includes(p.status))
-  const totalMeals = delivered.length
-  const totalMins  = totalMeals * MINS_PER_MEAL
-  const totalHours = Math.round(totalMins / 60)
-  const workweeks  = (totalMins / (40 * 60)).toFixed(1)
+  const ic = S.sage
+  const sv = { stroke:ic, strokeWidth:'1.7', strokeLinecap:'round' as const, strokeLinejoin:'round' as const, fill:'none' }
+
+  const IcHeart   = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" {...sv}/></svg>
+  const IcPeople  = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" {...sv}/><circle cx="9" cy="7" r="4" {...sv}/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" {...sv}/></svg>
+  const IcTrophy  = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M6 3h12v7a6 6 0 0 1-12 0V3z" {...sv}/><path d="M4 3h2M18 3h2M4 5c0 3 2 5 2 5M20 5c0 3-2 5-2 5M12 15v3M8 21h8" {...sv}/></svg>
+  const IcCutlery = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M3 2v7c0 1.1.9 2 2 2s2-.9 2-2V2M5 11v9M13 2s4 5 4 8-4 5-4 5v5" {...sv}/></svg>
+  const IcBolt    = () => <svg width="24" height="24" viewBox="0 0 24 24" fill="none"><path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z" {...sv}/></svg>
+
+  const delivered    = proposals.filter(p => ['confirmed','delivered'].includes(p.status))
+  const totalMeals   = delivered.length
+  const totalMins    = totalMeals * MINS_PER_MEAL
+  const totalHours   = Math.round(totalMins / 60)
+  const workweeks    = (totalMins / (40 * 60)).toFixed(1)
   const uniqueCoords = [...new Set(proposals.map(p=>p.coordinator_name).filter(Boolean))]
   const villageSize  = uniqueCoords.length
   const coordCounts: Record<string,number> = {}
@@ -520,13 +529,15 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
   })
   let streak=0; const now=new Date(); const cur=new Date(now); cur.setDate(now.getDate()-now.getDay())
   while(weekSet.has(cur.toISOString().split('T')[0])){ streak++; cur.setDate(cur.getDate()-7) }
+
   const stats = [
-    { emoji:'🧡', label:'Total meals received',  val:totalMeals,                            sub:totalMeals===1?'meal':'meals' },
-    { emoji:'👥', label:'Village size',           val:villageSize,                            sub:'unique supporters' },
-    { emoji:'🏆', label:'Top supporter',          val:topCoord?.[0]||'—',                    sub:topCoord?`${topCoord[1]} meal${topCoord[1]!==1?'s':''}`:'' },
-    { emoji:'🍽', label:'Favorite restaurant',    val:favRest?.[0]||'—',                     sub:favRest?`${favRest[1]} time${favRest[1]!==1?'s':''}`:'' },
-    { emoji:'🔥', label:'Streak',                 val:streak>0?`${streak} week${streak!==1?'s':''}` :'—', sub:streak>0?'consecutive weeks':'no streak yet' },
+    { icon:<IcHeart/>,   label:'Total meals received', val:totalMeals,                            sub:totalMeals===1?'meal':'meals' },
+    { icon:<IcPeople/>,  label:'Village size',          val:villageSize,                            sub:'unique supporters' },
+    { icon:<IcTrophy/>,  label:'Top supporter',         val:topCoord?.[0]||'—',                    sub:topCoord?`${topCoord[1]} meal${topCoord[1]!==1?'s':''}`:'' },
+    { icon:<IcCutlery/>, label:'Favorite restaurant',   val:favRest?.[0]||'—',                     sub:favRest?`${favRest[1]} time${favRest[1]!==1?'s':''}`:'' },
+    { icon:<IcBolt/>,    label:'Streak',                val:streak>0?`${streak} week${streak!==1?'s':''}` :'—', sub:streak>0?'consecutive weeks':'no streak yet' },
   ]
+
   return (
     <div style={{ padding:'16px 20px' }}>
       <p style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.forest,margin:'0 0 4px',letterSpacing:-0.5 }}>Your Village</p>
@@ -552,7 +563,7 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
       <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
         {stats.map(s=>(
           <div key={s.label} style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:14,padding:'14px 16px',display:'flex',alignItems:'center',gap:14 }}>
-            <span style={{ fontSize:24,flexShrink:0 }}>{s.emoji}</span>
+            <div style={{ width:28,flexShrink:0,display:'flex',alignItems:'center',justifyContent:'center' }}>{s.icon}</div>
             <div style={{ flex:1 }}>
               <div style={{ fontSize:11,fontWeight:600,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',marginBottom:3 }}>{s.label}</div>
               <div style={{ fontFamily:"'Lora',serif",fontSize:16,fontWeight:500,color:S.forest }}>{s.val}</div>
@@ -563,17 +574,17 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
       </div>
       {totalMeals===0&&(
         <div style={{ marginTop:20,background:S.sageLight,borderRadius:14,padding:'20px',textAlign:'center' }}>
-          <p style={{ fontSize:14,color:S.sage,margin:0,lineHeight:1.7 }}>Once your village starts sending meals, your insights will appear here. 🧡</p>
+          <p style={{ fontSize:14,color:S.sage,margin:0,lineHeight:1.7 }}>Once your village starts sending meals, your insights will appear here.</p>
         </div>
       )}
     </div>
   )
 }
-
 // ── SHARE TAB ─────────────────────────────────────────────────────────────────
 function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: { kitchenUrl: string; kitchen: Kitchen; restaurantCount: number | null; router: any; proposals: Proposal[] }) {
-  const [copied, setCopied] = useState(false)
+  const [copied,  setCopied]  = useState(false)
   const [thanked, setThanked] = useState<string | null>(null)
+
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(kitchenUrl) } catch {
       const ta=document.createElement('textarea');ta.value=kitchenUrl;ta.style.cssText='position:fixed;opacity:0'
@@ -586,7 +597,21 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
     else { copyLink() }
   }
 
-  // ── Share-lock: a kitchen with no restaurants can't be shared yet ──
+  // Monochrome social SVGs — same stroke weight as rest of app
+  const sv = { strokeWidth:'1.7', strokeLinecap:'round' as const, strokeLinejoin:'round' as const, fill:'none' }
+  const SvgWA = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke={S.stone} {...sv}/></svg>
+  const SvgFB = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" stroke={S.stone} {...sv}/></svg>
+  const SvgX  = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M18 6L6 18M6 6l12 12" stroke={S.stone} strokeWidth="2.2" strokeLinecap="round"/></svg>
+  const SvgLI = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-4 0v7h-4V9h4v2" stroke={S.stone} {...sv}/><rect x="2" y="9" width="4" height="12" stroke={S.stone} {...sv}/><circle cx="4" cy="4" r="2" stroke={S.stone} {...sv}/></svg>
+
+  const socials = [
+    { icon:<SvgWA/>, label:'WhatsApp',    action:()=>{ const t=`My village has a way to show up for me now 🧡\n\nSend my family a meal through YourKitchen:\n${kitchenUrl}`; window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,'_blank') } },
+    { icon:<SvgFB/>, label:'Facebook',    action:()=>{ const q=`My village has a way to show up for me now 🧡 Send my family a meal — no app needed, just open the link and pick a date.`; window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}&quote=${encodeURIComponent(q)}`,'_blank') } },
+    { icon:<SvgX/>,  label:'Twitter / X', action:()=>{ const t=`My village has a way to show up for us now 🧡 Send my family a meal — no app needed. #YourKitchen`; window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t)}&url=${encodeURIComponent(kitchenUrl)}`,'_blank') } },
+    { icon:<SvgLI/>, label:'LinkedIn',    action:()=>{ window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(kitchenUrl)}`,'_blank') } },
+  ]
+
+  // No restaurants yet
   if (restaurantCount === 0) {
     return (
       <div style={{ padding:'16px 20px' }}>
@@ -595,13 +620,8 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
         <div style={{ background:S.white,border:`1.5px solid ${S.amber}`,borderRadius:16,padding:'22px 20px',textAlign:'center' }}>
           <div style={{ width:52,height:52,borderRadius:14,background:S.amberLight,display:'flex',alignItems:'center',justifyContent:'center',fontSize:24,margin:'0 auto 14px' }}>🏪</div>
           <p style={{ fontFamily:"'Lora',serif",fontSize:17,fontWeight:600,color:S.forest,margin:'0 0 6px' }}>Add one restaurant to start sharing</p>
-          <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 18px',lineHeight:1.6 }}>
-            Your village needs at least one place to order from. Add a favorite and your link goes live right away.
-          </p>
-          <button onClick={()=>router.push('/kitchen/restaurants')}
-            style={{ padding:'12px 24px',background:S.forest,color:S.white,border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
-            Add a restaurant →
-          </button>
+          <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 18px',lineHeight:1.6 }}>Your village needs at least one place to order from. Add a favorite and your link goes live right away.</p>
+          <button onClick={()=>router.push('/kitchen/restaurants')} style={{ padding:'12px 24px',background:S.forest,color:S.white,border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Add a restaurant →</button>
         </div>
       </div>
     )
@@ -611,118 +631,62 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
     <div style={{ padding:'16px 20px' }}>
       <p style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.forest,margin:'0 0 4px',letterSpacing:-0.5 }}>Share Your Kitchen</p>
       <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 20px',lineHeight:1.6 }}>Let your village know you're open for support.</p>
-      <div style={{ background:S.white,border:`1.5px dashed ${S.sageMid}`,borderRadius:16,padding:'16px 18px',marginBottom:12 }}>
-        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 8px' }}>Your Kitchen Link</p>
+
+      {/* ── Copy link ── */}
+      <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px 18px',marginBottom:12 }}>
+        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 8px' }}>Your Link</p>
         <div style={{ fontFamily:'monospace',fontSize:13,color:S.sage,marginBottom:12,wordBreak:'break-all',lineHeight:1.5 }}>{kitchenUrl}</div>
         <div style={{ display:'flex',gap:8 }}>
-          <button onClick={copyLink} style={{ flex:1,padding:'11px',background:copied?S.sage:S.forest,color:S.white,border:'none',borderRadius:9,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'background 0.2s' }}>
+          <button onClick={copyLink} style={{ flex:1,padding:'12px',background:copied?S.sage:S.forest,color:S.white,border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'background 0.2s',minHeight:44 }}>
             {copied?'✓ Copied!':'Copy Link'}
           </button>
-          <button onClick={shareNative} style={{ padding:'11px 18px',background:S.sageLight,color:S.sage,border:'none',borderRadius:9,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Share</button>
-        </div>
-      </div>
-      <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px 18px' }}>
-        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 6px' }}>Share to Social</p>
-        <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 14px',lineHeight:1.5 }}>Each button opens a pre-filled post — just add your message and share.</p>
-        <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
-
-          {/* WhatsApp */}
-          <button onClick={()=>{
-            const text=`My village has a way to show up for me now 🧡\n\nSend my family a meal through my YourKitchen:\n${kitchenUrl}`
-            window.open(`https://wa.me/?text=${encodeURIComponent(text)}`,'_blank')
-          }} style={{ display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:10,border:`1px solid #E5F5E5`,background:'#F0FBF0',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
-            <span style={{ fontSize:20,lineHeight:1,flexShrink:0 }}>💬</span>
-            <div>
-              <div style={{ fontSize:13,fontWeight:600,color:'#1A7C2A' }}>WhatsApp</div>
-              <div style={{ fontSize:11,color:'#2D8C3A',fontWeight:300 }}>Best for family &amp; friend groups</div>
-            </div>
-          </button>
-
-          {/* Facebook */}
-          <button onClick={()=>{
-            const quote=`My village has a way to show up for me now 🧡 Send my family a meal through my YourKitchen — no app needed, just open the link and pick a date. #YourKitchen`
-            window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}&quote=${encodeURIComponent(quote)}`,'_blank')
-          }} style={{ display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:10,border:`1px solid #E0EAFF`,background:'#F0F5FF',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
-            <span style={{ fontSize:20,lineHeight:1,flexShrink:0 }}>👍</span>
-            <div>
-              <div style={{ fontSize:13,fontWeight:600,color:'#1877F2' }}>Facebook</div>
-              <div style={{ fontSize:11,color:'#2C6FD4',fontWeight:300 }}>Opens a pre-filled post with your link</div>
-            </div>
-          </button>
-
-          {/* Twitter / X */}
-          <button onClick={()=>{
-            const text=`My village has a way to show up for us now 🧡 Send my family a meal — no app needed, just open the link and pick a date. #YourKitchen`
-            window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(text)}&url=${encodeURIComponent(kitchenUrl)}`,'_blank')
-          }} style={{ display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:10,border:`1px solid #E5E5E5`,background:'#FAFAFA',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
-            <span style={{ fontSize:20,lineHeight:1,flexShrink:0 }}>𝕏</span>
-            <div>
-              <div style={{ fontSize:13,fontWeight:600,color:'#0F1419' }}>Twitter / X</div>
-              <div style={{ fontSize:11,color:'#536471',fontWeight:300 }}>Opens a pre-filled tweet with your link</div>
-            </div>
-          </button>
-
-          {/* LinkedIn */}
-          <button onClick={()=>{
-            const summary=`My village has a way to show up for us now. Send my family a meal through YourKitchen — no app needed.`
-            window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(kitchenUrl)}&summary=${encodeURIComponent(summary)}`,'_blank')
-          }} style={{ display:'flex',alignItems:'center',gap:12,width:'100%',padding:'12px 14px',borderRadius:10,border:`1px solid #E0EDF8`,background:'#F0F7FF',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
-            <span style={{ fontSize:20,lineHeight:1,flexShrink:0 }}>💼</span>
-            <div>
-              <div style={{ fontSize:13,fontWeight:600,color:'#0A66C2' }}>LinkedIn</div>
-              <div style={{ fontSize:11,color:'#1A6DAA',fontWeight:300 }}>Opens a pre-filled post with your link</div>
-            </div>
-          </button>
-
+          <button onClick={shareNative} style={{ padding:'12px 20px',background:S.sageLight,color:S.sage,border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:44 }}>Share</button>
         </div>
       </div>
 
-      {/* ── Share your gratitude — recipient shares what their village did ── */}
-      {(() => {
-        const kindActs = proposals
-          .filter(p => ['confirmed','delivered'].includes(p.status) && p.coordinator_name)
-          .slice(0, 5)
-        if (kindActs.length === 0) return null
-        const firstName = kitchen.name?.split("'")[0] || 'us'
+      {/* ── Social share ── */}
+      <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px 18px',marginBottom:12 }}>
+        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 14px' }}>Share to</p>
+        <div style={{ display:'grid',gridTemplateColumns:'1fr 1fr',gap:8 }}>
+          {socials.map(s=>(
+            <button key={s.label} onClick={s.action}
+              style={{ display:'flex',alignItems:'center',gap:10,padding:'12px 14px',borderRadius:10,border:`0.5px solid ${S.border}`,background:S.white,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left',minHeight:44 }}>
+              {s.icon}
+              <span style={{ fontSize:13,fontWeight:500,color:S.forest }}>{s.label}</span>
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Gratitude share (only when meals exist) ── */}
+      {(()=>{
+        const kindActs=proposals.filter(p=>['confirmed','delivered'].includes(p.status)&&p.coordinator_name).slice(0,5)
+        if(kindActs.length===0) return null
+        const firstName=kitchen.name?.split("'")[0]||'us'
         return (
-          <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px 18px',marginTop:12 }}>
-            <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 6px' }}>Share a thank-you 🧡</p>
-            <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 14px',lineHeight:1.5 }}>Let the world see how your village showed up for you. Pick a meal someone sent and share your gratitude.</p>
+          <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px 18px' }}>
+            <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 6px' }}>Share a thank-you</p>
+            <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 14px',lineHeight:1.5 }}>Let the world see how your village showed up for you.</p>
             <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
-              {kindActs.map(p => {
-                const meal = p.meal_name || 'a meal'
-                const rest = p.restaurant_name || ''
-                const who = p.coordinator_name
-                const thankMsg = `${who} sent ${firstName} ${meal}${rest?` from ${rest}`:''} today 🧡 So grateful for the people who show up. This is what community looks like. #YourKitchen`
-                const isThanked = thanked === p.id
+              {kindActs.map(p=>{
+                const meal=p.meal_name||'a meal',rest=p.restaurant_name||'',who=p.coordinator_name
+                const msg=`${who} sent ${firstName} ${meal}${rest?` from ${rest}`:''} today 🧡 So grateful for the people who show up. #YourKitchen`
+                const isThanked=thanked===p.id
                 return (
-                  <div key={p.id} style={{ border:`1px solid ${S.border}`,borderRadius:12,padding:'12px 14px',background:S.cream }}>
+                  <div key={p.id} style={{ border:`0.5px solid ${S.border}`,borderRadius:12,padding:'12px 14px',background:S.cream }}>
                     <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:10 }}>
-                      <div style={{ width:34,height:34,borderRadius:10,background:S.sage,display:'flex',alignItems:'center',justifyContent:'center',color:S.white,fontSize:14,fontWeight:700,flexShrink:0 }}>
-                        {who.charAt(0).toUpperCase()}
-                      </div>
+                      <div style={{ width:34,height:34,borderRadius:10,background:S.sage,display:'flex',alignItems:'center',justifyContent:'center',color:S.white,fontSize:14,fontWeight:700,flexShrink:0 }}>{who.charAt(0).toUpperCase()}</div>
                       <div style={{ flex:1,minWidth:0 }}>
                         <div style={{ fontSize:13,fontWeight:600,color:S.forest }}>{who}</div>
                         <div style={{ fontSize:11,color:S.stone,fontWeight:300,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{meal}{rest?` · ${rest}`:''}</div>
                       </div>
                     </div>
                     <div style={{ display:'flex',gap:6 }}>
-                      <button onClick={()=>{
-                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}&quote=${encodeURIComponent(thankMsg)}`,'_blank')
-                      }} style={{ flex:1,padding:'8px',borderRadius:8,border:`1px solid #E0EAFF`,background:'#F0F5FF',color:'#1877F2',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>👍 Facebook</button>
-                      <button onClick={()=>{
-                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(thankMsg)}`,'_blank')
-                      }} style={{ flex:1,padding:'8px',borderRadius:8,border:`1px solid #E5E5E5`,background:'#FAFAFA',color:'#0F1419',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>𝕏 Post</button>
-                      <button onClick={async()=>{
-                        if(navigator.share){ try{ await navigator.share({text:thankMsg}) }catch{} }
-                        else {
-                          try{ await navigator.clipboard.writeText(thankMsg) }catch{
-                            const ta=document.createElement('textarea');ta.value=thankMsg;ta.style.cssText='position:fixed;opacity:0'
-                            document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta)
-                          }
-                          setThanked(p.id); setTimeout(()=>setThanked(null),2500)
-                        }
-                      }} style={{ flex:1,padding:'8px',borderRadius:8,border:'none',background:isThanked?S.sage:S.forest,color:S.white,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>{isThanked?'✓ Copied':'Share'}</button>
+                      <button onClick={()=>window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}&quote=${encodeURIComponent(msg)}`,'_blank')} style={{ flex:1,padding:'8px',borderRadius:8,border:`0.5px solid ${S.border}`,background:S.white,color:S.forest,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}><SvgFB/> Share</button>
+                      <button onClick={()=>window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(msg)}`,'_blank')} style={{ flex:1,padding:'8px',borderRadius:8,border:`0.5px solid ${S.border}`,background:S.white,color:S.forest,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}><SvgX/> Post</button>
+                      <button onClick={async()=>{ if(navigator.share){try{await navigator.share({text:msg})}catch{}} else{try{await navigator.clipboard.writeText(msg)}catch{}}; setThanked(p.id);setTimeout(()=>setThanked(null),2000) }} style={{ flex:1,padding:'8px',borderRadius:8,border:`0.5px solid ${S.border}`,background:S.white,color:isThanked?S.sage:S.forest,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
+                        {isThanked?'✓':'More'}
+                      </button>
                     </div>
                   </div>
                 )
@@ -734,7 +698,6 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
     </div>
   )
 }
-
 // ── VILLAGE TAB ───────────────────────────────────────────────────────────────
 function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitchen: Kitchen; villagePosts: VillagePost[]; proposals: Proposal[]; onPostUpdate: () => void }) {
   const [newPost, setNewPost]   = useState('')
