@@ -492,8 +492,9 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
 }
 
 // ── SHARE TAB ─────────────────────────────────────────────────────────────────
-function ShareTab({ kitchenUrl, kitchen, restaurantCount, router }: { kitchenUrl: string; kitchen: Kitchen; restaurantCount: number | null; router: any }) {
+function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: { kitchenUrl: string; kitchen: Kitchen; restaurantCount: number | null; router: any; proposals: Proposal[] }) {
   const [copied, setCopied] = useState(false)
+  const [thanked, setThanked] = useState<string | null>(null)
   const copyLink = async () => {
     try { await navigator.clipboard.writeText(kitchenUrl) } catch {
       const ta=document.createElement('textarea');ta.value=kitchenUrl;ta.style.cssText='position:fixed;opacity:0'
@@ -540,12 +541,6 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router }: { kitchenUrl
           </button>
           <button onClick={shareNative} style={{ padding:'11px 18px',background:S.sageLight,color:S.sage,border:'none',borderRadius:9,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Share</button>
         </div>
-      </div>
-      <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'20px',marginBottom:12,textAlign:'center' }}>
-        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 12px' }}>QR Code</p>
-        <div style={{ width:100,height:100,background:S.sageLight,borderRadius:12,margin:'0 auto 12px',display:'flex',alignItems:'center',justifyContent:'center',fontSize:36 }}>🔗</div>
-        <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:0 }}>Print or save your QR code to share offline.</p>
-        <button style={{ marginTop:10,padding:'8px 20px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,color:S.forest,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Download QR Code</button>
       </div>
       <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px 18px' }}>
         <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 6px' }}>Share to Social</p>
@@ -602,6 +597,61 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router }: { kitchenUrl
 
         </div>
       </div>
+
+      {/* ── Share your gratitude — recipient shares what their village did ── */}
+      {(() => {
+        const kindActs = proposals
+          .filter(p => ['confirmed','delivered'].includes(p.status) && p.coordinator_name)
+          .slice(0, 5)
+        if (kindActs.length === 0) return null
+        const firstName = kitchen.name?.split("'")[0] || 'us'
+        return (
+          <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px 18px',marginTop:12 }}>
+            <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 6px' }}>Share a thank-you 🧡</p>
+            <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 14px',lineHeight:1.5 }}>Let the world see how your village showed up for you. Pick a meal someone sent and share your gratitude.</p>
+            <div style={{ display:'flex',flexDirection:'column',gap:10 }}>
+              {kindActs.map(p => {
+                const meal = p.meal_name || 'a meal'
+                const rest = p.restaurant_name || ''
+                const who = p.coordinator_name
+                const thankMsg = `${who} sent ${firstName} ${meal}${rest?` from ${rest}`:''} today 🧡 So grateful for the people who show up. This is what community looks like. #YourKitchen`
+                const isThanked = thanked === p.id
+                return (
+                  <div key={p.id} style={{ border:`1px solid ${S.border}`,borderRadius:12,padding:'12px 14px',background:S.cream }}>
+                    <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:10 }}>
+                      <div style={{ width:34,height:34,borderRadius:10,background:S.sage,display:'flex',alignItems:'center',justifyContent:'center',color:S.white,fontSize:14,fontWeight:700,flexShrink:0 }}>
+                        {who.charAt(0).toUpperCase()}
+                      </div>
+                      <div style={{ flex:1,minWidth:0 }}>
+                        <div style={{ fontSize:13,fontWeight:600,color:S.forest }}>{who}</div>
+                        <div style={{ fontSize:11,color:S.stone,fontWeight:300,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{meal}{rest?` · ${rest}`:''}</div>
+                      </div>
+                    </div>
+                    <div style={{ display:'flex',gap:6 }}>
+                      <button onClick={()=>{
+                        window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}&quote=${encodeURIComponent(thankMsg)}`,'_blank')
+                      }} style={{ flex:1,padding:'8px',borderRadius:8,border:`1px solid #E0EAFF`,background:'#F0F5FF',color:'#1877F2',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>👍 Facebook</button>
+                      <button onClick={()=>{
+                        window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(thankMsg)}`,'_blank')
+                      }} style={{ flex:1,padding:'8px',borderRadius:8,border:`1px solid #E5E5E5`,background:'#FAFAFA',color:'#0F1419',fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>𝕏 Post</button>
+                      <button onClick={async()=>{
+                        if(navigator.share){ try{ await navigator.share({text:thankMsg}) }catch{} }
+                        else {
+                          try{ await navigator.clipboard.writeText(thankMsg) }catch{
+                            const ta=document.createElement('textarea');ta.value=thankMsg;ta.style.cssText='position:fixed;opacity:0'
+                            document.body.appendChild(ta);ta.select();document.execCommand('copy');document.body.removeChild(ta)
+                          }
+                          setThanked(p.id); setTimeout(()=>setThanked(null),2500)
+                        }
+                      }} style={{ flex:1,padding:'8px',borderRadius:8,border:'none',background:isThanked?S.sage:S.forest,color:S.white,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>{isThanked?'✓ Copied':'Share'}</button>
+                    </div>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
     </div>
   )
 }
@@ -980,7 +1030,7 @@ export default function DashboardPage() {
             {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier} onShare={handleShare}/>}
             {activeTab==='activity' && <ActivityTab proposals={allProposals} router={router}/>}
             {activeTab==='insights' && <InsightsTab proposals={allProposals} kitchenName={kitchen.name}/>}
-            {activeTab==='share'    && <ShareTab kitchenUrl={kitchenUrl} kitchen={kitchen} restaurantCount={restaurantCount} router={router}/>}
+            {activeTab==='share'    && <ShareTab kitchenUrl={kitchenUrl} kitchen={kitchen} restaurantCount={restaurantCount} router={router} proposals={allProposals}/>}
             {activeTab==='village'  && <VillageTab kitchen={kitchen} villagePosts={villagePosts} proposals={allProposals} onPostUpdate={()=>loadVillagePosts(kitchen.id)}/>}
           </div>
           <BottomNav active={activeTab} set={(t) => { setActiveTab(t); if (scrollRef.current) scrollRef.current.scrollTop = 0 }} badge={badgeCount}/>
