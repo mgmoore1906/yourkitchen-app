@@ -151,7 +151,7 @@ return (
 <button onClick={next} style={{ background:S.amberLight,border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',fontSize:16,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>›</button>
 </div>
 <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:3,marginBottom:3 }}>
-{['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=><div key={d} style={{ textAlign:'center',fontSize:10,fontWeight:600,color:S.stone,padding:'3px 0' }}>{d}</div>)}
+{['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=><div key={d} style={{ textAlign:'center',fontSize:11,fontWeight:600,color:S.stone,padding:'3px 0' }}>{d}</div>)}
 </div>
 <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:3 }}>
 {cells.map((day,i)=>{
@@ -162,7 +162,7 @@ const slots=dateMap[ds]||[],has=slots.length>0
 const isSel=slots.some((s:any)=>selectedIds.has(s.id))
 return (
 <button key={i} onClick={()=>{ if(!has||isPast)return;slots.forEach((s:any)=>onToggle(s)) }} disabled={isPast||!has}
-style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isToday?`2px solid ${S.amber}`:isSel?`2px solid ${S.amber}`:has?`1.5px solid ${S.border}`:`1.5px solid transparent`,borderRadius:10,padding:'clamp(4px,1.5vw,8px) 2px',minHeight:'clamp(44px,12vw,56px)',cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
+style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?`2px solid ${S.amber}`:isToday?`1.5px solid ${S.amber}`:has?`1px solid ${S.amberBorder}`:'1px solid transparent',borderRadius:10,padding:'clamp(4px,1.5vw,8px) 2px',minHeight:'clamp(44px,12vw,56px)',cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
 <span style={{ fontSize:13,fontWeight:isToday?700:500,color:isPast?'#C8D5CA':isSel?S.amber:S.mahogany,lineHeight:1 }}>{day}</span>
 {has&&<div style={{ display:'flex',gap:2 }}>{slots.map((s:any,si:number)=>{const mc=MEAL_TYPE_COLORS[s.meal_type]||MEAL_TYPE_COLORS.dinner;return<div key={si} style={{ width:6,height:6,borderRadius:'50%',background:selectedIds.has(s.id)?mc.color:'#C8D5CA' }}/>})}</div>}
 </button>
