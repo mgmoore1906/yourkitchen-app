@@ -165,8 +165,8 @@ const slots=dateMap[ds]||[],has=slots.length>0
 const isSel=slots.some((s:any)=>selectedIds.has(s.id))
 return (
 <button key={i} onClick={()=>{ if(!has||isPast)return;slots.forEach((s:any)=>onToggle(s)) }} disabled={isPast||!has}
-style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?`2px solid ${S.amber}`:isToday?`1.5px solid ${S.amber}`:has?`1px solid ${S.amberBorder}`:'1px solid transparent',borderRadius:10,padding:'clamp(4px,1.5vw,8px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
-<span style={{ fontSize:13,fontWeight:isToday?700:500,color:isPast?'#C8D5CA':isSel?S.amber:S.mahogany,lineHeight:1 }}>{day}</span>
+style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?`2px solid ${S.amber}`:isToday?`2px solid ${S.amber}`:has?`1px solid ${S.amberBorder}`:'1px solid transparent',borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
+<span style={{ fontSize:12,fontWeight:isToday?700:500,color:isSel?S.amber:S.forest,lineHeight:1 }}>{day}</span>
 {has&&<div style={{ display:'flex',gap:2 }}>{slots.map((s:any,si:number)=>{const mc=MEAL_TYPE_COLORS[s.meal_type]||MEAL_TYPE_COLORS.dinner;return<div key={si} style={{ width:6,height:6,borderRadius:'50%',background:selectedIds.has(s.id)?mc.color:'#C8D5CA' }}/>})}</div>}
 </button>
 )
@@ -400,10 +400,7 @@ return (
 <div style={{ minHeight:'100vh',background:S.cream,fontFamily:"'DM Sans',sans-serif",display:'flex',flexDirection:'column' }}>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
-<div style={{ background:S.headerBg, padding:'10px 24px 12px', textAlign:'center' }}>
-<a href="https://yourkitchen.app" target="_blank" rel="noopener noreferrer" style={{ display:'inline-block', marginBottom:8 }}>
-  <img src="/yourkitchen-logo-dark.png" alt="YourKitchen" style={{ height:28, width:'auto', display:'block' }}/>
-</a>
+<div style={{ background:S.headerBg, padding:'10px 24px', textAlign:'center' }}>
 <div style={{ fontSize:10, fontWeight:400, letterSpacing:3, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', marginBottom:3 }}>Sending a meal to</div>
 <div style={{ fontFamily:"'Lora',serif", fontSize:20, fontWeight:600, color:S.white, letterSpacing:-0.5 }}>{kitchen.name}</div>
 </div>
