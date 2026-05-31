@@ -21,8 +21,9 @@ export async function GET(request: Request) {
     .select(`
       id, status, delivery_status, meal_type, delivery_date,
       delivery_preference, delivery_note, coordinator_name,
-      restaurant_name, meal_name, tip_amount,
+      restaurant_name, meal_name, meal_items, tip_amount,
       doordash_tracking_url, doordash_delivery_id,
+      kitchen_restaurants(name, address, phone),
       kitchens:kitchen_id(name, address)
     `)
     .eq('status', 'confirmed')
@@ -36,6 +37,8 @@ export async function GET(request: Request) {
     ...r,
     kitchen_name: r.kitchens?.name || '',
     kitchen_address: r.kitchens?.address || '',
+    restaurant_address: r.kitchen_restaurants?.address || '',
+    restaurant_phone: r.kitchen_restaurants?.phone || '',
   }))
 
   return NextResponse.json({ orders })
