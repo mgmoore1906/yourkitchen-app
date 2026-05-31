@@ -59,17 +59,36 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
     requestOnDemandDelivery: true,
   }
 
-  // Explicit coordinates remove geocoding ambiguity — the usual cause of a
-  // false "address not in service area" rejection from Uber/DoorDash fleets.
-  // Only attach when present so we never send null/0 (which geocodes to the ocean).
-  if (restaurant?.lat != null && restaurant?.lng != null) {
-    payload.pickupLatitude  = restaurant.lat
-    payload.pickupLongitude = restaurant.lng
+  // Coordinates MUST be numbers — Supabase numeric columns can deserialize as
+  // strings, and Shipday silently ignores string coords, falling back to the
+  // account's DEFAULT pickup address (the bug: orders showed pickup = our own
+  // address 174mi away instead of the restaurant).
+  const pLat = restaurant?.lat != null ? Number(restaurant.lat) : null
+  const pLng = restaurant?.lng != null ? Number(restaurant.lng) : null
+  const dLat = kitchen?.latitude != null ? Number(kitchen.latitude) : null
+  const dLng = kitchen?.longitude != null ? Number(kitchen.longitude) : null
+
+  if (pLat != null && !Number.isNaN(pLat) && pLng != null && !Number.isNaN(pLng)) {
+    payload.pickupLatitude  = pLat
+    payload.pickupLongitude = pLng
   }
-  if (kitchen?.latitude != null && kitchen?.longitude != null) {
-    payload.deliveryLatitude  = kitchen.latitude
-    payload.deliveryLongitude = kitchen.longitude
+  if (dLat != null && !Number.isNaN(dLat) && dLng != null && !Number.isNaN(dLng)) {
+    payload.deliveryLatitude  = dLat
+    payload.deliveryLongitude = dLng
   }
+
+  // TEMP DIAGNOSTIC — logs the exact payload so we can confirm coords are sent
+  // as numbers. Remove after dispatch is confirmed working.
+  console.log('[Shipday payload]', JSON.stringify({
+    restaurantName: payload.restaurantName,
+    restaurantAddress: payload.restaurantAddress,
+    pickupLatitude: payload.pickupLatitude,
+    pickupLongitude: payload.pickupLongitude,
+    pickupType: typeof payload.pickupLatitude,
+    customerAddress: payload.customerAddress,
+    deliveryLatitude: payload.deliveryLatitude,
+    deliveryLongitude: payload.deliveryLongitude,
+  }))
 
   const res = await fetch('https://api.shipday.com/orders', {
     method:  'POST',
@@ -83,7 +102,7 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
   const data = await res.json()
   if (!res.ok) throw new Error(data.message || `Shipday error ${res.status}`)
 
-  console.log(`[Shipday] Dispatched: ${orderNumber}`, data)
+  console.log(`[Shipday] Dispatched: ${orderNumber}`, JSON.stringify(data))
   return {
     orderNumber,
     shipdayOrderId: data.orderId,
