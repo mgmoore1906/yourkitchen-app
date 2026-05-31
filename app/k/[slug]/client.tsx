@@ -5,29 +5,30 @@
 import { useState, useEffect, useRef } from 'react'
 import { haversineDistance, getTipTier } from '@/lib/distance'
 
-// ── Coordinator palette — warm amber/wheat (distinct from recipient's sage/forest) ──
+// ── Coordinator palette — INVERTED YourKitchen (dark mode of the same brand colors) ──
 const S = {
-// Coordinator accent
-amber:      '#B87333',   // warm copper-amber — primary action color
-amberMid:   '#D4956A',   // mid amber
-amberLight: '#F5ECD8',   // warm cream tint
-amberBorder:'#E0C89A',   // warm tan border
-// Coordinator background
-cream:      '#FDFAF5',   // warm cream (slightly warmer than recipient)
-warmWhite:  '#FFFCF5',   // card backgrounds
-// Coordinator text
-mahogany:   '#5C3317',   // dark warm brown — headings/buttons (replaces forest)
-walnut:     '#7A5C3A',   // medium warm brown — body text (replaces stone)
+// Inverted background: forest becomes the canvas
+cream:      '#1E2620',   // forest — now the page background (was the light cream)
+warmWhite:  '#2A352D',   // lifted dark surface for cards
+// Accent: sage, brightened so it pops on dark
+amber:      '#7FB89A',   // bright sage — primary action color (replaces dark sage on dark bg)
+amberMid:   '#6B9E7E',   // sageMid
+amberLight: '#2A352D',   // dark surface tint for selected/active backgrounds
+amberBorder:'#3D5145',   // subtle sage-tinted dark border
+// Text on dark
+mahogany:   '#F5F3EC',   // near-white cream — headings/hero text (replaces dark forest text)
+walnut:     '#A8B5AC',   // muted sage-gray — body text (replaces stone)
+headerBg:   '#141A16',   // deepest forest — header/footer bar in dark mode
 // Functional
 white:      '#FFFFFF',
-border:     '#E0C89A',   // warm tan
-red:        '#B94040',
-redLight:   '#FDE8E8',
-blue:       '#4A8FA8',
-blueLight:  '#E8F4F8',
-// Keep for meal-type color coding
-sage:       '#3D6B4F',   // still used for dinner meal type dots
-sageLight:  '#EAF2ED',
+border:     '#3D5145',   // sage-tinted dark border
+red:        '#E08585',   // brightened red for dark bg
+redLight:   '#3A2424',
+blue:       '#7FB8CC',
+blueLight:  '#243238',
+// Meal-type dots — keep recognizable on dark
+sage:       '#7FB89A',
+sageLight:  '#2A352D',
 forest:     '#1E2620',
 stone:      '#6B7066',
 }
@@ -79,7 +80,7 @@ const sorted = Object.entries(tally).sort((a,b)=>b[1]-a[1])
 const max = sorted[0]?.[1]||1
 const fmtD = (d: string) => new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'})
 return (
-<div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:14,marginBottom:20,overflow:'hidden' }}>
+<div style={{ background:S.warmWhite,border:`1px solid ${S.border}`,borderRadius:14,marginBottom:20,overflow:'hidden' }}>
 <button onClick={()=>setExpanded(e=>!e)} style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',justifyContent:'space-between',background:'none',border:'none',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
 <div style={{ display:'flex',alignItems:'center',gap:10 }}>
 <span style={{ fontSize:16 }}>📋</span>
@@ -142,7 +143,7 @@ const cells:(number|null)[]=[]
 for(let i=0;i<firstDay;i++)cells.push(null)
 for(let d=1;d<=daysInMonth;d++)cells.push(d)
 return (
-<div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
+<div style={{ background:S.warmWhite,border:`1px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
 <button onClick={prev} style={{ background:S.amberLight,border:'none',borderRadius:8,width:32,height:32,cursor:'pointer',fontSize:16,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>‹</button>
 <p style={{ fontFamily:"'Lora',serif",fontSize:16,fontWeight:500,color:S.forest,margin:0 }}>{monthName}</p>
@@ -181,7 +182,7 @@ style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isToda
 
 function CoordFooter() {
 return (
-<footer style={{ background:S.mahogany,padding:'48px 24px',textAlign:'center',marginTop:40,fontFamily:"'DM Sans',sans-serif" }}>
+<footer style={{ background:S.headerBg,padding:'48px 24px',textAlign:'center',marginTop:40,fontFamily:"'DM Sans',sans-serif" }}>
 <div style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.white,letterSpacing:-0.5,marginBottom:6 }}>YourKitchen</div>
 <p style={{ fontFamily:"'Lora',serif",fontStyle:'italic',fontSize:13,color:'rgba(255,255,255,0.55)',margin:'0 0 16px' }}>"Your kitchen, covered."</p>
 <p style={{ fontSize:10,color:'rgba(255,255,255,0.2)',margin:0 }}>© 2026 YourKitchen LLC</p>
@@ -387,7 +388,7 @@ return (
 <div style={{ minHeight:'100vh',background:S.cream,fontFamily:"'DM Sans',sans-serif",display:'flex',flexDirection:'column' }}>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
-<div style={{ background:S.mahogany, padding:'16px 24px', textAlign:'center' }}>
+<div style={{ background:S.headerBg, padding:'16px 24px', textAlign:'center' }}>
 <div style={{ fontSize:10, fontWeight:400, letterSpacing:3, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', marginBottom:4 }}>Sending a meal to</div>
 <div style={{ fontFamily:"'Lora',serif", fontSize:26, fontWeight:600, color:S.white, letterSpacing:-0.5 }}>{kitchen.name}</div>
 <div style={{ fontSize:10, fontWeight:300, color:'rgba(255,255,255,0.45)', marginTop:6, letterSpacing:1 }}>via YourKitchen</div>
@@ -452,7 +453,7 @@ return (
 {/* ── Step 2 ── */}
 {step===2&&currentGroup&&(<>
 {groups.length>1&&(
-<div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:12,padding:'12px 16px',marginBottom:16 }}>
+<div style={{ background:S.warmWhite,border:`1px solid ${S.border}`,borderRadius:12,padding:'12px 16px',marginBottom:16 }}>
 <p style={{ fontSize:11,fontWeight:600,color:S.stone,letterSpacing:1.5,textTransform:'uppercase',margin:'0 0 10px' }}>Meal group {currentGroupIdx+1} of {groups.length}</p>
 <div style={{ display:'flex',gap:8 }}>
 {groups.map((g,i)=>{const mc=MEAL_TYPE_COLORS[g.mealType]||MEAL_TYPE_COLORS.dinner;const done=i<currentGroupIdx,cur=i===currentGroupIdx;return(
@@ -504,7 +505,7 @@ const adultMeals = allMeals.filter(m=>m.category==='adult')
 const kidsMeals = allMeals.filter(m=>m.category==='kids')
 
 return (
-<div key={fav.id} style={{ background:S.white,border:`2px solid ${isSelected?S.amber:S.amberBorder}`,borderRadius:14,marginBottom:10,overflow:'hidden',transition:'all 0.15s' }}>
+<div key={fav.id} style={{ background:S.warmWhite,border:`2px solid ${isSelected?S.amber:S.amberBorder}`,borderRadius:14,marginBottom:10,overflow:'hidden',transition:'all 0.15s' }}>
 <button onClick={()=>handleRestaurantSelect(isSelected?{...fav,id:''}:fav)}
 style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap:12,background:isSelected?S.amberLight:'transparent',border:'none',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",textAlign:'left' }}>
 <div style={{ flex:1 }}>
@@ -572,7 +573,7 @@ return (
 {kidsMeals.map((m,i)=>{
 const qty=cartGet(m.name,'kids')?.qty||0
 return (
-<div key={i} style={{ background:qty>0?S.amberLight:S.white,border:`2px solid ${qty>0?S.amber:S.border}`,borderRadius:11,padding:'11px 14px',display:'flex',alignItems:'center',gap:12,transition:'all 0.1s' }}>
+<div key={i} style={{ background:qty>0?S.amberLight:S.warmWhite,border:`2px solid ${qty>0?S.amber:S.border}`,borderRadius:11,padding:'11px 14px',display:'flex',alignItems:'center',gap:12,transition:'all 0.1s' }}>
 <div style={{ flex:1 }}>
 <div style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:600,color:S.forest }}>{m.name}</div>
 <div style={{ fontSize:13,fontWeight:700,color:S.amber,marginTop:1 }}>${m.price.toFixed(2)}</div>
@@ -622,7 +623,7 @@ style={{ background:(!currentGroup.customMeal.trim()||!(parseFloat(currentGroup.
 
 {/* ── CART SUMMARY ── */}
 {currentGroup.cart.length>0&&(
-<div style={{ background:S.white,border:`1.5px solid ${S.amberBorder}`,borderRadius:12,padding:'14px 16px',marginTop:16 }}>
+<div style={{ background:S.warmWhite,border:`1.5px solid ${S.amberBorder}`,borderRadius:12,padding:'14px 16px',marginTop:16 }}>
 <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.08em',textTransform:'uppercase',margin:'0 0 10px' }}>Your order</p>
 {currentGroup.cart.map((c,i)=>(
 <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6 }}>
@@ -740,7 +741,7 @@ style={{ flex:1,padding:'11px 4px',borderRadius:10,border:'none',background:tipA
 
 {/* Price breakdown */}
 {mealSubtotal > 0 && (
-<div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:14,padding:'14px 16px',marginBottom:20 }}>
+<div style={{ background:S.warmWhite,border:`1px solid ${S.border}`,borderRadius:14,padding:'14px 16px',marginBottom:20 }}>
 <p style={{ fontSize:11,fontWeight:700,color:S.stone,letterSpacing:'0.08em',textTransform:'uppercase',margin:'0 0 10px' }}>Price estimate</p>
 {groups.map(g=>{
 const sub=cartTotal(g.cart)*g.slots.length
@@ -775,7 +776,7 @@ Price reflects what {recipientFirst} saved. Actual price may vary slightly.
 </div>
 )}
 
-<div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:12,padding:'14px 16px',marginBottom:20 }}>
+<div style={{ background:S.warmWhite,border:`1px solid ${S.border}`,borderRadius:12,padding:'14px 16px',marginBottom:20 }}>
 <p style={{ fontSize:13,color:S.stone,margin:0,lineHeight:1.6 }}>💳 You won't be charged until {recipientFirst} confirms. No money moves until they say yes.</p>
 </div>
 
@@ -795,9 +796,9 @@ Price reflects what {recipientFirst} saved. Actual price may vary slightly.
 )
 }
 
-const h2: React.CSSProperties = { fontFamily:"'Lora',serif",fontSize:22,fontWeight:500,color:'#5C3317',margin:'0 0 6px' }
-const sub: React.CSSProperties = { fontSize:14,color:'#7A5C3A',margin:'0 0 20px',fontWeight:300 }
-const btn = (d:boolean): React.CSSProperties => ({ width:'100%',padding:'14px',borderRadius:10,border:'none',background:d?'#E0C89A':'#5C3317',color:d?'#7A5C3A':'#fff',fontSize:14,fontWeight:500,cursor:d?'default':'pointer',fontFamily:"'DM Sans',sans-serif" })
-const back: React.CSSProperties = { padding:'14px 20px',borderRadius:10,border:`1.5px solid #E0C89A`,background:'transparent',fontSize:14,color:'#7A5C3A',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }
-const lbl: React.CSSProperties = { fontSize:11,fontWeight:600,color:'#7A5C3A',letterSpacing:1.5,textTransform:'uppercase',display:'block',marginBottom:8 }
-const inp: React.CSSProperties = { width:'100%',padding:'13px 16px',borderRadius:10,border:'1.5px solid #E0C89A',fontSize:16,background:'#FFFCF5',outline:'none',boxSizing:'border-box',marginBottom:20,fontFamily:"'DM Sans',sans-serif",color:'#5C3317' }
+const h2: React.CSSProperties = { fontFamily:"'Lora',serif",fontSize:22,fontWeight:500,color:'#F5F3EC',margin:'0 0 6px' }
+const sub: React.CSSProperties = { fontSize:14,color:'#A8B5AC',margin:'0 0 20px',fontWeight:300 }
+const btn = (d:boolean): React.CSSProperties => ({ width:'100%',padding:'14px',borderRadius:10,border:'none',background:d?'#2A352D':'#7FB89A',color:d?'#A8B5AC':'#141A16',fontSize:14,fontWeight:600,cursor:d?'default':'pointer',fontFamily:"'DM Sans',sans-serif" })
+const back: React.CSSProperties = { padding:'14px 20px',borderRadius:10,border:`1.5px solid #3D5145`,background:'transparent',fontSize:14,color:'#A8B5AC',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }
+const lbl: React.CSSProperties = { fontSize:11,fontWeight:600,color:'#A8B5AC',letterSpacing:1.5,textTransform:'uppercase',display:'block',marginBottom:8 }
+const inp: React.CSSProperties = { width:'100%',padding:'13px 16px',borderRadius:10,border:'1.5px solid #3D5145',fontSize:16,background:'#2A352D',outline:'none',boxSizing:'border-box',marginBottom:20,fontFamily:"'DM Sans',sans-serif",color:'#F5F3EC' }
