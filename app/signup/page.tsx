@@ -188,7 +188,7 @@ style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50
 {error && <p style={{ color: '#B94040', fontSize: 13, margin: 0 }}>{error}</p>}
 
 <button type="submit" disabled={loading}
-style={{ background: loading ? '#6B9E7E' : '#3D6B4F', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 14, fontWeight: 500, cursor: loading ? 'default' : 'pointer', marginTop: 8, fontFamily: "'DM Sans', sans-serif" }}>
+style={{ background: loading ? '#6B9E7E' : '#3D6B4F', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 14, fontWeight: 500, cursor: loading ? 'default' : 'pointer', width: '100%', minHeight: 48, marginTop: 8, fontFamily: "'DM Sans', sans-serif" }}>
 {loading ? 'Creating account…' : 'Create Free Account'}
 </button>
 </form>
