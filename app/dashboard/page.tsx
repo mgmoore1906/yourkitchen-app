@@ -39,12 +39,50 @@ type VillagePost = { id: string; content: string; author_name: string | null; au
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 function BottomNav({ active, set, badge }: { active: Tab; set: (t: Tab) => void; badge: number }) {
-  const tabs: { key: Tab; icon: string; label: string }[] = [
-    { key: 'home',     icon: '🏠', label: 'Home'     },
-    { key: 'activity', icon: '📋', label: 'Activity' },
-    { key: 'share',    icon: '❤️',  label: 'Share'    },
-    { key: 'insights', icon: '📊', label: 'Insights' },
-    { key: 'village',  icon: '💬', label: 'Village'  },
+  // ── SVG icon set — filled/outline per HIG active-state convention ─────────
+  const IcHome = ({c,f}:{c:string,f:boolean}) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      {f
+        ? <path d="M3 9.5L12 2L21 9.5V20C21 20.55 20.55 21 20 21H15.5V15.5C15.5 14.95 15.05 14.5 14.5 14.5H9.5C8.95 14.5 8.5 14.95 8.5 15.5V21H4C3.45 21 3 20.55 3 20V9.5Z" fill={c}/>
+        : <path d="M3 9.5L12 2L21 9.5V20C21 20.55 20.55 21 20 21H15.5V15.5C15.5 14.95 15.05 14.5 14.5 14.5H9.5C8.95 14.5 8.5 14.95 8.5 15.5V21H4C3.45 21 3 20.55 3 20V9.5Z" stroke={c} strokeWidth="1.75" strokeLinejoin="round" fill="none"/>}
+    </svg>
+  )
+  const IcActivity = ({c,f}:{c:string,f:boolean}) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      {f ? (<><rect x="4" y="2" width="16" height="20" rx="2.5" fill={c}/>
+              <path d="M8 8H12M8 12H16M8 16H14" stroke="white" strokeWidth="1.6" strokeLinecap="round"/></>)
+          : (<><rect x="4" y="2" width="16" height="20" rx="2.5" stroke={c} strokeWidth="1.75" fill="none"/>
+              <path d="M8 8H12M8 12H16M8 16H14" stroke={c} strokeWidth="1.6" strokeLinecap="round"/></>)}
+    </svg>
+  )
+  const IcHeart = () => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z" fill="#E8444D"/>
+    </svg>
+  )
+  const IcInsights = ({c,f}:{c:string,f:boolean}) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      {f ? (<><rect x="3" y="13" width="5" height="8" rx="1" fill={c}/>
+              <rect x="9.5" y="8" width="5" height="13" rx="1" fill={c}/>
+              <rect x="16" y="3" width="5" height="18" rx="1" fill={c}/></>)
+          : (<><rect x="3" y="13" width="5" height="8" rx="1" stroke={c} strokeWidth="1.75" fill="none"/>
+              <rect x="9.5" y="8" width="5" height="13" rx="1" stroke={c} strokeWidth="1.75" fill="none"/>
+              <rect x="16" y="3" width="5" height="18" rx="1" stroke={c} strokeWidth="1.75" fill="none"/></>)}
+    </svg>
+  )
+  const IcVillage = ({c,f}:{c:string,f:boolean}) => (
+    <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
+      {f
+        ? <path d="M21 15C21 15.55 20.55 16 20 16H7L3 20V4C3 3.45 3.45 3 4 3H20C20.55 3 21 3.45 21 4V15Z" fill={c}/>
+        : <path d="M21 15C21 15.55 20.55 16 20 16H7L3 20V4C3 3.45 3.45 3 4 3H20C20.55 3 21 3.45 21 4V15Z" stroke={c} strokeWidth="1.75" strokeLinejoin="round" fill="none"/>}
+    </svg>
+  )
+  const tabs: { key: Tab; label: string }[] = [
+    { key: 'home',     label: 'Home'     },
+    { key: 'activity', label: 'Activity' },
+    { key: 'share',    label: 'Share'    },
+    { key: 'insights', label: 'Insights' },
+    { key: 'village',  label: 'Village'  },
   ]
   return (
     <div style={{ position:'fixed', bottom:0, left:0, right:0, background:S.white, borderTop:`0.5px solid ${S.border}`, display:'flex', zIndex:200, paddingBottom:'env(safe-area-inset-bottom, 0px)' }}>
@@ -52,18 +90,23 @@ function BottomNav({ active, set, badge }: { active: Tab; set: (t: Tab) => void;
         const isActive  = active === t.key
         const isShare   = t.key === 'share'
         const showBadge = t.key === 'activity' && badge > 0
+        const iconCol   = isActive ? (isShare ? '#E8444D' : S.sage) : S.stone
         return (
           <button key={t.key} onClick={() => set(t.key)}
-            style={{ flex:1, border:'none', background:'none', cursor:'pointer', padding:'10px 0 8px', display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative', fontFamily:"'DM Sans',sans-serif" }}>
+            style={{ flex:1, border:'none', background:'none', cursor:'pointer', padding:'10px 0 8px', display:'flex', flexDirection:'column', alignItems:'center', gap:3, position:'relative', fontFamily:"'DM Sans',sans-serif", minHeight:44 }}>
             {showBadge && (
               <div style={{ position:'absolute', top:6, right:'50%', transform:'translateX(12px)', background:S.amber, color:S.white, borderRadius:'50%', width:16, height:16, display:'flex', alignItems:'center', justifyContent:'center', fontSize:9, fontWeight:700 }}>
                 {badge > 9 ? '9+' : badge}
               </div>
             )}
-            <div style={{ width:36, height:28, borderRadius:14, background:isActive?(isShare?'#FDECEA':S.sageLight):'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.2s' }}>
-              <span style={{ fontSize: isShare ? 19 : 17 }}>{t.icon}</span>
+            <div style={{ width:44, height:28, borderRadius:14, background:isActive?(isShare?'#FDE8E9':S.sageLight):'transparent', display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.2s' }}>
+              {t.key==='home'     && <IcHome c={iconCol} f={isActive}/>}
+              {t.key==='activity' && <IcActivity c={iconCol} f={isActive}/>}
+              {t.key==='share'    && <IcHeart />}
+              {t.key==='insights' && <IcInsights c={iconCol} f={isActive}/>}
+              {t.key==='village'  && <IcVillage c={iconCol} f={isActive}/>}
             </div>
-            <span style={{ fontSize:10, fontWeight:isActive?700:400, color:isActive?(isShare?'#C0392B':S.sage):S.stone, letterSpacing:'0.02em' }}>{t.label}</span>
+            <span style={{ fontSize:10, fontWeight:isActive?600:400, color:isActive?(isShare?'#E8444D':S.sage):S.stone, letterSpacing:'0.02em' }}>{t.label}</span>
           </button>
         )
       })}
@@ -71,18 +114,54 @@ function BottomNav({ active, set, badge }: { active: Tab; set: (t: Tab) => void;
   )
 }
 
+// ── Drawer SVG icons (monochrome, stroke-only, HIG-weight 1.7) ────────────
+function DrawerIcon({ name }: { name: string }) {
+  const c = S.stone
+  const s = { stroke:c, strokeWidth:'1.7', strokeLinecap:'round' as const, strokeLinejoin:'round' as const, fill:'none' }
+  const icons: Record<string, React.ReactNode> = {
+    'My Restaurants': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M3 2v7c0 1.1.9 2 2 2s2-.9 2-2V2" {...s}/><path d="M5 11v9M15 2s2 4 2 7-2 7-2 7v2" {...s}/>
+    </svg>,
+    'Order History': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" {...s}/><path d="M12 7v5l3 3" {...s}/>
+    </svg>,
+    'Settings': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="3" {...s}/><path d="M12 2v2M12 20v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M2 12h2M20 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" {...s}/>
+    </svg>,
+    'Delivery Windows': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="9" {...s}/><path d="M12 6v6l4 2" {...s}/>
+    </svg>,
+    'Plans & Pricing': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" {...s}/>
+    </svg>,
+    'Share Your Kitchen': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8M16 6l-4-4-4 4M12 2v13" {...s}/>
+    </svg>,
+    'Refresh': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <polyline points="23,4 23,10 17,10" {...s}/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10" {...s}/>
+    </svg>,
+    'About & Help': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <circle cx="12" cy="12" r="10" {...s}/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" {...s}/><line x1="12" y1="17" x2="12.01" y2="17" stroke={c} strokeWidth="2" strokeLinecap="round"/>
+    </svg>,
+    'Sign Out': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4M16 17l5-5-5-5M21 12H9" {...s}/>
+    </svg>,
+  }
+  return <span style={{ width:24, display:'flex', justifyContent:'center', alignItems:'center', flexShrink:0 }}>{icons[name] ?? null}</span>
+}
+
 // ── Hamburger Drawer ──────────────────────────────────────────────────────────
 function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onShare, onRefresh, router }: { name: string; tier: any; kitchenUrl: string; recipientName: string; onClose: () => void; onSignOut: () => void; onShare: () => void; onRefresh: () => void; router: any }) {
   const initial = (name || '?').charAt(0).toUpperCase()
   const items = [
-    { icon: '🏪', label: 'My Restaurants',  action: () => router.push('/kitchen/restaurants') },
-    { icon: '📋', label: 'Order History',    action: () => router.push('/kitchen/orders') },
-    { icon: '⚙️', label: 'Settings',          action: () => router.push('/settings') },
-    { icon: '⏰', label: 'Delivery Windows', action: () => router.push('/settings') },
-    { icon: '💎', label: 'Plans & Pricing',  action: () => router.push('/tiers') },
-    { icon: '👥', label: 'Share Your Kitchen', action: onShare },
-    { icon: '🔄', label: 'Refresh',          action: onRefresh },
-    { icon: '❓', label: 'About & Help',      action: () => router.push('/help') },
+    { label: 'My Restaurants',   action: () => router.push('/kitchen/restaurants') },
+    { label: 'Order History',    action: () => router.push('/kitchen/orders') },
+    { label: 'Settings',         action: () => router.push('/settings') },
+    { label: 'Delivery Windows', action: () => router.push('/settings') },
+    { label: 'Plans & Pricing',  action: () => router.push('/tiers') },
+    { label: 'Share Your Kitchen', action: onShare },
+    { label: 'Refresh',          action: onRefresh },
+    { label: 'About & Help',     action: () => router.push('/help') },
   ]
   return (
     <>
@@ -102,7 +181,7 @@ function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onS
           {items.map(item => (
             <button key={item.label} onClick={() => { onClose(); item.action() }}
               style={{ width:'100%', padding:'14px 24px', display:'flex', alignItems:'center', gap:14, background:'none', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif", borderBottom:`0.5px solid ${S.border}` }}>
-              <span style={{ fontSize:18, width:24 }}>{item.icon}</span>
+              <DrawerIcon name={item.label}/>
               <span style={{ fontSize:14, fontWeight:400, color:S.forest }}>{item.label}</span>
             </button>
           ))}
@@ -110,7 +189,7 @@ function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onS
         <div style={{ borderTop:`0.5px solid ${S.border}` }}>
           <button onClick={() => { onClose(); onSignOut() }}
             style={{ width:'100%', padding:'16px 24px', display:'flex', alignItems:'center', gap:14, background:'none', border:'none', cursor:'pointer', fontFamily:"'DM Sans',sans-serif" }}>
-            <span style={{ fontSize:18, width:24 }}>🔓</span>
+            <DrawerIcon name="Sign Out"/>
             <span style={{ fontSize:14, color:S.red }}>Sign Out</span>
           </button>
           <div style={{ padding:'12px 24px 28px', display:'flex', gap:0, flexWrap:'wrap' }}>
@@ -205,7 +284,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
         </div>
         <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2,marginBottom:3 }}>
           {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>(
-            <div key={d} style={{ textAlign:'center',fontSize:9,fontWeight:700,color:S.stone,padding:'2px 0' }}>{d}</div>
+            <div key={d} style={{ textAlign:'center',fontSize:11,fontWeight:600,color:S.stone,padding:'2px 0' }}>{d}</div>
           ))}
         </div>
         <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2 }}>
@@ -218,7 +297,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
             const slots   = dateMap[dateStr]||[]
             return (
               <button key={i} onClick={() => { if(!isPast) setSelectedDate((p:string|null)=>p===dateStr?null:dateStr) }} disabled={isPast}
-                style={{ background:isSel?S.sageLight:slots.length?'#F8FAF8':S.white,border:`${isSel||isToday?2:1}px solid ${isSel?S.sage:isToday?S.sageMid:slots.length?'#C8DDD0':S.border}`,borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
+                style={{ background:isSel?S.sageLight:slots.length?'#F8FAF8':S.white,border:isSel?`2px solid ${S.sage}`:isToday?`2px solid ${S.sageMid}`:slots.length?`1px solid #C8DDD0`:'1px solid transparent',borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
                 <span style={{ fontSize:12,fontWeight:isToday?700:500,color:isSel?S.sage:S.forest,lineHeight:1 }}>{day}</span>
                 {slots.length
                   ? <div style={{ display:'flex',gap:2,flexWrap:'wrap',justifyContent:'center' }}>
@@ -973,7 +1052,7 @@ export default function DashboardPage() {
 
         {/* Hamburger */}
         <button onClick={()=>setDrawerOpen(true)}
-          style={{ background:'none',border:'none',cursor:'pointer',padding:'4px',display:'flex',flexDirection:'column',gap:4,justifyContent:'center' }}>
+          style={{ background:'none',border:'none',cursor:'pointer',padding:'10px 8px',display:'flex',flexDirection:'column',gap:4,justifyContent:'center',minWidth:44,minHeight:44,alignItems:'center' }}>
           <div style={{ width:20,height:2,background:S.white,borderRadius:2 }}/>
           <div style={{ width:14,height:2,background:S.white,borderRadius:2 }}/>
           <div style={{ width:18,height:2,background:S.white,borderRadius:2 }}/>
@@ -992,8 +1071,8 @@ export default function DashboardPage() {
 
           {/* 🔔 Notification bell */}
           <button onClick={()=>setNotifOpen(o=>!o)}
-            style={{ background:'none',border:'none',cursor:'pointer',position:'relative',padding:4 }}>
-            <span style={{ fontSize:20 }}>🔔</span>
+            style={{ background:'none',border:'none',cursor:'pointer',position:'relative',padding:'10px 8px',minWidth:44,minHeight:44,display:'flex',alignItems:'center',justifyContent:'center' }}>
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" stroke="white" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round"/><path d="M13.73 21a2 2 0 0 1-3.46 0" stroke="white" strokeWidth="1.75" strokeLinecap="round"/></svg>
             {badgeCount > 0 && (
               <div style={{ position:'absolute',top:0,right:0,background:S.amber,color:S.white,borderRadius:'50%',width:16,height:16,display:'flex',alignItems:'center',justifyContent:'center',fontSize:9,fontWeight:700 }}>
                 {badgeCount > 9 ? '9+' : badgeCount}
