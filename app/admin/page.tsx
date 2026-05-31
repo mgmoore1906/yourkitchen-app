@@ -23,6 +23,7 @@ type Order = {
   coordinator_name: string; restaurant_name: string; meal_name: string
   tip_amount: number | null; doordash_tracking_url: string | null
   doordash_delivery_id: string | null; kitchen_name: string; kitchen_address: string
+  restaurant_address?: string; restaurant_phone?: string
 }
 
 type AnalyticsData = { kitchens: any[]; proposals: any[]; profiles: any[] }
@@ -407,6 +408,7 @@ function DispatchTab(props: any) {
                           {order.restaurant_name}
                           {(filter === 'week' || filter === 'all') && <span style={{ color: isAwaiting && order.delivery_date === TODAY ? S.red : S.stone }}> · {friendlyDate(order.delivery_date)}</span>}
                         </div>
+                        {order.restaurant_address && <div style={{ fontSize: 12, color: S.stone, marginTop: 1 }}>📍 {order.restaurant_address}</div>}
                         <div style={{ fontSize: 12, color: S.stone, marginTop: 2 }}>from <strong style={{ color: S.forest }}>{order.coordinator_name}</strong></div>
                       </div>
                       <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: isAwaiting ? S.redLight : S.sageLight, color: isAwaiting ? S.red : S.sage, flexShrink: 0 }}>
@@ -440,8 +442,9 @@ function DispatchTab(props: any) {
                         <div style={{ fontSize: 11, fontWeight: 700, color: S.amber, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>Before you dispatch</div>
                         <div style={{ fontSize: 13, color: S.forest, display: 'flex', flexDirection: 'column', gap: 5 }}>
                           <div>☐ &nbsp;Order placed at <strong>{order.restaurant_name}</strong></div>
+                          {order.restaurant_address && <div style={{ paddingLeft: 22, fontSize: 12, color: S.stone, marginTop: -2 }}>📍 {order.restaurant_address}{order.restaurant_phone ? ` · ${order.restaurant_phone}` : ''}</div>}
                           <div>☐ &nbsp;Name on order: <strong>{order.coordinator_name}</strong></div>
-                          <div>☐ &nbsp;Address: <strong>{order.kitchen_address}</strong></div>
+                          <div>☐ &nbsp;Deliver to: <strong>{order.kitchen_address}</strong></div>
                           <div>☐ &nbsp;Preference: <strong>{order.delivery_preference === 'hand_to_recipient' ? 'Hand to recipient' : 'Leave at door — no knock'}</strong></div>
                         </div>
                       </div>
