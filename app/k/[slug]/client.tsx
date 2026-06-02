@@ -128,7 +128,7 @@ return (
 )
 }
 
-function CoordCalendar({ availableDates,selectedIds,onToggle,recipientFirst,kitchenSlug }: { availableDates:any[];selectedIds:Set<string>;onToggle:(s:any)=>void;recipientFirst:string;kitchenSlug:string }) {
+function CoordCalendar({ availableDates,selectedIds,onToggle,recipientFirst,kitchenSlug,onOpenVillage }: { availableDates:any[];selectedIds:Set<string>;onToggle:(s:any)=>void;recipientFirst:string;kitchenSlug:string;onOpenVillage:()=>void }) {
 const today=new Date()
 const [viewYear,setViewYear]=useState(today.getFullYear())
 const [viewMonth,setViewMonth]=useState(today.getMonth())
@@ -183,13 +183,138 @@ style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?
 <div style={{ background:S.forest,borderRadius:16,padding:'16px 18px',marginTop:14 }}>
 <p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:600,color:S.white,margin:'0 0 4px' }}>Connect with the village</p>
 <p style={{ fontSize:12,color:'rgba(255,255,255,0.65)',fontWeight:300,margin:'0 0 12px',lineHeight:1.5 }}>See what others have sent and leave {recipientFirst} a message.</p>
-<button onClick={()=>window.open(`/k/${kitchenSlug}?tab=village`,'_blank')}
+<button onClick={onOpenVillage}
   style={{ width:'100%',padding:'12px',borderRadius:10,border:'none',background:S.sage,color:S.white,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:44 }}>
   {recipientFirst}'s Village →
 </button>
 </div>
 </div>
 )
+}
+
+// ── Coordinator Village view — cork board, text + reply + react, NO photo upload ──
+function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, onClose }: { kitchenSlug:string; kitchenId:string; recipientFirst:string; onClose:()=>void }) {
+  const [posts, setPosts]       = useState<any[]>([])
+  const [loading, setLoading]   = useState(true)
+  const [name, setName]         = useState('')
+  const [newPost, setNewPost]   = useState('')
+  const [posting, setPosting]   = useState(false)
+  const [replyTo, setReplyTo]   = useState<string|null>(null)
+  const [replyText, setReplyText] = useState('')
+  const kitchenId = kId
+
+  const load = async () => {
+    try {
+      const res = await fetch(`/api/village-posts?slug=${kitchenSlug}`)
+      const json = await res.json()
+      setPosts(json.posts || [])
+    } catch { setPosts([]) }
+    setLoading(false)
+  }
+  useEffect(()=>{
+    fetch(`/api/village-posts?slug=${kitchenSlug}`).then(r=>r.json()).then(j=>{ setPosts(j.posts||[]); setLoading(false) }).catch(()=>setLoading(false))
+  },[kitchenSlug])
+
+  const fmt = (s:string) => {
+    const d=new Date(s), now=new Date()
+    const h=Math.floor((now.getTime()-d.getTime())/3600000)
+    if(h<1)return'Just now'; if(h<24)return`${h}h ago`; if(h<48)return'Yesterday'
+    return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})
+  }
+
+  const post = async (parentId?:string) => {
+    const content = parentId ? replyText.trim() : newPost.trim()
+    if(!content || !kitchenId || !name.trim()) { if(!name.trim()) alert('Add your name first.'); return }
+    if(!parentId) setPosting(true)
+    await fetch('/api/village-posts',{
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ kitchen_id:kitchenId, content, author_name:name.trim(), author_type:'coordinator', parent_id:parentId||undefined }),
+    })
+    if(parentId){ setReplyText(''); setReplyTo(null) } else { setNewPost(''); setPosting(false) }
+    load()
+  }
+
+  const react = async (postId:string, emoji:string) => {
+    await fetch('/api/village-posts',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ post_id:postId, emoji }) })
+    load()
+  }
+
+  const REACTIONS = ['🧡','👍','😊','🙏']
+
+  const PostCard = ({ p, isReply }: { p:any; isReply?:boolean }) => {
+    const isRecipient = p.author_type==='recipient'
+    const isSystem    = p.post_type==='system'
+    const author      = p.author_name || (isRecipient?recipientFirst:'A supporter')
+    const avBg = isSystem?S.amberLight:isRecipient?S.sage:S.amber
+    const avCol= isSystem?S.amber:S.white
+    return (
+      <div style={{ background:S.warmWhite,border:`0.5px solid ${isSystem?S.amberBorder:isRecipient?S.border:'#E0C89A'}`,borderRadius:14,padding:'13px 15px',marginBottom:isReply?8:10,marginLeft:isReply?20:0 }}>
+        <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:p.content||p.image_url?8:0 }}>
+          <div style={{ width:isReply?26:30,height:isReply?26:30,borderRadius:9,background:avBg,display:'flex',alignItems:'center',justifyContent:'center',color:avCol,fontSize:12,fontWeight:700,flexShrink:0 }}>{(author||'?').charAt(0).toUpperCase()}</div>
+          <div style={{ flex:1,minWidth:0 }}>
+            <div style={{ fontSize:13,fontWeight:600,color:S.forest }}>{author}</div>
+            <div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{isSystem?'Meal delivered':isRecipient?`${recipientFirst}`:'From the village'} · {fmt(p.posted_at)}</div>
+          </div>
+        </div>
+        {p.content && <p style={{ fontSize:14,color:S.forest,margin:'0 0 8px',lineHeight:1.6 }}>{p.content}</p>}
+        {p.image_url && <img src={p.image_url} alt="" style={{ width:'100%',borderRadius:10,marginBottom:8,display:'block',maxHeight:320,objectFit:'cover' }}/>}
+        <div style={{ display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginTop:4 }}>
+          {p.reactions && Object.entries(p.reactions).filter(([,n]:any)=>n>0).map(([emoji,n]:any)=>(
+            <button key={emoji} onClick={()=>react(p.id,emoji)} style={{ display:'flex',alignItems:'center',gap:3,background:S.amberLight,border:'none',borderRadius:20,padding:'3px 9px',cursor:'pointer',fontSize:12,fontFamily:"'DM Sans',sans-serif" }}><span>{emoji}</span><span style={{ color:S.amber,fontWeight:600,fontSize:11 }}>{n}</span></button>
+          ))}
+          <div style={{ display:'flex',gap:2 }}>
+            {REACTIONS.map(e=><button key={e} onClick={()=>react(p.id,e)} style={{ background:'none',border:'none',cursor:'pointer',fontSize:14,padding:'2px 3px',opacity:0.55,lineHeight:1 }}>{e}</button>)}
+          </div>
+          {!isReply && <button onClick={()=>{ setReplyTo(replyTo===p.id?null:p.id); setReplyText('') }} style={{ marginLeft:'auto',background:'none',border:'none',cursor:'pointer',fontSize:12,color:S.stone,fontWeight:500,fontFamily:"'DM Sans',sans-serif" }}>{replyTo===p.id?'Cancel':'Reply'}</button>}
+        </div>
+        {replyTo===p.id && (
+          <div style={{ marginTop:10,display:'flex',gap:6 }}>
+            <input value={replyText} onChange={e=>setReplyText(e.target.value)} placeholder="Write a reply…" autoFocus onKeyDown={e=>{ if(e.key==='Enter') post(p.id) }}
+              style={{ flex:1,borderRadius:9,border:`1.5px solid ${S.amberBorder}`,padding:'9px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.warmWhite,outline:'none',boxSizing:'border-box' }}/>
+            <button onClick={()=>post(p.id)} disabled={!replyText.trim()} style={{ padding:'9px 16px',borderRadius:9,border:'none',background:!replyText.trim()?S.amberBorder:S.amber,color:S.white,fontSize:13,fontWeight:600,cursor:!replyText.trim()?'default':'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:40 }}>Send</button>
+          </div>
+        )}
+        {p.replies && p.replies.length>0 && <div style={{ marginTop:10 }}>{p.replies.map((r:any)=><PostCard key={r.id} p={r} isReply/>)}</div>}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ position:'fixed',inset:0,background:S.cream,zIndex:400,display:'flex',flexDirection:'column',fontFamily:"'DM Sans',sans-serif" }}>
+      <div style={{ background:S.headerBg,padding:'12px 20px',display:'flex',alignItems:'center',gap:12,flexShrink:0 }}>
+        <button onClick={onClose} style={{ background:'none',border:'none',cursor:'pointer',color:S.white,fontSize:22,padding:'4px 8px',lineHeight:1 }}>←</button>
+        <div>
+          <div style={{ fontFamily:"'Lora',serif",fontSize:17,fontWeight:600,color:S.white,lineHeight:1.1 }}>{recipientFirst}'s Village</div>
+          <div style={{ fontSize:11,color:'rgba(255,255,255,0.55)',fontWeight:300 }}>Meals, notes & thanks</div>
+        </div>
+      </div>
+
+      <div style={{ flex:1,overflowY:'auto',padding:'16px 20px',maxWidth:500,margin:'0 auto',width:'100%',boxSizing:'border-box' }}>
+        {/* Composer */}
+        <div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
+          <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Leave a note</p>
+          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"
+            style={{ width:'100%',borderRadius:9,border:`1.5px solid ${S.amberBorder}`,padding:'9px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.warmWhite,outline:'none',boxSizing:'border-box',marginBottom:8 }}/>
+          <textarea value={newPost} onChange={e=>setNewPost(e.target.value)} placeholder={`Thinking of you, ${recipientFirst} 🧡 Hope the meal hits the spot…`}
+            style={{ width:'100%',minHeight:64,borderRadius:10,border:`1.5px solid ${S.amberBorder}`,padding:'10px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.warmWhite,resize:'none',outline:'none',boxSizing:'border-box',lineHeight:1.6,marginBottom:10 }}/>
+          <button onClick={()=>post()} disabled={!newPost.trim()||posting||!kitchenId}
+            style={{ width:'100%',padding:'11px',borderRadius:9,border:'none',background:!newPost.trim()?S.amberBorder:S.forest,color:!newPost.trim()?S.stone:S.white,fontSize:14,fontWeight:600,cursor:!newPost.trim()?'default':'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:44 }}>
+            {posting?'Posting…':'Post to the board 🧡'}
+          </button>
+        </div>
+
+        {loading ? (
+          <p style={{ textAlign:'center',color:S.stone,fontSize:13 }}>Loading the board…</p>
+        ) : posts.length>0 ? (
+          posts.map(p=><PostCard key={p.id} p={p}/>)
+        ) : (
+          <div style={{ background:S.amberLight,borderRadius:14,padding:'20px',textAlign:'center' }}>
+            <p style={{ fontSize:14,color:S.mahogany,margin:0,lineHeight:1.7 }}>Be the first to leave {recipientFirst} a note. 🧡</p>
+          </div>
+        )}
+      </div>
+    </div>
+  )
 }
 
 function CoordFooter() {
@@ -221,6 +346,8 @@ return (
 // ─────────────────────────────────────────────────────────────────────────────
 export default function CoordKitchenClient({ kitchen, availableDates, recentMeals=[] }: any) {
 const [step, setStep] = useState<1|2|3>(1)
+const [showVillage, setShowVillage] = useState(false)
+useEffect(()=>{ if(typeof window!=='undefined' && new URLSearchParams(window.location.search).get('tab')==='village') setShowVillage(true) },[])
 const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 const [groups, setGroups] = useState<GroupSelection[]>([])
 const [currentGroupIdx, setCurrentGroupIdx] = useState(0)
@@ -365,9 +492,12 @@ const deliveryFee = getDeliveryFee(activeMiles)
 
 // Price estimate — sum of cart × qty × dates per group
 const mealSubtotal = groups.reduce((sum,g)=> sum + cartTotal(g.cart) * g.slots.length, 0)
-const platformFee = Math.round(mealSubtotal * 0.03 * 100) / 100
 const tipDollars = tipAmount / 100
-const grandTotal = mealSubtotal + platformFee + deliveryFee + tipDollars
+// Service fee mirrors the server (5% + $0.99 on meal + courier + tip) — covers
+// Stripe processing and platform margin. Must stay in sync with /api/proposal.
+const preFee = mealSubtotal + deliveryFee + tipDollars
+const serviceFee = Math.round((preFee * 0.05 + 0.99) * 100) / 100
+const grandTotal = mealSubtotal + deliveryFee + tipDollars + serviceFee
 
 const handleSubmit = async () => {
 setLoading(true); setErrorMsg('')
@@ -399,6 +529,7 @@ const groupReady = (g:GroupSelection)=> !!g.restaurant && g.cart.length>0
 return (
 <div style={{ background:S.cream,fontFamily:"'DM Sans',sans-serif",display:'flex',flexDirection:'column' }}>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+{showVillage && <CoordVillage kitchenSlug={kitchen.slug} kitchenId={kitchen.id} recipientFirst={recipientFirst} onClose={()=>setShowVillage(false)}/>}
 
 <div style={{ background:S.headerBg, padding:'10px 24px', textAlign:'center' }}>
 <div style={{ fontSize:10, fontWeight:400, letterSpacing:3, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', marginBottom:3 }}>Sending a meal to</div>
@@ -430,7 +561,7 @@ return (
 <p style={{ color:S.mahogany,margin:0 }}>No open dates right now. Check back soon!</p>
 </div>
 ):(
-<CoordCalendar availableDates={availableDates} selectedIds={selectedIds} onToggle={toggleSlot} recipientFirst={recipientFirst} kitchenSlug={kitchen.slug}/>
+<CoordCalendar availableDates={availableDates} selectedIds={selectedIds} onToggle={toggleSlot} recipientFirst={recipientFirst} kitchenSlug={kitchen.slug} onOpenVillage={()=>setShowVillage(true)}/>
 )}
 {selectedSlots.length>0&&(
 <div style={{ background:S.amberLight,borderRadius:14,padding:'14px 16px',marginBottom:16,border:`1px solid ${S.amberBorder}` }}>
@@ -773,8 +904,8 @@ return (
 <span style={{ fontSize:13,color:S.forest }}>${tipDollars.toFixed(2)}</span>
 </div>
 <div style={{ display:'flex',justifyContent:'space-between',marginBottom:4 }}>
-<span style={{ fontSize:13,color:S.stone }}>Platform fee (3%)</span>
-<span style={{ fontSize:13,color:S.forest }}>${platformFee.toFixed(2)}</span>
+<span style={{ fontSize:13,color:S.stone }}>Service fee</span>
+<span style={{ fontSize:13,color:S.forest }}>${serviceFee.toFixed(2)}</span>
 </div>
 <div style={{ height:0.5,background:S.border,margin:'8px 0' }}/>
 <div style={{ display:'flex',justifyContent:'space-between' }}>
