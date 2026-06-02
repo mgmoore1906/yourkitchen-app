@@ -84,24 +84,20 @@ function BarRow({ label, count, max, color, icon }: { label: string; count: numb
 
 // ── Analytics tab ─────────────────────────────────────────────────────────────
 function AnalyticsTab() {
-  const supabase = createClient()
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [range, setRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
 
   const loadData = useCallback(async () => {
     setLoading(true)
-    const cutoff = range === '7d' ? new Date(Date.now() - 7 * 86400000).toISOString()
-      : range === '30d' ? new Date(Date.now() - 30 * 86400000).toISOString()
-      : range === '90d' ? new Date(Date.now() - 90 * 86400000).toISOString()
-      : '2020-01-01T00:00:00Z'
-
-    const [k, p, pr] = await Promise.all([
-      supabase.from('kitchens').select('id,name,slug,tier,created_at,address,organizer_id,household_adults,household_children'),
-      supabase.from('meal_proposals').select('id,status,delivery_status,meal_type,delivery_date,coordinator_name,restaurant_name,meal_name,tip_amount,stripe_amount,created_at,kitchen_id').gte('created_at', cutoff),
-      supabase.from('profiles').select('id,full_name,created_at,tier,phone,sms_consent').gte('created_at', cutoff),
-    ])
-    setData({ kitchens: k.data || [], proposals: p.data || [], profiles: pr.data || [] })
+    try {
+      const key = sessionStorage.getItem('yk_admin_secret') || ''
+      const res = await fetch(`/api/admin-analytics?range=${range}`, { headers: { 'x-admin-secret': key } })
+      const json = await res.json()
+      setData({ kitchens: json.kitchens || [], proposals: json.proposals || [], profiles: json.profiles || [] })
+    } catch {
+      setData({ kitchens: [], proposals: [], profiles: [] })
+    }
     setLoading(false)
   }, [range])
 
