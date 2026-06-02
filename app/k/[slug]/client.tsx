@@ -833,7 +833,7 @@ return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 
 <label style={{ display:'flex',alignItems:'flex-start',gap:10,marginTop:-8,marginBottom:18,cursor:'pointer' }}>
 <input type="checkbox" checked={smsConsent} onChange={e=>setSmsConsent(e.target.checked)} style={{ marginTop:3,width:18,height:18,flexShrink:0,accentColor:S.amber,cursor:'pointer' }}/>
 <span style={{ fontSize:12,color:S.stone,fontWeight:300,lineHeight:1.5 }}>
-I agree to receive SMS updates from YourKitchen about this meal delivery, including proposal, confirmation, and delivery notifications. Msg &amp; data rates may apply. Msg frequency varies. Reply STOP to opt out, HELP for help. See our <a href="/privacy" target="_blank" style={{ color:S.amber,textDecoration:'underline' }}>Privacy Policy</a> and <a href="/terms" target="_blank" style={{ color:S.amber,textDecoration:'underline' }}>Terms</a>.
+I agree to receive recurring SMS from YourKitchen — meal proposals, confirmations, and delivery updates. Message frequency varies. Message &amp; data rates may apply. Reply STOP to opt out, HELP for help. See our <a href="/privacy" target="_blank" style={{ color:S.amber,textDecoration:'underline' }}>Privacy Policy</a> and <a href="/terms" target="_blank" style={{ color:S.amber,textDecoration:'underline' }}>Terms</a>.
 </span>
 </label>
 
