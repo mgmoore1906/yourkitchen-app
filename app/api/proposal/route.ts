@@ -209,17 +209,26 @@ quantity: 1,
 })
 }
 
-// ── Platform fee (3% of meal subtotal only) ──────────────────────────────
-const platformFee = Math.round(mealSubtotalCents * 0.03)
-if (platformFee > 0) {
+// ── Service fee (5% + $0.99) ─────────────────────────────────────────────
+// Sized to fully cover Stripe processing (~2.9% + $0.30) AND leave a real
+// per-order margin. Computed on the pre-fee total (meal + courier + tip) so
+// it scales with order size and is never underwater, even on small meals.
+// All component amounts here are in CENTS.
+const courierCents = Math.round(deliveryFeeAmt * 100)
+const tipCents = tip_amount || 0
+const preFeeCents = mealSubtotalCents + courierCents + tipCents
+const SERVICE_PCT = 0.05
+const SERVICE_FLAT_CENTS = 99
+const serviceFee = Math.round(preFeeCents * SERVICE_PCT) + SERVICE_FLAT_CENTS
+if (serviceFee > 0) {
 lineItems.push({
 price_data: {
 currency: 'usd',
 product_data: {
-name: 'YourKitchen platform fee (3%)',
-description: 'Covers coordination, SMS notifications, and delivery integration',
+name: 'Service fee',
+description: 'Covers coordination, SMS, payment processing, and delivery integration',
 },
-unit_amount: platformFee,
+unit_amount: serviceFee,
 },
 quantity: 1,
 })
