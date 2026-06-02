@@ -356,6 +356,7 @@ const [loadingFavs, setLoadingFavs] = useState(true)
 const [name, setName] = useState('')
 const [email, setEmail] = useState('')
 const [phone, setPhone] = useState('')
+const [smsConsent, setSmsConsent] = useState(false)
 const [note, setNote] = useState('')
 const [tipAmount, setTipAmount] = useState(300)
 const [tipInitialized, setTipInitialized] = useState(false)
@@ -829,7 +830,12 @@ return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 
 <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" style={inp}/>
 <label style={lbl}>Your phone</label>
 <input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(555) 123-4567" style={inp}/>
-<p style={{ fontSize:12,color:S.stone,marginTop:-16,marginBottom:20,fontWeight:300 }}>We'll text you when your meal is delivered.</p>
+<label style={{ display:'flex',alignItems:'flex-start',gap:10,marginTop:-8,marginBottom:18,cursor:'pointer' }}>
+<input type="checkbox" checked={smsConsent} onChange={e=>setSmsConsent(e.target.checked)} style={{ marginTop:3,width:18,height:18,flexShrink:0,accentColor:S.amber,cursor:'pointer' }}/>
+<span style={{ fontSize:12,color:S.stone,fontWeight:300,lineHeight:1.5 }}>
+I agree to receive SMS updates from YourKitchen about this meal delivery, including proposal, confirmation, and delivery notifications. Msg &amp; data rates may apply. Msg frequency varies. Reply STOP to opt out, HELP for help. See our <a href="/privacy" target="_blank" style={{ color:S.amber,textDecoration:'underline' }}>Privacy Policy</a> and <a href="/terms" target="_blank" style={{ color:S.amber,textDecoration:'underline' }}>Terms</a>.
+</span>
+</label>
 
 <label style={lbl}>Personal note (optional)</label>
 <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder={getNotePlaceholder()} style={{ ...inp,minHeight:90,resize:'none' as const }}/>
@@ -926,7 +932,7 @@ Price reflects what {recipientFirst} saved. Actual price may vary slightly.
 
 <div style={{ display:'flex',gap:10 }}>
 <button onClick={()=>goToStep(2)} style={back}>← Back</button>
-<button onClick={handleSubmit} disabled={!name||!email||!phone||loading} style={{ ...btn(!name||!email||!phone||loading),flex:1 }}>
+<button onClick={handleSubmit} disabled={!name||!email||!phone||!smsConsent||loading} style={{ ...btn(!name||!email||!phone||!smsConsent||loading),flex:1 }}>
 {loading?'Sending…':totalDates>1?`Send ${totalDates} Proposals 🧡`:'Send Proposal 🧡'}
 </button>
 </div>
