@@ -51,6 +51,11 @@ const [success, setSuccess] = useState('')
 const [error, setError] = useState('')
 const [passwordLoading, setPasswordLoading] = useState(false)
 const [passwordSuccess, setPasswordSuccess] = useState('')
+const [currentEmail, setCurrentEmail] = useState('')
+const [newEmail, setNewEmail] = useState('')
+const [emailLoading, setEmailLoading] = useState(false)
+const [emailMsg, setEmailMsg] = useState('')
+const [emailErr, setEmailErr] = useState('')
 const [deleteConfirm, setDeleteConfirm] = useState(false)
 const [deleteLoading, setDeleteLoading] = useState(false)
 const [currentTier, setCurrentTier] = useState('free')
@@ -90,6 +95,7 @@ const load = async () => {
 const { data: { user } } = await supabase.auth.getUser()
 if (!user) { router.push('/login'); return }
 setUserId(user.id)
+setCurrentEmail(user.email || '')
 
 const { data: profile } = await supabase
 .from('profiles')
@@ -161,6 +167,23 @@ const data = await res.json()
 if (!res.ok) { setError(data.error || 'Something went wrong.'); setSaving(false); return }
 setSuccess('Settings saved.')
 setSaving(false)
+}
+
+const handleEmailChange = async () => {
+const next = newEmail.trim().toLowerCase()
+setEmailErr(''); setEmailMsg('')
+if (!next) { setEmailErr('Enter a new email address.'); return }
+if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(next)) { setEmailErr('Enter a valid email address.'); return }
+if (next === currentEmail.toLowerCase()) { setEmailErr('That is already your email.'); return }
+setEmailLoading(true)
+// Supabase sends a confirmation link to the NEW address; the change only takes
+// effect once the user clicks it. We also keep the profiles table consistent
+// after confirmation via the auth callback, but the auth email is the source of truth.
+const { error } = await supabase.auth.updateUser({ email: next }, { emailRedirectTo: `${window.location.origin}/auth/callback` })
+if (error) { setEmailErr(error.message); setEmailLoading(false); return }
+setEmailMsg(`Confirmation link sent to ${next}. Click it to finish changing your email. Until then, keep using ${currentEmail}.`)
+setNewEmail('')
+setEmailLoading(false)
 }
 
 const handlePasswordReset = async () => {
@@ -308,6 +331,21 @@ style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', b
 style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: saving ? S.sageMid : S.forest, color: S.white, fontSize: 14, fontWeight: 500, cursor: saving ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", marginTop: 8, marginBottom: 24 }}>
 {saving ? 'Saving…' : 'Save Changes'}
 </button>
+
+{/* ── EMAIL ── */}
+<div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
+<p style={sLabel}>Email address</p>
+<p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
+Your current email is <strong style={{ color: S.forest, fontWeight: 500 }}>{currentEmail || '—'}</strong>. Changing it sends a confirmation link to the new address.
+</p>
+{emailMsg && <div style={{ background: S.sageLight, borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}><p style={{ fontSize: 13, color: S.sage, margin: 0, lineHeight: 1.5 }}>✓ {emailMsg}</p></div>}
+{emailErr && <div style={{ background: '#FDECEA', borderRadius: 10, padding: '10px 14px', marginBottom: 14 }}><p style={{ fontSize: 13, color: S.red, margin: 0 }}>{emailErr}</p></div>}
+<input type="email" value={newEmail} onChange={e => setNewEmail(e.target.value)} placeholder="new@email.com" style={{ ...iStyle, marginBottom: 10 }} />
+<button onClick={handleEmailChange} disabled={emailLoading || !newEmail.trim()}
+style={{ width: '100%', padding: '13px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: 'transparent', fontSize: 14, color: S.forest, cursor: (emailLoading || !newEmail.trim()) ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: (emailLoading || !newEmail.trim()) ? 0.5 : 1 }}>
+{emailLoading ? 'Sending…' : 'Update Email'}
+</button>
+</div>
 
 {/* ── ACCOUNT ── */}
 <div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
