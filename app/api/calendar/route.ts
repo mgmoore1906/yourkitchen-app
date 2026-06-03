@@ -15,6 +15,28 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing kitchen_id or date' }, { status: 400 })
     }
 
+    // ── Tier calendar-window enforcement ─────────────────────────────────────
+    // Free kitchens may only open dates within a 60-day window; paid tiers far
+    // beyond. Looked up server-side so the client cap can't be bypassed.
+    const CALENDAR_WINDOW_DAYS: Record<string, number> = { free: 60, trial: 3650, care: 3650, annual: 3650, founding: 3650 }
+    const { data: kitchenRow } = await supabase
+      .from('kitchens')
+      .select('organizer_id')
+      .eq('id', kitchen_id)
+      .single()
+    let tier = 'free'
+    if (kitchenRow?.organizer_id) {
+      const { data: prof } = await supabase
+        .from('profiles').select('tier').eq('id', kitchenRow.organizer_id).single()
+      tier = prof?.tier || 'free'
+    }
+    const windowDays = CALENDAR_WINDOW_DAYS[tier] ?? 60
+    const maxDate = new Date(); maxDate.setDate(maxDate.getDate() + windowDays)
+    const maxDateStr = maxDate.toISOString().split('T')[0]
+    if (date > maxDateStr) {
+      return NextResponse.json({ error: `This plan can open dates up to ${windowDays} days out. Upgrade to open dates further ahead.` }, { status: 403 })
+    }
+
     // Check if this exact meal_type already exists for this date
     const { data: existing } = await supabase
       .from('calendar_dates')
