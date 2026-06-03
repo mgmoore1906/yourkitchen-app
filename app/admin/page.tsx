@@ -503,6 +503,7 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<Filter>('today')
   const [cancelReasons, setCancelReasons] = useState<Record<string, string>>({})
   const [view, setView] = useState<AdminView>('dispatch')
+  const [refreshTick, setRefreshTick] = useState(0)
   const [backfilling, setBackfilling] = useState(false)
   const [backfillMsg, setBackfillMsg] = useState('')
 
@@ -615,7 +616,7 @@ export default function AdminPage() {
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '8px 14px', color: S.white, fontSize: 12, cursor: backfilling ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif", opacity: backfilling ? 0.6 : 1 }}>
             {backfilling ? 'Fixing…' : 'Fix Addresses'}
           </button>
-          <button onClick={() => loadOrders()} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '8px 14px', color: S.white, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>Refresh</button>
+          <button onClick={() => { if (view === 'analytics') setRefreshTick(t => t + 1); else loadOrders() }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '8px 14px', color: S.white, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>Refresh</button>
         </div>
       </div>
 
@@ -638,7 +639,7 @@ export default function AdminPage() {
       {view === 'dispatch' && (
         <DispatchTab orders={orders} loading={loading} filter={filter} setFilter={setFilter} dispatching={dispatching} cancelling={cancelling} msgs={msgs} cancelReasons={cancelReasons} setCancelReasons={setCancelReasons} handleDispatch={handleDispatch} handleCancel={handleCancel} />
       )}
-      {view === 'analytics' && <AnalyticsTab />}
+      {view === 'analytics' && <AnalyticsTab key={refreshTick} />}
     </div>
   )
 }
