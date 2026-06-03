@@ -123,9 +123,15 @@ export async function POST(request: Request) {
     const restName = (proposal as any).kitchen_restaurants?.name || 'the restaurant'
     const mealType = (proposal as any).meal_type || 'meal'
 
-    // Update status → awaiting_dispatch (food order not yet placed)
+    // Update status → awaiting_dispatch (food order not yet placed).
+    // Also store the captured total (cents) so analytics GMV has a source —
+    // amount_received is what Stripe actually captured for this PaymentIntent.
     await supabase.from('meal_proposals')
-      .update({ status: 'confirmed', delivery_status: 'awaiting_dispatch' })
+      .update({
+        status: 'confirmed',
+        delivery_status: 'awaiting_dispatch',
+        stripe_amount: pi.amount_received ?? pi.amount ?? null,
+      })
       .eq('id', (proposal as any).id)
 
     // Alert Marques via SMS so he knows to place the food order
