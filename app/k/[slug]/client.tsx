@@ -825,7 +825,7 @@ return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 
 </div>
 
 <label style={lbl}>Your name</label>
-<input value={name} onChange={e=>setName(e.target.value)} placeholder="Marques" style={inp}/>
+<input value={name} onChange={e=>setName(e.target.value)} placeholder="John" style={inp}/>
 <label style={lbl}>Your email</label>
 <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" style={inp}/>
 <label style={lbl}>Your phone</label>
