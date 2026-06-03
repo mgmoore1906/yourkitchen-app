@@ -26,7 +26,7 @@ export async function GET(request: Request) {
     supabase.from('kitchens')
       .select('id,name,slug,tier,created_at,address,organizer_id,household_adults,household_children'),
     supabase.from('meal_proposals')
-      .select('id,status,delivery_status,meal_type,delivery_date,coordinator_name,restaurant_name,meal_name,tip_amount,proposed_at,kitchen_id')
+      .select('id,status,delivery_status,meal_type,delivery_date,coordinator_name,restaurant_name,meal_name,tip_amount,stripe_amount,proposed_at,kitchen_id')
       .gte('proposed_at', cutoff),
     supabase.from('profiles')
       .select('id,full_name,created_at,tier,phone,sms_consent')
