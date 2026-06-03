@@ -38,13 +38,25 @@ export async function POST(request: Request) {
     const proposalIds     = JSON.parse(session.metadata?.proposal_ids || '[]') as string[]
     const coordinatorName = session.metadata?.coordinator_name || ''
 
-    // Subscription upgrade
-    if (type === 'subscription') {
+    // Tier upgrade — handles BOTH recurring subscriptions (Care+/Annual) and the
+    // one-time Founding payment. Founding checkout uses mode:'payment' and does
+    // not set metadata.type, so we key off the presence of metadata.tier rather
+    // than type alone (otherwise founding buyers would pay and never get upgraded).
+    const tierMeta = session.metadata?.tier
+    if (type === 'subscription' || tierMeta) {
       const userId = session.metadata?.user_id
-      const tier   = session.metadata?.tier
+      const tier   = tierMeta
       if (userId && tier) {
-        await supabase.from('profiles').update({ tier }).eq('id', userId)
-        console.log(`Tier updated: ${userId} → ${tier}`)
+        const update: Record<string, any> = { tier }
+        // Founding = 3 years of Care+ access. Stamp the expiry at purchase so the
+        // term is tracked from member #1 (even though nothing enforces it yet).
+        if (tier === 'founding') {
+          const expiry = new Date()
+          expiry.setFullYear(expiry.getFullYear() + 3)
+          update.founding_expires_at = expiry.toISOString()
+        }
+        await supabase.from('profiles').update(update).eq('id', userId)
+        console.log(`Tier updated: ${userId} → ${tier}${tier === 'founding' ? ` (expires ${update.founding_expires_at})` : ''}`)
       }
       return NextResponse.json({ received: true })
     }
