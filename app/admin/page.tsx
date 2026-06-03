@@ -130,9 +130,12 @@ function AnalyticsTab() {
   const cancelled = proposals.filter(p => ['cancelled', 'declined', 'expired'].includes(p.status))
 
   const gmv = confirmed.reduce((s, p) => s + (p.stripe_amount || 0), 0)
-  const platformFee = Math.round(gmv * 0.03)
+  // Service-fee revenue estimate. Fee model = 5% of (meal+courier+tip) + $0.99,
+  // charged on top, so it's ~4.7% of the final total + ~$0.94 per order. This is
+  // an estimate; exact per-order margin needs the fee stored as its own column.
+  const platformFee = confirmed.reduce((s, p) => s + (p.stripe_amount ? Math.round((p.stripe_amount || 0) * 0.0472 + 94) : 0), 0)
   const tipsTotal = confirmed.reduce((s, p) => s + (p.tip_amount || 0), 0)
-  const driverFees = confirmed.length * 699
+  const driverFees = confirmed.length * 649
 
   const convRate = proposals.length ? Math.round((confirmed.length / proposals.length) * 100) : 0
   const cancelRate = proposals.length ? Math.round((cancelled.length / proposals.length) * 100) : 0
@@ -164,7 +167,7 @@ function AnalyticsTab() {
     restaurant: p.restaurant_name || '', meal: p.meal_name || '', supporter: p.coordinator_name || '',
     order_amount_cents: p.stripe_amount || 0, order_amount_dollars: ((p.stripe_amount || 0) / 100).toFixed(2),
     tip_cents: p.tip_amount || 0, tip_dollars: ((p.tip_amount || 0) / 100).toFixed(2),
-    platform_fee_cents: Math.round((p.stripe_amount || 0) * 0.03),
+    service_fee_cents: p.stripe_amount ? Math.round((p.stripe_amount || 0) * 0.0472 + 94) : 0,
     proposed_at: p.proposed_at, kitchen_id: p.kitchen_id || '',
   }))
 
@@ -195,9 +198,9 @@ function AnalyticsTab() {
       <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 12px' }}>Revenue</p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 24 }}>
         <Metric label="Gross Merchandise Value" value={fmtMoney(gmv)} sub={`${confirmed.length} confirmed orders`} color={S.forest} />
-        <Metric label="Platform Fee Revenue (3%)" value={fmtMoney(platformFee)} sub="YourKitchen net" color={S.sage} />
+        <Metric label="Service Fee Revenue" value={fmtMoney(platformFee)} sub="YourKitchen net (est.)" color={S.sage} />
         <Metric label="Tips Paid to Drivers" value={fmtMoney(tipsTotal)} sub="Passed through 100%" color={S.amber} />
-        <Metric label="Est. Driver Fees" value={fmtMoney(driverFees)} sub={`~$6.99 × ${confirmed.length} orders`} color={S.stone} />
+        <Metric label="Est. Driver Fees" value={fmtMoney(driverFees)} sub={`~$6.49 × ${confirmed.length} orders`} color={S.stone} />
       </div>
 
       <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 12px' }}>Orders</p>
