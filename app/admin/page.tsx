@@ -165,7 +165,7 @@ function AnalyticsTab() {
     order_amount_cents: p.stripe_amount || 0, order_amount_dollars: ((p.stripe_amount || 0) / 100).toFixed(2),
     tip_cents: p.tip_amount || 0, tip_dollars: ((p.tip_amount || 0) / 100).toFixed(2),
     platform_fee_cents: Math.round((p.stripe_amount || 0) * 0.03),
-    created_at: p.created_at, kitchen_id: p.kitchen_id || '',
+    proposed_at: p.proposed_at, kitchen_id: p.kitchen_id || '',
   }))
 
   const kitchenExportRows = data.kitchens.map(k => ({
