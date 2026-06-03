@@ -23,6 +23,12 @@ const TIER_META: Record<string, { badge: string; price: string; color: string; b
   founding: { badge: 'Founding Member', price: '$149 lifetime', color: '#C17F47', bg: '#FBF0E4', star: true, desc: 'Lifetime access — thank you for founding YourKitchen.' },
 }
 const TIER_LIMITS: Record<string, number> = { free: 3, trial: 10, care: 10, annual: 10, founding: 999 }
+// Menu items allowed per restaurant by tier
+const MEAL_LIMITS: Record<string, number> = { free: 4, trial: 12, care: 12, annual: 12, founding: 999 }
+// How many days out a recipient may open calendar dates. Free = 60-day window;
+// paid tiers effectively unlimited.
+const CALENDAR_WINDOW_DAYS: Record<string, number> = { free: 60, trial: 3650, care: 3650, annual: 3650, founding: 3650 }
+const isFounding = (t: string) => t === 'founding'
 const MINS_PER_MEAL = 95
 
 // ── Types ──────────────────────────────────────────────────────────────────────
@@ -35,7 +41,7 @@ type Proposal = {
   doordash_tracking_url: string | null; doordash_delivery_id: string | null
   doordash_status: string | null; proposed_at: string
 }
-type VillagePost = { id: string; content: string; author_name: string | null; author_type: string | null; posted_at: string }
+type VillagePost = { id: string; content: string; author_name: string | null; author_type: string | null; posted_at: string; image_url?: string | null; parent_id?: string | null; reactions?: Record<string,number>; post_type?: string; replies?: VillagePost[] }
 
 // ── Bottom Nav ────────────────────────────────────────────────────────────────
 function BottomNav({ active, set, badge }: { active: Tab; set: (t: Tab) => void; badge: number }) {
@@ -250,7 +256,28 @@ function NotifPanel({ proposals, onClose, router }: { proposals: Proposal[]; onC
 }
 
 // ── HOME TAB ──────────────────────────────────────────────────────────────────
+// Founding-member corner ribbon — a diagonal gold stripe across the top-right
+// of the calendar card with a small star mark. Shown only for founding kitchens.
+function FoundingRibbon() {
+  return (
+    <div style={{ position:'absolute', top:0, right:0, width:128, height:128, overflow:'hidden', pointerEvents:'none', zIndex:2 }}>
+      <div style={{
+        position:'absolute', top:20, right:-34, width:150, transform:'rotate(45deg)',
+        background:'linear-gradient(135deg,#C9A24B 0%,#B88B4A 50%,#9A7338 100%)',
+        color:'#FFF9EE', textAlign:'center', padding:'5px 0',
+        fontFamily:"'DM Sans',sans-serif", fontSize:10, fontWeight:700, letterSpacing:'0.08em',
+        boxShadow:'0 1px 4px rgba(154,115,56,0.35)', textTransform:'uppercase',
+      }}>
+        ★ Founding
+      </div>
+    </div>
+  )
+}
+
 function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, tier, router, userTier, onShare }: any) {
+  // Free tier can only open dates within a 60-day window; paid tiers far beyond.
+  const windowDays = CALENDAR_WINDOW_DAYS[userTier] ?? 60
+  const maxDateStr = (() => { const d = new Date(); d.setDate(d.getDate() + windowDays); return d.toISOString().split('T')[0] })()
   const today     = new Date()
   const todayStr  = today.toISOString().split('T')[0]
   const [viewYear,  setViewYear]  = useState(today.getFullYear())
@@ -273,7 +300,8 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
 
   return (
     <div style={{ padding:'16px 20px 16px' }}>
-      <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:18,padding:'16px',marginBottom:14 }}>
+      <div style={{ background:S.white,border:`0.5px solid ${isFounding(userTier)?'#E6C99A':S.border}`,borderRadius:18,padding:'16px',marginBottom:14,position:'relative',overflow:'hidden' }}>
+        {isFounding(userTier) && <FoundingRibbon/>}
         <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
           <p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>My Calendar</p>
           <div style={{ display:'flex',alignItems:'center',gap:6 }}>
@@ -291,13 +319,14 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           {cells.map((day,i) => {
             if(!day) return <div key={i}/>
             const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-            const isPast  = dateStr < todayStr
-            const isToday = dateStr === todayStr
-            const isSel   = selectedDate === dateStr
-            const slots   = dateMap[dateStr]||[]
+            const isPast    = dateStr < todayStr
+            const isToday   = dateStr === todayStr
+            const isSel     = selectedDate === dateStr
+            const isLocked  = dateStr > maxDateStr
+            const slots     = dateMap[dateStr]||[]
             return (
-              <button key={i} onClick={() => { if(!isPast) setSelectedDate((p:string|null)=>p===dateStr?null:dateStr) }} disabled={isPast}
-                style={{ background:isSel?S.sageLight:slots.length?'#F8FAF8':S.white,border:isSel?`2px solid ${S.sage}`:isToday?`2px solid ${S.sageMid}`:slots.length?`1px solid #C8DDD0`:'1px solid transparent',borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
+              <button key={i} onClick={() => { if(isLocked){ setSelectedDate(null); alert(`Free kitchens can open dates up to ${windowDays} days out. Upgrade to Care+ to open dates further ahead.`); return } if(!isPast) setSelectedDate((p:string|null)=>p===dateStr?null:dateStr) }} disabled={isPast||isLocked}
+                style={{ background:isSel?S.sageLight:slots.length?'#F8FAF8':S.white,border:isSel?`2px solid ${S.sage}`:isToday?`2px solid ${S.sageMid}`:slots.length?`1px solid #C8DDD0`:'1px solid transparent',borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:isLocked?0.25:1,transition:'all 0.1s' }}>
                 <span style={{ fontSize:12,fontWeight:isToday?700:500,color:isSel?S.sage:S.forest,lineHeight:1 }}>{day}</span>
                 {slots.length
                   ? <div style={{ display:'flex',gap:2,flexWrap:'wrap',justifyContent:'center' }}>
@@ -700,31 +729,23 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
 }
 // ── VILLAGE TAB ───────────────────────────────────────────────────────────────
 function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitchen: Kitchen; villagePosts: VillagePost[]; proposals: Proposal[]; onPostUpdate: () => void }) {
-  const [newPost, setNewPost]   = useState('')
-  const [posting, setPosting]   = useState(false)
+  const [newPost, setNewPost]     = useState('')
+  const [posting, setPosting]     = useState(false)
+  const [photo, setPhoto]         = useState<File | null>(null)
+  const [photoPreview, setPhotoPreview] = useState<string | null>(null)
+  const [replyTo, setReplyTo]     = useState<string | null>(null)
+  const [replyText, setReplyText] = useState('')
+  const fileRef = useRef<HTMLInputElement>(null)
+
+  const recipientFirst = kitchen.name?.split(/[\s']/)[0] || 'You'
+
   const uniqueCoords = Object.values(
     proposals.reduce((acc:any, p) => {
-      if(p.coordinator_name&&!acc[p.coordinator_name]) acc[p.coordinator_name]={name:p.coordinator_name,count:0,lastDate:p.delivery_date}
+      if(p.coordinator_name&&!acc[p.coordinator_name]) acc[p.coordinator_name]={name:p.coordinator_name,count:0}
       if(p.coordinator_name&&['confirmed','delivered'].includes(p.status)) acc[p.coordinator_name].count++
       return acc
     }, {})
   ) as any[]
-
-  const submitPost = async () => {
-    if(!newPost.trim()||!kitchen?.id) return
-    setPosting(true)
-    await fetch('/api/village-posts', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        kitchen_id: kitchen.id,
-        content: newPost.trim(),
-        author_name: kitchen.name?.split("'")[0] || 'You',
-        author_type: 'recipient',
-      }),
-    })
-    setNewPost(''); setPosting(false); onPostUpdate()
-  }
 
   const fmt = (s:string) => {
     const d = new Date(s), now = new Date()
@@ -735,45 +756,192 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
     return d.toLocaleDateString('en-US',{month:'short',day:'numeric'})
   }
 
-  const recipientFirst = kitchen.name?.split("'")[0] || 'You'
+  const pickPhoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const f = e.target.files?.[0]
+    if (!f) return
+    if (f.size > 5*1024*1024) { alert('Please choose an image under 5 MB.'); return }
+    setPhoto(f)
+    setPhotoPreview(URL.createObjectURL(f))
+  }
+  const clearPhoto = () => { setPhoto(null); setPhotoPreview(null); if(fileRef.current) fileRef.current.value='' }
+
+  const submitPost = async () => {
+    if((!newPost.trim()&&!photo)||!kitchen?.id) return
+    setPosting(true)
+    let image_url: string | null = null
+    try {
+      if (photo) {
+        const fd = new FormData()
+        fd.append('file', photo)
+        fd.append('kitchen_id', kitchen.id)
+        const up = await fetch('/api/village-photo-upload', { method:'POST', body: fd })
+        const upJson = await up.json()
+        if (upJson.url) image_url = upJson.url
+        else { alert(upJson.error || 'Photo upload failed.'); setPosting(false); return }
+      }
+      await fetch('/api/village-posts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kitchen_id: kitchen.id,
+          content: newPost.trim(),
+          author_name: recipientFirst,
+          author_type: 'recipient',
+          image_url,
+        }),
+      })
+      setNewPost(''); clearPhoto()
+      onPostUpdate()
+    } finally { setPosting(false) }
+  }
+
+  const submitReply = async (parentId: string) => {
+    if(!replyText.trim()||!kitchen?.id) return
+    await fetch('/api/village-posts', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        kitchen_id: kitchen.id,
+        content: replyText.trim(),
+        author_name: recipientFirst,
+        author_type: 'recipient',
+        parent_id: parentId,
+      }),
+    })
+    setReplyText(''); setReplyTo(null); onPostUpdate()
+  }
+
+  const react = async (postId: string, emoji: string) => {
+    await fetch('/api/village-posts', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: postId, emoji }),
+    })
+    onPostUpdate()
+  }
+
+  const removePost = async (postId: string) => {
+    if(!confirm('Remove this from your board?')) return
+    await fetch('/api/village-posts', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: postId, kitchen_id: kitchen.id }),
+    })
+    onPostUpdate()
+  }
+
+  const REACTIONS = ['🧡','👍','😊','🙏']
+
+  const PostCard = ({ post, isReply }: { post: VillagePost; isReply?: boolean }) => {
+    const isRecipient = post.author_type==='recipient'
+    const isSystem    = post.post_type==='system'
+    const authorName  = post.author_name || (isRecipient?recipientFirst:'A supporter')
+    const avatarBg    = isSystem ? S.sageLight : isRecipient ? S.sage : S.amber
+    const avatarColor = isSystem ? S.sage : S.white
+    return (
+      <div style={{ background:S.white,border:`0.5px solid ${isSystem?'#DDE8E0':isRecipient?S.border:'#E0C89A'}`,borderRadius:14,padding:'13px 15px',marginBottom:isReply?8:10,marginLeft:isReply?20:0 }}>
+        <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:post.content||post.image_url?8:0 }}>
+          <div style={{ width:isReply?26:30,height:isReply?26:30,borderRadius:9,background:avatarBg,display:'flex',alignItems:'center',justifyContent:'center',color:avatarColor,fontSize:12,fontWeight:700,flexShrink:0 }}>
+            {(authorName||'?').charAt(0).toUpperCase()}
+          </div>
+          <div style={{ flex:1,minWidth:0 }}>
+            <div style={{ fontSize:13,fontWeight:600,color:S.forest }}>{authorName}</div>
+            <div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>
+              {isSystem?'Meal delivered':isRecipient?'Update':'From your village'} · {fmt(post.posted_at)}
+            </div>
+          </div>
+          {isRecipient && !isSystem && (
+            <button onClick={()=>removePost(post.id)} title="Remove"
+              style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:14,padding:'2px 4px',flexShrink:0,opacity:0.5 }}>✕</button>
+          )}
+        </div>
+        {post.content && <p style={{ fontSize:14,color:S.forest,margin:'0 0 8px',lineHeight:1.6 }}>{post.content}</p>}
+        {post.image_url && (
+          <img src={post.image_url} alt="" style={{ width:'100%',borderRadius:10,marginBottom:8,display:'block',maxHeight:320,objectFit:'cover' }}/>
+        )}
+        {/* Reactions row */}
+        <div style={{ display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginTop:4 }}>
+          {post.reactions && Object.entries(post.reactions).filter(([,n])=>n>0).map(([emoji,n])=>(
+            <button key={emoji} onClick={()=>react(post.id,emoji)}
+              style={{ display:'flex',alignItems:'center',gap:3,background:S.sageLight,border:'none',borderRadius:20,padding:'3px 9px',cursor:'pointer',fontSize:12,fontFamily:"'DM Sans',sans-serif" }}>
+              <span>{emoji}</span><span style={{ color:S.sage,fontWeight:600,fontSize:11 }}>{n}</span>
+            </button>
+          ))}
+          <div style={{ display:'flex',gap:2 }}>
+            {REACTIONS.map(e=>(
+              <button key={e} onClick={()=>react(post.id,e)} title="React"
+                style={{ background:'none',border:'none',cursor:'pointer',fontSize:14,padding:'2px 3px',opacity:0.55,lineHeight:1 }}>{e}</button>
+            ))}
+          </div>
+          {!isReply && (
+            <button onClick={()=>{ setReplyTo(replyTo===post.id?null:post.id); setReplyText('') }}
+              style={{ marginLeft:'auto',background:'none',border:'none',cursor:'pointer',fontSize:12,color:S.stone,fontWeight:500,fontFamily:"'DM Sans',sans-serif" }}>
+              {replyTo===post.id?'Cancel':'Reply'}
+            </button>
+          )}
+        </div>
+        {/* Reply composer */}
+        {replyTo===post.id && (
+          <div style={{ marginTop:10,display:'flex',gap:6 }}>
+            <input value={replyText} onChange={e=>setReplyText(e.target.value)}
+              placeholder="Write a reply…" autoFocus
+              onKeyDown={e=>{ if(e.key==='Enter') submitReply(post.id) }}
+              style={{ flex:1,borderRadius:9,border:`1.5px solid ${S.border}`,padding:'9px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.cream,outline:'none',boxSizing:'border-box' }}/>
+            <button onClick={()=>submitReply(post.id)} disabled={!replyText.trim()}
+              style={{ padding:'9px 16px',borderRadius:9,border:'none',background:!replyText.trim()?S.border:S.sage,color:!replyText.trim()?S.stone:S.white,fontSize:13,fontWeight:600,cursor:!replyText.trim()?'default':'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:40 }}>Send</button>
+          </div>
+        )}
+        {/* Replies */}
+        {post.replies && post.replies.length>0 && (
+          <div style={{ marginTop:10 }}>
+            {post.replies.map(r=><PostCard key={r.id} post={r} isReply/>)}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   return (
     <div style={{ padding:'16px 20px' }}>
       <p style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.forest,margin:'0 0 4px',letterSpacing:-0.5 }}>Your Village</p>
-      <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 20px',lineHeight:1.6 }}>Share updates with the people who show up for you — they see your posts when they send a meal.</p>
+      <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 20px',lineHeight:1.6 }}>A shared board for your village — meals that arrived, notes, and photos. Post an update or reply to say thanks.</p>
+
+      {/* Composer */}
       <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
-        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Share a life update</p>
+        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Share an update</p>
         <textarea value={newPost} onChange={e=>setNewPost(e.target.value)}
-          placeholder="Miles slept 6 hours last night 🎉 First week home is going well..."
-          style={{ width:'100%',minHeight:80,borderRadius:10,border:`1.5px solid ${S.border}`,padding:'10px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.cream,resize:'none',outline:'none',boxSizing:'border-box',lineHeight:1.6,marginBottom:10 }}/>
-        <button onClick={submitPost} disabled={!newPost.trim()||posting}
-          style={{ width:'100%',padding:'11px',borderRadius:9,border:'none',background:!newPost.trim()?S.border:S.forest,color:!newPost.trim()?S.stone:S.white,fontSize:13,fontWeight:600,cursor:!newPost.trim()?'default':'pointer',fontFamily:"'DM Sans',sans-serif" }}>
-          {posting?'Sharing…':'Share with your village 🧡'}
-        </button>
+          placeholder="Got the meal — it was perfect, thank you 🧡 Miles slept 6 hours last night…"
+          style={{ width:'100%',minHeight:72,borderRadius:10,border:`1.5px solid ${S.border}`,padding:'10px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.cream,resize:'none',outline:'none',boxSizing:'border-box',lineHeight:1.6,marginBottom:10 }}/>
+        {photoPreview && (
+          <div style={{ position:'relative',marginBottom:10 }}>
+            <img src={photoPreview} alt="" style={{ width:'100%',borderRadius:10,display:'block',maxHeight:240,objectFit:'cover' }}/>
+            <button onClick={clearPhoto}
+              style={{ position:'absolute',top:8,right:8,background:'rgba(30,38,32,0.7)',color:S.white,border:'none',borderRadius:'50%',width:28,height:28,cursor:'pointer',fontSize:14,display:'flex',alignItems:'center',justifyContent:'center' }}>✕</button>
+          </div>
+        )}
+        <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" onChange={pickPhoto} style={{ display:'none' }}/>
+        <div style={{ display:'flex',gap:8 }}>
+          <button onClick={()=>fileRef.current?.click()}
+            style={{ padding:'11px 14px',borderRadius:9,border:`1px solid ${S.border}`,background:S.white,color:S.stone,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',gap:6,minHeight:44 }}>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="2" stroke={S.stone} strokeWidth="1.7"/><circle cx="8.5" cy="8.5" r="1.5" fill={S.stone}/><path d="M21 15l-5-5L5 21" stroke={S.stone} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            Photo
+          </button>
+          <button onClick={submitPost} disabled={(!newPost.trim()&&!photo)||posting}
+            style={{ flex:1,padding:'11px',borderRadius:9,border:'none',background:(!newPost.trim()&&!photo)?S.border:S.forest,color:(!newPost.trim()&&!photo)?S.stone:S.white,fontSize:14,fontWeight:600,cursor:(!newPost.trim()&&!photo)?'default':'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:44 }}>
+            {posting?'Posting…':'Post to your village 🧡'}
+          </button>
+        </div>
       </div>
+
+      {/* Feed */}
       {villagePosts.length>0&&(
         <div style={{ marginBottom:24 }}>
-          <p style={sLabel}>Village feed</p>
-          {villagePosts.map(post=>{
-            const isRecipient = !post.author_type||post.author_type==='recipient'
-            const authorName = post.author_name||(isRecipient?recipientFirst:'A supporter')
-            return (
-            <div key={post.id} style={{ background:S.white,border:`0.5px solid ${isRecipient?S.border:'#E0C89A'}`,borderRadius:14,padding:'14px 16px',marginBottom:10,marginLeft:isRecipient?0:20 }}>
-              <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:8 }}>
-                <div style={{ width:32,height:32,borderRadius:10,background:isRecipient?S.sage:S.amber,display:'flex',alignItems:'center',justifyContent:'center',color:S.white,fontSize:13,fontWeight:700,flexShrink:0 }}>
-                  {(authorName||'?').charAt(0).toUpperCase()}
-                </div>
-                <div style={{ flex:1 }}>
-                  <div style={{ fontSize:13,fontWeight:600,color:S.forest }}>{authorName}</div>
-                  <div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{isRecipient?'Kitchen update':'Supporter reply'} · {fmt(post.posted_at)}</div>
-                </div>
-                {!isRecipient&&<span style={{ fontSize:9,fontWeight:700,background:'#F5ECD8',color:'#7A4F10',borderRadius:20,padding:'2px 8px',flexShrink:0 }}>FROM YOUR VILLAGE</span>}
-              </div>
-              <p style={{ fontSize:14,color:S.forest,margin:0,lineHeight:1.7 }}>{post.content}</p>
-            </div>
-          )})}
+          <p style={sLabel}>The board</p>
+          {villagePosts.map(post=><PostCard key={post.id} post={post}/>)}
         </div>
       )}
+
+      {/* Village roster */}
       {uniqueCoords.length>0&&(
         <div>
           <p style={sLabel}>Your Village ({uniqueCoords.length})</p>
@@ -791,9 +959,10 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
           ))}
         </div>
       )}
+
       {villagePosts.length===0&&uniqueCoords.length===0&&(
         <div style={{ background:S.sageLight,borderRadius:14,padding:'20px',textAlign:'center' }}>
-          <p style={{ fontSize:14,color:S.sage,margin:0,lineHeight:1.7 }}>Your village will appear here once people start sending meals. 🧡</p>
+          <p style={{ fontSize:14,color:S.sage,margin:0,lineHeight:1.7 }}>Your board comes to life once your village starts sending meals. 🧡</p>
         </div>
       )}
     </div>
@@ -848,11 +1017,13 @@ export default function DashboardPage() {
   }, [])
 
   const loadVillagePosts = useCallback(async (kitchenId: string) => {
-    const { data } = await supabase.from('village_posts')
-      .select('id, content, author_name, author_type, posted_at')
-      .eq('kitchen_id', kitchenId)
-      .order('posted_at', { ascending: false })
-    setVillagePosts(data || [])
+    try {
+      const res = await fetch(`/api/village-posts?kitchen_id=${kitchenId}`)
+      const json = await res.json()
+      setVillagePosts(json.posts || [])
+    } catch {
+      setVillagePosts([])
+    }
   }, [])
 
   // ── Initial load ────────────────────────────────────────────────────────────
