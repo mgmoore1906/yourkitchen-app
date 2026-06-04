@@ -64,7 +64,7 @@ const CARE_SECTIONS: Section[] = [
 ]
 
 const FOUNDING_PERKS = [
-'3 years of Care+ included — a $160 savings vs paying monthly',
+'3 years of Care+ included — the best value, locked in up front',
 'Founding Member badge on your Kitchen page — yours permanently',
 'Direct access to founder — a real feedback loop, not a support ticket',
 'Early access to every new feature (beta)',
@@ -166,7 +166,7 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 <div style={{ padding: '28px 24px', maxWidth: 1320, margin: '0 auto' }}>
 <h1 style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 500, color: S.forest, margin: '0 0 8px', letterSpacing: -0.5 }}>Plans &amp; pricing</h1>
 <p style={{ fontSize: 14, color: S.stone, fontWeight: 300, margin: '0 0 28px', lineHeight: 1.6 }}>
-Founding Membership is open to the first 100 supporters — your belief funds the build.
+Founding Membership is open to the first 250 supporters — your belief funds the build.
 </p>
 
 {error && <div style={{ background: '#FDE8E8', border: `1.5px solid ${S.red}`, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}><p style={{ fontSize: 13, color: S.red, margin: 0 }}>⚠️ {error}</p></div>}
@@ -175,13 +175,13 @@ Founding Membership is open to the first 100 supporters — your belief funds th
 
 {/* FREE */}
 <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '20px', position: 'relative' }}>
-<span style={{ display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 8, marginBottom: 10, background: '#F0F0EB', color: S.stone }}>Free</span>
-<div style={{ fontSize: 18, fontWeight: 500, color: S.forest, marginBottom: 4 }}>Kitchen</div>
-<div style={{ fontSize: 13, color: S.stone, marginBottom: 14 }}><strong style={{ fontSize: 22, fontWeight: 500, color: S.forest }}>$0</strong> / always</div>
+<span style={{ display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 8, marginBottom: 10, background: S.sageLight, color: '#2D5240' }}>Care</span>
+<div style={{ fontSize: 18, fontWeight: 500, color: S.forest, marginBottom: 4 }}>Kitchen Care</div>
+<div style={{ fontSize: 13, color: S.stone, marginBottom: 14 }}><strong style={{ fontSize: 22, fontWeight: 500, color: S.forest }}>Free</strong> / always</div>
 {renderSections(FREE_SECTIONS)}
 <button onClick={() => handleSwitch('free')} disabled={!!switching || currentTier === 'free'}
 style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, border: `0.5px solid ${S.border}`, background: '#F0F0EB', color: S.forest, fontSize: 13, fontWeight: 600, cursor: currentTier === 'free' ? 'default' : 'pointer', marginTop: 16, fontFamily: "'DM Sans', sans-serif" }}>
-{ctaLabel('free', 'Downgrade to Free')}
+{ctaLabel('free', 'Switch to Care')}
 </button>
 </div>
 
@@ -190,7 +190,7 @@ style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, bord
 <span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: S.stone, color: S.white, fontSize: 10, fontWeight: 600, padding: '3px 12px', borderRadius: 10, whiteSpace: 'nowrap' }}>Coming soon</span>
 <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 8, marginBottom: 10, background: S.sageLight, color: '#2D5240' }}>Care+</span>
 <div style={{ fontSize: 18, fontWeight: 500, color: S.forest, marginBottom: 4 }}>Kitchen Care+</div>
-<div style={{ fontSize: 13, color: S.stone, marginBottom: 14 }}><strong style={{ fontSize: 22, fontWeight: 500, color: S.forest }}>$9.99</strong> / month</div>
+<div style={{ fontSize: 13, color: S.stone, marginBottom: 14 }}><strong style={{ fontSize: 22, fontWeight: 500, color: S.forest }}>$9.99</strong> / month <span style={{ fontSize: 11, color: S.sageMid }}>· or $90/yr</span></div>
 {renderSections(CARE_SECTIONS)}
 <button disabled
 style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, border: `1px solid ${S.border}`, background: '#F0F0EB', color: S.stone, fontSize: 13, fontWeight: 600, cursor: 'default', marginTop: 16, fontFamily: "'DM Sans', sans-serif" }}>
@@ -200,7 +200,7 @@ Coming soon
 
 {/* FOUNDING — 3-YEAR */}
 <div style={{ background: S.forest, border: `2px solid ${S.forest}`, borderRadius: 14, padding: '20px', position: 'relative' }}>
-<span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: S.amber, color: S.white, fontSize: 10, fontWeight: 600, padding: '3px 12px', borderRadius: 10, whiteSpace: 'nowrap' }}>Limited — first 100</span>
+<span style={{ position: 'absolute', top: -10, left: '50%', transform: 'translateX(-50%)', background: S.amber, color: S.white, fontSize: 10, fontWeight: 600, padding: '3px 12px', borderRadius: 10, whiteSpace: 'nowrap' }}>Limited — first 250</span>
 <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 8, marginBottom: 10, background: S.amber, color: S.white }}>Founding Member</span>
 <div style={{ fontSize: 18, fontWeight: 500, color: S.white, marginBottom: 4 }}>Founding Package</div>
 <div style={{ fontSize: 13, color: 'rgba(255,255,255,0.6)', marginBottom: 14 }}><strong style={{ fontSize: 22, fontWeight: 500, color: S.white }}>$200</strong> <span style={{ fontSize: 11 }}>once · 3 years of Care+ included</span></div>
@@ -220,7 +220,7 @@ style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, bord
 </div>
 
 <p style={{ fontSize: 11, color: S.stone, textAlign: 'center', margin: '24px 0 0', lineHeight: 1.6, fontWeight: 300 }}>
-Founding Membership is limited to the first 100 supporters and includes 3 years of Care+. &nbsp;·&nbsp; Founders Gift Box ships late summer. &nbsp;·&nbsp; All tiers include YourKitchen's service fee on orders.
+Founding Membership is limited to the first 250 supporters and includes 3 years of Care+. &nbsp;·&nbsp; Founders Gift Box ships late summer. &nbsp;·&nbsp; All tiers include YourKitchen's service fee on orders.
 </p>
 </div>
 </div>
