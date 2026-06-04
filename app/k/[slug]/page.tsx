@@ -34,13 +34,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       url,
       siteName: 'YourKitchen',
       type: 'website',
-      images: [{ url: 'https://yourkitchen.app/og-image.png', width: 1200, height: 630, alt: 'YourKitchen' }],
+      images: [{ url: 'https://raw.githubusercontent.com/mgmoore1906/yourkitchen/main/og-image.png', width: 1200, height: 630, alt: 'YourKitchen' }],
     },
     twitter: {
       card: 'summary_large_image',
       title,
       description,
-      images: ['https://yourkitchen.app/og-image.png'],
+      images: ['https://raw.githubusercontent.com/mgmoore1906/yourkitchen/main/og-image.png'],
     },
   }
 }
