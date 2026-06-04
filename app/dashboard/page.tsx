@@ -629,7 +629,7 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
 
   const socials = [
     { icon:<SvgWA/>, label:'WhatsApp',    action:()=>{ const t=`My village has a way to show up for me now 🧡\n\nSend my family a meal through YourKitchen:\n${kitchenUrl}`; window.open(`https://wa.me/?text=${encodeURIComponent(t)}`,'_blank') } },
-    { icon:<SvgFB/>, label:'Facebook',    action:()=>{ const q=`My village has a way to show up for me now 🧡 Send my family a meal — no app needed, just open the link and pick a date.`; window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}&quote=${encodeURIComponent(q)}`,'_blank') } },
+    { icon:<SvgFB/>, label:'Facebook',    action:()=>{ window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}`,'_blank') } },
     { icon:<SvgX/>,  label:'Twitter / X', action:()=>{ const t=`My village has a way to show up for us now 🧡 Send my family a meal — no app needed. #YourKitchen`; window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(t)}&url=${encodeURIComponent(kitchenUrl)}`,'_blank') } },
     { icon:<SvgLI/>, label:'LinkedIn',    action:()=>{ window.open(`https://www.linkedin.com/sharing/share-offsite/?url=${encodeURIComponent(kitchenUrl)}`,'_blank') } },
   ]
@@ -705,7 +705,7 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
                       </div>
                     </div>
                     <div style={{ display:'flex',gap:6 }}>
-                      <button onClick={()=>window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}&quote=${encodeURIComponent(msg)}`,'_blank')} style={{ flex:1,padding:'8px',borderRadius:8,border:`0.5px solid ${S.border}`,background:S.white,color:S.forest,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}><SvgFB/> Share</button>
+                      <button onClick={()=>window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(kitchenUrl)}`,'_blank')} style={{ flex:1,padding:'8px',borderRadius:8,border:`0.5px solid ${S.border}`,background:S.white,color:S.forest,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}><SvgFB/> Share</button>
                       <button onClick={()=>window.open(`https://twitter.com/intent/tweet?text=${encodeURIComponent(msg)}`,'_blank')} style={{ flex:1,padding:'8px',borderRadius:8,border:`0.5px solid ${S.border}`,background:S.white,color:S.forest,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",display:'flex',alignItems:'center',justifyContent:'center',gap:6 }}><SvgX/> Post</button>
                       <button onClick={async()=>{ if(navigator.share){try{await navigator.share({text:msg})}catch{}} else{try{await navigator.clipboard.writeText(msg)}catch{}}; setThanked(p.id);setTimeout(()=>setThanked(null),2000) }} style={{ flex:1,padding:'8px',borderRadius:8,border:`0.5px solid ${S.border}`,background:S.white,color:isThanked?S.sage:S.forest,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
                         {isThanked?'✓':'More'}
