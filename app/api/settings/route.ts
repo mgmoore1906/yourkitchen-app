@@ -42,9 +42,19 @@ export async function POST(request: Request) {
       || kitchen.name === "'s Kitchen"
       || kitchen.name.startsWith("'s ")
 
-    // Re-geocode only if the address actually changed (saves an API call on every save)
+    // Re-geocode whenever an address is present.
+    //
+    // We deliberately do NOT gate this on `address !== kitchen.address`. That
+    // string compare was fragile: the settings form parses the stored address
+    // into Street/Apt/City/State/ZIP on load and re-assembles it on save, and
+    // that round-trip isn't always byte-identical. A real change (e.g. state +
+    // ZIP only) could re-assemble to the same string and silently skip
+    // geocoding — leaving the kitchen lat/lng stale so restaurant search stayed
+    // locked to the old area. Geocoding API calls are effectively free at our
+    // scale, so we just always resolve fresh coordinates when an address exists
+    // and only update them when the geocode actually succeeds.
     let coordsUpdate: { latitude: number; longitude: number } | {} = {}
-    if (address && address !== kitchen?.address) {
+    if (address && address.trim()) {
       const coords = await geocodeAddress(address)
       if (coords) coordsUpdate = { latitude: coords.lat, longitude: coords.lng }
     }
