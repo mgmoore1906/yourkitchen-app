@@ -1,9 +1,48 @@
 import { createClient } from '@/lib/supabase/server'
 import { notFound } from 'next/navigation'
+import type { Metadata } from 'next'
 import CoordKitchenClient from './client'
 
 type Props = {
   params: Promise<{ slug: string }>
+}
+
+// Open Graph metadata so a shared kitchen link unfurls into a warm, branded
+// preview card everywhere it's pasted — Facebook, iMessage, WhatsApp, Slack.
+// Facebook ignores any custom "quote" text (deprecated), so the preview is
+// driven entirely by these tags + the page URL.
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params
+  const supabase = await createClient()
+  const { data: kitchen } = await supabase
+    .from('kitchens')
+    .select('name')
+    .eq('slug', slug)
+    .single()
+
+  const firstName = kitchen?.name?.split(/[\s']/)[0] || 'a friend'
+  const title = kitchen?.name ? `${firstName}'s Kitchen — send a meal 🧡` : 'YourKitchen — send a meal 🧡'
+  const description = `${firstName}'s village has a way to show up. Pick a date and send ${firstName} a home-delivered meal — no app needed, just open the link.`
+  const url = `https://app.yourkitchen.app/k/${slug}`
+
+  return {
+    title,
+    description,
+    openGraph: {
+      title,
+      description,
+      url,
+      siteName: 'YourKitchen',
+      type: 'website',
+      images: [{ url: 'https://yourkitchen.app/og-image.png', width: 1200, height: 630, alt: 'YourKitchen' }],
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+      images: ['https://yourkitchen.app/og-image.png'],
+    },
+  }
 }
 
 export default async function KitchenPage({ params }: Props) {
