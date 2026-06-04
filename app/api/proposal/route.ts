@@ -1,265 +1,119 @@
-import { createClient } from '@supabase/supabase-js'
-import Stripe from 'stripe'
-import { NextResponse } from 'next/server'
-import { haversineDistance, getDeliveryFee } from '@/lib/distance'
+// lib/shipday.ts
+// Real courier-fee quote from Shipday, with a safe fallback.
+//
+// WHY THIS EXISTS
+// The checkout previously charged a courier fee from getDeliveryFee(miles) in
+// lib/distance.ts — a haversine-distance estimate against DoorDash Drive's
+// published rate card. That is a *guess*. Shipday routes to live Uber/DoorDash
+// fleets whose actual fee can differ, and any gap comes out of YourKitchen's
+// margin. This helper asks Shipday for the real on-demand delivery quote for a
+// specific pickup → dropoff so the coordinator is charged what the delivery
+// actually costs.
+//
+// SAFETY MODEL (important)
+// Shipday's on-demand fee is only fully certain once an order is assigned to a
+// fleet, and the estimate endpoint's coverage varies by market. So this function
+// NEVER throws and NEVER returns 0 on failure. If Shipday returns a usable quote,
+// we use it; otherwise the caller falls back to the mileage estimate. Checkout is
+// never blocked by an estimate failure.
+//
+// Requires SHIPDAY_API_KEY (same key used for dispatch).
 
-const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
-export async function POST(request: Request) {
-try {
-const {
-name, email, phone, note,
-proposals,
-kitchen_slug,
-tip_amount,
-delivery_preference,
-delivery_note,
-use_places,
-} = await request.json()
-
-// ── Guest coordinator ────────────────────────────────────────────────────
-const { data: guest, error: guestError } = await supabase
-.from('guest_coordinators')
-.insert({ full_name: name, email, phone: phone || null })
-.select('id')
-.single()
-if (guestError) return NextResponse.json({ error: guestError.message }, { status: 400 })
-
-// ── Kitchen ──────────────────────────────────────────────────────────────
-const { data: kitchen } = await supabase
-.from('kitchens')
-.select('id, name, latitude, longitude')
-.eq('slug', kitchen_slug)
-.single()
-if (!kitchen) return NextResponse.json({ error: 'Kitchen not found' }, { status: 404 })
-
-const recipientFirst = kitchen.name?.split("'")[0] || 'your recipient'
-
-const proposalIds: string[] = []
-const lineItems: any[] = []
-let mealSubtotalCents = 0
-let deliveryMiles: number | null = null
-
-for (const p of proposals) {
-
-let kitchenRestaurantId: string | null = null
-let mealName: string
-let mealPrice: number
-let restName: string
-let dateLabel: string
-let mealItems: any[] = []
-
-if (use_places) {
-mealName = p.menu_item_name || 'Meal'
-mealPrice = p.menu_item_price || 15
-restName = p.restaurant_name || 'Restaurant'
-mealItems = Array.isArray(p.meal_items) ? p.meal_items : []
-dateLabel = p.delivery_date
-? new Date(p.delivery_date + 'T12:00:00').toLocaleDateString('en-US', {
-weekday: 'short', month: 'short', day: 'numeric' })
-: ''
-
-const { data: kr } = await supabase
-.from('kitchen_restaurants')
-.select('id, lat, lng')
-.eq('kitchen_id', kitchen.id)
-.ilike('name', restName)
-.single()
-
-kitchenRestaurantId = kr?.id || null
-
-if (deliveryMiles === null && kitchen.latitude && kitchen.longitude && kr?.lat && kr?.lng) {
-deliveryMiles = haversineDistance(kitchen.latitude, kitchen.longitude, kr.lat, kr.lng)
+export type CourierQuote = {
+  feeDollars: number          // the courier fee to charge, in dollars
+  source: 'shipday' | 'estimate' // where the number came from (for logging/notes)
 }
 
-} else {
-const [{ data: menuItem }, { data: restaurant }, { data: calDate }] = await Promise.all([
-supabase.from('menu_items').select('name, price').eq('id', p.menu_item_id).single(),
-supabase.from('kitchen_restaurants').select('id, name, lat, lng').eq('id', p.restaurant_id).single(),
-supabase.from('calendar_dates').select('date, meal_type').eq('id', p.calendar_date_id).single(),
-])
-mealName = menuItem?.name || 'Meal'
-mealPrice = menuItem?.price || 15
-restName = (restaurant as any)?.name || 'Restaurant'
-kitchenRestaurantId = (restaurant as any)?.id || null
-dateLabel = calDate?.date
-? new Date(calDate.date + 'T12:00:00').toLocaleDateString('en-US', {
-weekday: 'short', month: 'short', day: 'numeric' })
-: ''
-if (deliveryMiles === null && kitchen.latitude && kitchen.longitude && (restaurant as any)?.lat && (restaurant as any)?.lng) {
-deliveryMiles = haversineDistance(kitchen.latitude, kitchen.longitude, (restaurant as any).lat, (restaurant as any).lng)
-}
+type EstimateInput = {
+  pickupLat: number | null
+  pickupLng: number | null
+  pickupAddress: string
+  dropoffLat: number | null
+  dropoffLng: number | null
+  dropoffAddress: string
+  tipDollars: number
 }
 
-// ── Claim ────────────────────────────────────────────────────────────
-const { data: claim, error: claimError } = await supabase
-.from('claims')
-.insert({
-calendar_date_id: p.calendar_date_id,
-guest_coordinator_id: guest.id,
-claim_type: 'one_time',
-status: 'active',
-expires_at: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
-})
-.select('id')
-.single()
-if (claimError) return NextResponse.json({ error: claimError.message }, { status: 400 })
+// Sanity bounds: a real on-demand courier fee outside this range almost
+// certainly means a bad/garbage quote, so we reject it and fall back.
+const MIN_REASONABLE_FEE = 3.0
+const MAX_REASONABLE_FEE = 40.0
 
-// ── Proposal ─────────────────────────────────────────────────────────
-const { data: proposal, error: proposalError } = await supabase
-.from('meal_proposals')
-.insert({
-claim_id: claim.id,
-kitchen_id: kitchen.id,
-kitchen_restaurant_id: kitchenRestaurantId,
-menu_item_id: use_places ? null : p.menu_item_id,
-coordinator_name: name,
-coordinator_note: note || null,
-tip_amount: tip_amount || 0,
-delivery_preference: delivery_preference || 'leave_at_door',
-delivery_note: delivery_note || null,
-restaurant_name: restName,
-meal_name: mealName,
-meal_items: mealItems,
-delivery_date: use_places ? p.delivery_date : undefined,
-meal_type: use_places ? p.meal_type : undefined,
-status: 'pending',
-})
-.select('id')
-.single()
-if (proposalError) return NextResponse.json({ error: proposalError.message }, { status: 400 })
+/**
+ * Ask Shipday for a real delivery-fee quote. Returns null (NOT an error) when
+ * no usable quote is available, so the caller falls back to the mileage estimate.
+ */
+export async function estimateShipdayFee(input: EstimateInput): Promise<number | null> {
+  const key = process.env.SHIPDAY_API_KEY
+  if (!key) return null
 
-if (!use_places && proposal?.id) {
-const { data: calDate } = await supabase
-.from('calendar_dates').select('date, meal_type').eq('id', p.calendar_date_id).single()
-await supabase.from('meal_proposals').update({
-delivery_date: calDate?.date || null,
-meal_type: (calDate as any)?.meal_type || 'dinner',
-}).eq('id', proposal.id)
+  // Need at least dropoff coordinates to get a meaningful quote.
+  if (input.dropoffLat == null || input.dropoffLng == null) return null
+
+  const payload: any = {
+    pickupAddress:    input.pickupAddress || '',
+    deliveryAddress:  input.dropoffAddress || '',
+    tip:              input.tipDollars || 0,
+  }
+  if (input.pickupLat != null && input.pickupLng != null) {
+    payload.pickupLatitude = Number(input.pickupLat)
+    payload.pickupLongitude = Number(input.pickupLng)
+  }
+  payload.deliveryLatitude = Number(input.dropoffLat)
+  payload.deliveryLongitude = Number(input.dropoffLng)
+
+  try {
+    // Shipday on-demand delivery fee estimate.
+    const res = await fetch('https://api.shipday.com/on-demand/estimate', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Basic ${key}`,
+      },
+      body: JSON.stringify(payload),
+    })
+
+    if (!res.ok) {
+      console.error('[shipday-estimate] non-OK status:', res.status)
+      return null
+    }
+
+    const data = await res.json().catch(() => null)
+    if (!data) return null
+
+    // Shipday responses vary by integration; accept the common shapes and
+    // pick the first numeric fee we recognize.
+    const raw =
+      data.fee ??
+      data.deliveryFee ??
+      data.estimatedFee ??
+      data.cost ??
+      data?.estimate?.fee ??
+      null
+
+    const fee = typeof raw === 'string' ? parseFloat(raw) : raw
+    if (typeof fee !== 'number' || Number.isNaN(fee)) return null
+    if (fee < MIN_REASONABLE_FEE || fee > MAX_REASONABLE_FEE) {
+      console.error('[shipday-estimate] fee out of bounds, ignoring:', fee)
+      return null
+    }
+
+    return Math.round(fee * 100) / 100
+  } catch (err: any) {
+    console.error('[shipday-estimate] error:', err.message)
+    return null
+  }
 }
 
-proposalIds.push(proposal.id)
-
-// ── Stripe line items ────────────────────────────────────────────────
-if (mealItems.length > 0) {
-// Multi-item cart: one line item per dish, with quantity
-for (const item of mealItems) {
-const cents = Math.round((item.price || 0) * 100)
-const qty = item.qty || 1
-if (cents <= 0) continue
-mealSubtotalCents += cents * qty
-lineItems.push({
-price_data: {
-currency: 'usd',
-product_data: {
-name: `${item.name}${item.category === 'kids' ? ' (kids)' : ''}`,
-description: `${restName}${dateLabel ? ` · ${dateLabel}` : ''}`,
-},
-unit_amount: cents,
-},
-quantity: qty,
-})
-}
-} else {
-// Fallback: single meal
-const cents = Math.round(mealPrice * 100)
-mealSubtotalCents += cents
-lineItems.push({
-price_data: {
-currency: 'usd',
-product_data: {
-name: `${mealName} from ${restName}`,
-description: dateLabel || 'YourKitchen meal delivery',
-},
-unit_amount: cents,
-},
-quantity: 1,
-})
-}
-}
-
-// ── Courier delivery fee (distance-based) ────────────────────────────────
-const deliveryFeeAmt = getDeliveryFee(deliveryMiles)
-const distanceNote = deliveryMiles !== null
-? `${deliveryMiles.toFixed(1)} mi · DoorDash Drive rate with tip discount`
-: 'DoorDash Drive / Uber Direct courier'
-
-lineItems.push({
-price_data: {
-currency: 'usd',
-product_data: { name: 'Courier delivery fee', description: distanceNote },
-unit_amount: Math.round(deliveryFeeAmt * 100),
-},
-quantity: 1,
-})
-
-// ── Dasher tip (100% pass-through) ───────────────────────────────────────
-if ((tip_amount || 0) > 0) {
-lineItems.push({
-price_data: {
-currency: 'usd',
-product_data: { name: 'Dasher tip', description: 'Goes directly to your driver — 100% passed through' },
-unit_amount: tip_amount,
-},
-quantity: 1,
-})
-}
-
-// ── Service fee (5% + $0.99) ─────────────────────────────────────────────
-// Sized to fully cover Stripe processing (~2.9% + $0.30) AND leave a real
-// per-order margin. Computed on the pre-fee total (meal + courier + tip) so
-// it scales with order size and is never underwater, even on small meals.
-// All component amounts here are in CENTS.
-const courierCents = Math.round(deliveryFeeAmt * 100)
-const tipCents = tip_amount || 0
-const preFeeCents = mealSubtotalCents + courierCents + tipCents
-const SERVICE_PCT = 0.05
-const SERVICE_FLAT_CENTS = 99
-const serviceFee = Math.round(preFeeCents * SERVICE_PCT) + SERVICE_FLAT_CENTS
-if (serviceFee > 0) {
-lineItems.push({
-price_data: {
-currency: 'usd',
-product_data: {
-name: 'Service fee',
-description: 'Covers coordination, SMS, payment processing, and delivery integration',
-},
-unit_amount: serviceFee,
-},
-quantity: 1,
-})
-}
-
-// ── Stripe Checkout session ──────────────────────────────────────────────
-const session = await stripe.checkout.sessions.create({
-payment_method_types: ['card'],
-line_items: lineItems,
-mode: 'payment',
-payment_intent_data: { capture_method: 'manual' },
-customer_email: email,
-success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}`,
-cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
-metadata: {
-type: 'proposal',
-proposal_ids: JSON.stringify(proposalIds),
-coordinator_name: name,
-},
-})
-
-if (session.id && proposalIds.length > 0) {
-await supabase.from('meal_proposals')
-.update({ stripe_session_id: session.id })
-.in('id', proposalIds)
-}
-
-return NextResponse.json({ checkout_url: session.url })
-
-} catch (err: any) {
-console.error('[Proposal] Error:', err.message)
-return NextResponse.json({ error: err.message }, { status: 500 })
-}
+/**
+ * Resolve the courier fee to charge: prefer the real Shipday quote, fall back to
+ * the provided mileage estimate. Always returns a usable number + its source.
+ */
+export async function resolveCourierFee(
+  input: EstimateInput,
+  mileageEstimateDollars: number
+): Promise<CourierQuote> {
+  const quoted = await estimateShipdayFee(input)
+  if (quoted != null) return { feeDollars: quoted, source: 'shipday' }
+  return { feeDollars: mileageEstimateDollars, source: 'estimate' }
 }
