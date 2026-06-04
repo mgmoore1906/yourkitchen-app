@@ -117,12 +117,17 @@ const { data: kitchen } = await supabase
 if (kitchen) {
 setKitchenId(kitchen.id)
 const addr = kitchen.address || ''
+const parsed = parseAddress(addr)
 setForm(f => ({
 ...f,
 household_adults: kitchen.household_adults ?? 2,
 household_children: kitchen.household_children ?? 2,
 dietary_restrictions: kitchen.dietary_restrictions || [],
-street: addr,
+street: parsed.street,
+apt: '',
+city: parsed.city,
+state: parsed.state,
+zip: parsed.zip,
 }))
 if (kitchen.breakfast_windows?.length) setBreakfastWindows(kitchen.breakfast_windows)
 if (kitchen.lunch_windows?.length) setLunchWindows(kitchen.lunch_windows)
@@ -154,7 +159,7 @@ body: JSON.stringify({
 user_id: userId,
 full_name: form.full_name.trim(),
 phone: form.phone,
-address: form.street,
+address: `${form.street}${form.apt ? ` ${form.apt}` : ''}, ${form.city}, ${form.state} ${form.zip}`.replace(/^,\s*/, '').replace(/,\s*,/g, ',').trim(),
 household_adults: form.household_adults,
 household_children: form.household_children,
 dietary_restrictions: form.dietary_restrictions,
@@ -262,8 +267,28 @@ style={{ width: '100%', background: S.white, border: `2px solid ${activeTier.col
 
 {/* ── KITCHEN ── */}
 <p style={{ ...sLabel, marginTop: 8 }}>Kitchen</p>
-<label style={lStyle}>Delivery address</label>
-<input value={form.street} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} placeholder="1422 Oak Creek Dr, Waller, TX 77484" style={iStyle} />
+<label style={lStyle}>Street address</label>
+<input value={form.street} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} placeholder="1422 Oak Creek Dr" style={iStyle} />
+
+<label style={lStyle}>Apt / Suite <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+<input value={form.apt} onChange={e => setForm(f => ({ ...f, apt: e.target.value }))} placeholder="Apt 4B" style={iStyle} />
+
+<label style={lStyle}>City</label>
+<input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Waller" style={iStyle} />
+
+<div style={{ display: 'flex', gap: 12 }}>
+<div style={{ flex: 1 }}>
+<label style={lStyle}>State</label>
+<select value={form.state} onChange={e => setForm(f => ({ ...f, state: e.target.value }))} style={iStyle}>
+{US_STATES.map(s => <option key={s}>{s}</option>)}
+</select>
+</div>
+<div style={{ flex: 1 }}>
+<label style={lStyle}>ZIP</label>
+<input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} placeholder="77484" maxLength={5} style={iStyle} />
+</div>
+</div>
+<p style={{ fontSize: 12, color: S.stone, marginTop: 6, marginBottom: 20, fontWeight: 300 }}>We use this to find restaurants near you. Updating it refreshes your delivery area.</p>
 
 <label style={lStyle}>Household — adults</label>
 <div style={{ display: 'flex', gap: 8, marginBottom: 20 }}>
@@ -387,6 +412,27 @@ Delete my account
 </div>
 </div>
 )
+}
+
+const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WV','WI','WY']
+
+// Best-effort parse of a stored "Street, City, ST ZIP" address back into parts,
+// so the broken-out form pre-fills when the user opens settings.
+function parseAddress(addr: string): { street: string; city: string; state: string; zip: string } {
+  const out = { street: '', city: '', state: 'TX', zip: '' }
+  if (!addr) return out
+  const parts = addr.split(',').map(s => s.trim()).filter(Boolean)
+  if (parts.length >= 3) {
+    out.street = parts[0]
+    out.city = parts[1]
+    const m = parts[2].match(/([A-Z]{2})\s*(\d{5})?/)
+    if (m) { out.state = m[1]; if (m[2]) out.zip = m[2] }
+  } else if (parts.length === 2) {
+    out.street = parts[0]; out.city = parts[1]
+  } else {
+    out.street = addr
+  }
+  return out
 }
 
 export default function SettingsPage() {
