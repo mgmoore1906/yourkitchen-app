@@ -25,9 +25,6 @@ const TIER_META: Record<string, { badge: string; price: string; color: string; b
 const TIER_LIMITS: Record<string, number> = { free: 3, trial: 10, care: 10, annual: 10, founding: 999 }
 // Menu items allowed per restaurant by tier
 const MEAL_LIMITS: Record<string, number> = { free: 4, trial: 12, care: 12, annual: 12, founding: 999 }
-// How many days out a recipient may open calendar dates. Free = 60-day window;
-// paid tiers effectively unlimited.
-const CALENDAR_WINDOW_DAYS: Record<string, number> = { free: 60, trial: 3650, care: 3650, annual: 3650, founding: 3650 }
 const isFounding = (t: string) => t === 'founding'
 const MINS_PER_MEAL = 95
 
@@ -275,9 +272,7 @@ function FoundingRibbon() {
 }
 
 function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, tier, router, userTier, onShare }: any) {
-  // Free tier can only open dates within a 60-day window; paid tiers far beyond.
-  const windowDays = CALENDAR_WINDOW_DAYS[userTier] ?? 60
-  const maxDateStr = (() => { const d = new Date(); d.setDate(d.getDate() + windowDays); return d.toISOString().split('T')[0] })()
+
   const today     = new Date()
   const todayStr  = today.toISOString().split('T')[0]
   const [viewYear,  setViewYear]  = useState(today.getFullYear())
@@ -319,14 +314,13 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           {cells.map((day,i) => {
             if(!day) return <div key={i}/>
             const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-            const isPast    = dateStr < todayStr
-            const isToday   = dateStr === todayStr
-            const isSel     = selectedDate === dateStr
-            const isLocked  = dateStr > maxDateStr
-            const slots     = dateMap[dateStr]||[]
+            const isPast  = dateStr < todayStr
+            const isToday = dateStr === todayStr
+            const isSel   = selectedDate === dateStr
+            const slots   = dateMap[dateStr]||[]
             return (
-              <button key={i} onClick={() => { if(isLocked){ setSelectedDate(null); alert(`Free kitchens can open dates up to ${windowDays} days out. Upgrade to Care+ to open dates further ahead.`); return } if(!isPast) setSelectedDate((p:string|null)=>p===dateStr?null:dateStr) }} disabled={isPast||isLocked}
-                style={{ background:isSel?S.sageLight:slots.length?'#F8FAF8':S.white,border:isSel?`2px solid ${S.sage}`:isToday?`2px solid ${S.sageMid}`:slots.length?`1px solid #C8DDD0`:'1px solid transparent',borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:isLocked?0.25:1,transition:'all 0.1s' }}>
+              <button key={i} onClick={() => { if(!isPast) setSelectedDate((p:string|null)=>p===dateStr?null:dateStr) }} disabled={isPast}
+                style={{ background:isSel?S.sageLight:slots.length?'#F8FAF8':S.white,border:isSel?`2px solid ${S.sage}`:isToday?`2px solid ${S.sageMid}`:slots.length?`1px solid #C8DDD0`:'1px solid transparent',borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
                 <span style={{ fontSize:12,fontWeight:isToday?700:500,color:isSel?S.sage:S.forest,lineHeight:1 }}>{day}</span>
                 {slots.length
                   ? <div style={{ display:'flex',gap:2,flexWrap:'wrap',justifyContent:'center' }}>
@@ -779,7 +773,7 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
         if (upJson.url) image_url = upJson.url
         else { alert(upJson.error || 'Photo upload failed.'); setPosting(false); return }
       }
-      await fetch('/api/village-posts', {
+      const res = await fetch('/api/village-posts', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -790,6 +784,12 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
           image_url,
         }),
       })
+      const postJson = await res.json().catch(() => ({}))
+      if (!res.ok || postJson.error) {
+        alert(postJson.error || 'Could not post to your village. Please try again.')
+        setPosting(false)
+        return
+      }
       setNewPost(''); clearPhoto()
       onPostUpdate()
     } finally { setPosting(false) }
