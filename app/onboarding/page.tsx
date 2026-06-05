@@ -29,11 +29,15 @@ const DELIVERY_WINDOWS = [
 { key: '18:00-19:30', label: '6:00 PM – 7:30 PM', start: '18:00', end: '19:30', meal: 'dinner' },
 ]
 
+// During the pilot, only two choices are offered — no feature comparison.
+// Pilot Account = full access free. Founding = $200 one-time (3 years of Care+
+// that begins at beta launch, so the pilot is a free bonus on top).
+// Post-pilot, the full 3-tier / 4-option plan selection returns.
+const FOUNDING_PAYMENT_LINK = 'https://buy.stripe.com/5kQ00beDq9XD9BX5w5abK01'
+
 const TIERS = [
-{ key: 'free', badge: 'Free', name: 'Kitchen', price: '$0', period: '/ always', blurb: 'Start free — 3 restaurants, 60-day calendar.' },
-{ key: 'care', badge: 'Care+', name: 'Care+', price: '$9.99', period: '/ month', highlight: 'Most popular', blurb: '10 restaurants, unlimited calendar, full SMS.' },
-{ key: 'annual', badge: 'Early Adopter', name: 'Care+ Annual', price: '$59', period: '/ year', highlight: 'Best value', blurb: 'Everything in Care+, 50% off, locked rate.' },
-{ key: 'founding', badge: 'Founding', name: 'Lifetime', price: '$149', period: 'once', highlight: 'First 100', blurb: 'Pay once. Every feature, forever.' },
+{ key: 'trial', badge: 'Pilot', name: 'Pilot Account', price: 'Free', period: 'full access', highlight: 'Pilot', blurb: 'Everything unlocked while we build together. No card, no charge — you help shape YourKitchen.' },
+{ key: 'founding', badge: 'Founding', name: 'Founding Member', price: '$200', period: 'one-time', highlight: 'First 250', blurb: 'Back YourKitchen as a founder: permanent badge, founder access, the Founders Gift Box, and 3 years of Care+. Your 3 years starts at beta launch — the pilot is on us.' },
 ]
 
 type Step = 'profile' | 'address' | 'calendar' | 'delivery' | 'plan' | 'review'
@@ -60,7 +64,7 @@ dietary_restrictions: [] as string[],
 street: '', apt: '', city: '', state: 'TX', zip: '',
 })
 const [addressConfirmed, setAddressConfirmed] = useState(false)
-const [selectedTier, setSelectedTier] = useState('free')
+const [selectedTier, setSelectedTier] = useState('trial')
 
 const [dateSlots, setDateSlots] = useState<DateSlots>({})
 const [pickerDate, setPickerDate] = useState<string | null>(null)
@@ -130,6 +134,9 @@ const allSelectedWindowKeys = [...breakfastWindows, ...lunchWindows, ...dinnerWi
 const hasWindows = allSelectedWindowKeys.length > 0
 const defaultWindow = DELIVERY_WINDOWS.find(w => w.key === allSelectedWindowKeys[0]) || DELIVERY_WINDOWS[5]
 
+// Holds the payment tab we open synchronously on click (popup-blocker-safe).
+let payTab: Window | null = null
+
 const handleFinish = async () => {
 setLoading(true); setError('')
 const { data: { user } } = await supabase.auth.getUser()
@@ -161,9 +168,37 @@ delivery_window_end: defaultWindow.end,
 }),
 })
 const data = await res.json()
-if (!res.ok) { setError(data.error || 'Something went wrong.'); setLoading(false); return }
+if (!res.ok) {
+setError(data.error || 'Something went wrong.')
+setLoading(false)
+// If we pre-opened a payment tab for a founder but creation failed, close it.
+if (payTab && !payTab.closed) payTab.close()
+return
+}
 await new Promise(r => setTimeout(r, 800))
+// Founders: the Stripe tab was opened synchronously on click (below) to dodge
+// popup blockers. Point it at the payment link now, and continue THIS window
+// into kitchen setup with a banner reminding them to finish paying. The account
+// is already created as 'trial', so an unpaid founder still has a working pilot
+// account — we provision founding status once the payment lands.
+if (selectedTier === 'founding') {
+if (payTab && !payTab.closed) payTab.location.href = FOUNDING_PAYMENT_LINK
+else window.open(FOUNDING_PAYMENT_LINK, '_blank') // fallback if pre-open was blocked
+router.push('/kitchen/restaurants?welcome=1&founding=pending')
+return
+}
 router.push('/kitchen/restaurants?welcome=1')
+}
+
+// Fired by the finish button. For founders we MUST open the payment tab here,
+// synchronously inside the click gesture, or the browser's popup blocker kills
+// it. Open a blank tab now; handleFinish points it at Stripe once the account
+// is created (or closes it if creation fails).
+const startFinish = () => {
+if (selectedTier === 'founding') {
+payTab = window.open('about:blank', '_blank')
+}
+handleFinish()
 }
 
 const steps: Step[] = ['profile', 'address', 'calendar', 'delivery', 'plan', 'review']
@@ -437,7 +472,7 @@ style={{ background: on ? `${mb.color}15` : S.white, border: `1.5px solid ${on ?
 
 <div style={{ display: 'flex', gap: 10 }}>
 <button onClick={() => setStep('calendar')} style={btnBack}>← Back</button>
-<button onClick={() => setStep('plan')} disabled={!hasWindows} style={{ ...btnPrimary(!hasWindows), flex: 1 }}>Next: Choose a Plan →</button>
+<button onClick={() => setStep('plan')} disabled={!hasWindows} style={{ ...btnPrimary(!hasWindows), flex: 1 }}>Next: Join the Pilot →</button>
 </div>
 </div>
 )}
@@ -446,12 +481,12 @@ style={{ background: on ? `${mb.color}15` : S.white, border: `1.5px solid ${on ?
 {step === 'plan' && (
 <div>
 <p style={eyebrow}>Step 5 of 6</p>
-<h1 style={title}>Choose<br />your plan</h1>
-<p style={sub}>Most people start free and upgrade when they see how much their village shows up.</p>
+<h1 style={title}>Join<br />the pilot</h1>
+<p style={sub}>Pick how you'd like to start. Either way you get full access during the pilot.</p>
 
 <div style={{ background: S.sageLight, borderRadius: 14, padding: '16px 20px', marginBottom: 20 }}>
-<p style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 500, color: S.forest, margin: '0 0 4px' }}>✦ Every paid plan starts with a 14-day free trial</p>
-<p style={{ fontSize: 13, color: S.stone, fontWeight: 300, lineHeight: 1.6, margin: 0 }}>No card required. You're never charged without choosing to upgrade.</p>
+<p style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 500, color: S.forest, margin: '0 0 4px' }}>✦ Pilot members get everything, free</p>
+<p style={{ fontSize: 13, color: S.stone, fontWeight: 300, lineHeight: 1.6, margin: 0 }}>No card required for a Pilot Account. Founding Members back the build — and their 3 years of Care+ begins at beta launch, so the pilot is a free bonus.</p>
 </div>
 
 <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginBottom: 24 }}>
@@ -484,7 +519,7 @@ style={{ background: sel ? S.sageLight : S.white, border: `2px solid ${sel ? S.s
 <button onClick={() => setStep('review')} style={{ ...btnPrimary(false), flex: 1 }}>Next: Review →</button>
 </div>
 <p style={{ fontSize: 11, color: S.stone, textAlign: 'center', margin: '16px 0 0', fontWeight: 300, lineHeight: 1.6 }}>
-You can change your plan anytime. Founding Member is limited to the first 100 members.
+Founding Membership is limited to the first 250 supporters. Pilot Accounts can become Founding Members anytime during the pilot.
 </p>
 </div>
 )}
@@ -567,7 +602,7 @@ Not ready right now? No problem — tap the button and you can always come back 
 
 <div style={{ display: 'flex', gap: 10 }}>
 <button onClick={() => setStep('plan')} style={btnBack}>← Back</button>
-<button onClick={handleFinish} disabled={loading} style={{ ...btnPrimary(loading), flex: 1 }}>
+<button onClick={startFinish} disabled={loading} style={{ ...btnPrimary(loading), flex: 1 }}>
 {loading ? 'Creating your Kitchen…' : 'Create Kitchen → Add Restaurants'}
 </button>
 </div>
