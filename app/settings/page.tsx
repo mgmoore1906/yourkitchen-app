@@ -275,7 +275,7 @@ style={{ width: '100%', background: S.white, border: `2px solid ${activeTier.col
 <input value={form.apt} onChange={e => setForm(f => ({ ...f, apt: e.target.value }))} placeholder="Apt 4B" style={iStyle} />
 
 <label style={lStyle}>City</label>
-<input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Waller" style={iStyle} />
+<input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Hockley" style={iStyle} />
 
 <div style={{ display: 'flex', gap: 12 }}>
 <div style={{ flex: 1 }}>
