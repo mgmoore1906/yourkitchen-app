@@ -19,7 +19,7 @@ type Restaurant = {
 id: string; name: string; cuisine: string; is_active: boolean
 place_id: string | null; address: string | null
 lat: number | null; lng: number | null
-favorite_meals: string[]; favorite_meal_prices: number[]; favorite_meal_categories: string[]
+favorite_meals: string[]; favorite_meal_prices: number[]; favorite_meal_categories: string[]; favorite_meal_notes: string[]
 }
 type PlaceResult = {
 place_id: string; name: string; address: string
@@ -61,6 +61,7 @@ const [expandedId, setExpandedId] = useState<string | null>(null)
 const [newMealName, setNewMealName] = useState<Record<string, string>>({})
 const [newMealPrice, setNewMealPrice] = useState<Record<string, string>>({})
 const [newMealCategory, setNewMealCategory] = useState<Record<string, 'adult'|'kids'>>({})
+const [newMealNote, setNewMealNote] = useState<Record<string, string>>({})
 const [savingMeals, setSavingMeals] = useState<string | null>(null)
 const [deleting, setDeleting] = useState<string | null>(null)
 const [shakingLimit, setShakingLimit] = useState(false)
@@ -99,6 +100,7 @@ const mapped = (data || []).map((r: any) => ({
 favorite_meals: r.favorite_meals || [],
 favorite_meal_prices: r.favorite_meal_prices || [],
 favorite_meal_categories: r.favorite_meal_categories || [],
+favorite_meal_notes: r.favorite_meal_notes || [],
 }))
 setRestaurants(mapped)
 return mapped
@@ -199,23 +201,26 @@ return
 const name = (newMealName[restaurantId] || '').trim()
 const price = parseFloat(newMealPrice[restaurantId] || '0') || 15
 const category = newMealCategory[restaurantId] || 'adult'
+const noteText = (newMealNote[restaurantId] || '').trim()
 if (!name) return
 setSavingMeals(restaurantId)
 const rest = restaurants.find(r => r.id === restaurantId)!
 const updatedMeals = [...(rest.favorite_meals || []), name]
 const updatedPrices = [...(rest.favorite_meal_prices || []), price]
 const updatedCategories = [...(rest.favorite_meal_categories || []), category]
+const updatedNotes = [...(rest.favorite_meal_notes || []), noteText]
 const res = await fetch('/api/restaurants/favorites', {
 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories }),
+body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes }),
 })
 const data = await res.json()
 if (data.success) {
 setRestaurants(prev => prev.map(r => r.id === restaurantId
-? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories } : r))
+? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes } : r))
 setNewMealName(prev => ({ ...prev, [restaurantId]: '' }))
 setNewMealPrice(prev => ({ ...prev, [restaurantId]: '' }))
 setNewMealCategory(prev => ({ ...prev, [restaurantId]: 'adult' }))
+setNewMealNote(prev => ({ ...prev, [restaurantId]: '' }))
 }
 setSavingMeals(null)
 }
@@ -225,12 +230,13 @@ const rest = restaurants.find(r => r.id === restaurantId)!
 const updatedMeals = rest.favorite_meals.filter((_, i) => i !== index)
 const updatedPrices = rest.favorite_meal_prices.filter((_, i) => i !== index)
 const updatedCategories = (rest.favorite_meal_categories || []).filter((_, i) => i !== index)
+const updatedNotes = (rest.favorite_meal_notes || []).filter((_, i) => i !== index)
 await fetch('/api/restaurants/favorites', {
 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories }),
+body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes }),
 })
 setRestaurants(prev => prev.map(r => r.id === restaurantId
-? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories } : r))
+? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes } : r))
 }
 
 const alreadySaved = (place: PlaceResult) =>
@@ -364,13 +370,20 @@ Exact dish names + prices. Tag adult or kids so your village sees them in the ri
 const cat = (r.favorite_meal_categories?.[i] || 'adult')
 const isKids = cat === 'kids'
 return (
-<div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, background: isKids ? S.amberLight : S.sageLight, border: `1px solid ${isKids ? S.amber : S.sage}`, borderRadius: 10, padding: '8px 12px' }}>
+<div key={i} style={{ background: isKids ? S.amberLight : S.sageLight, border: `1px solid ${isKids ? S.amber : S.sage}`, borderRadius: 10, padding: '8px 12px' }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 <span style={{ fontSize: 14 }}>{isKids ? '🧒' : '👤'}</span>
 <span style={{ flex: 1, fontSize: 13, color: S.forest, fontWeight: 500 }}>{meal}</span>
 <span style={{ fontSize: 9, fontWeight: 700, color: isKids ? S.amber : S.sage, background: S.white, borderRadius: 20, padding: '2px 7px' }}>{isKids ? 'KIDS' : 'ADULT'}</span>
 <span style={{ fontSize: 13, fontWeight: 700, color: isKids ? S.amber : S.sage }}>${(r.favorite_meal_prices[i] || 15).toFixed(2)}</span>
 <button onClick={() => removeMeal(r.id, i)}
 style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 14, padding: 0 }}>✕</button>
+</div>
+{(r.favorite_meal_notes?.[i] || '').trim() && (
+<div style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, marginTop: 5, paddingLeft: 22, lineHeight: 1.5, fontStyle: 'italic' }}>
+&ldquo;{r.favorite_meal_notes[i]}&rdquo;
+</div>
+)}
 </div>
 )
 })}
@@ -402,6 +415,12 @@ style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(ne
 {savingMeals===r.id?'…':'+ Add'}
 </button>
 </div>
+
+{/* Preparation notes — free text so the village (and our team) place the order exactly right */}
+<input value={newMealNote[r.id] || ''} onChange={e => setNewMealNote(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
+placeholder="How they like it — e.g. eggs over hard, sub wheat toast, no onions"
+style={{ width: '100%', boxSizing: 'border-box', marginTop: 8, padding: '10px 12px', borderRadius: 9, border: `1.5px dashed ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+<p style={{ fontSize: 10.5, color: S.stone, fontWeight: 300, margin: '5px 0 0', lineHeight: 1.5 }}>Optional, but the more specific the better — this is exactly how the meal gets ordered.</p>
 </div>
 )}
 </div>
