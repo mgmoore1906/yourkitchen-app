@@ -264,13 +264,13 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 {/* ── KITCHEN ── */}
 <p style={{ ...sLabel, marginTop: 8 }}>Kitchen</p>
 <label style={lStyle}>Street address</label>
-<input value={form.street} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} placeholder="1422 Oak Creek Dr" style={iStyle} />
+<input value={form.street} onChange={e => setForm(f => ({ ...f, street: e.target.value }))} placeholder="414 Milam Street" style={iStyle} />
 
 <label style={lStyle}>Apt / Suite <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
 <input value={form.apt} onChange={e => setForm(f => ({ ...f, apt: e.target.value }))} placeholder="Apt 4B" style={iStyle} />
 
 <label style={lStyle}>City</label>
-<input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Waller" style={iStyle} />
+<input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Houston" style={iStyle} />
 
 <div style={{ display: 'flex', gap: 12 }}>
 <div style={{ flex: 1 }}>
@@ -281,7 +281,7 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 </div>
 <div style={{ flex: 1 }}>
 <label style={lStyle}>ZIP</label>
-<input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} placeholder="77484" maxLength={5} style={iStyle} />
+<input value={form.zip} onChange={e => setForm(f => ({ ...f, zip: e.target.value }))} placeholder="77002" maxLength={5} style={iStyle} />
 </div>
 </div>
 <p style={{ fontSize: 12, color: S.stone, marginTop: 6, marginBottom: 20, fontWeight: 300 }}>We use this to find restaurants near you. Updating it refreshes your delivery area.</p>
