@@ -71,7 +71,7 @@ const [dateSlots, setDateSlots] = useState<DateSlots>({})
 const [pickerDate, setPickerDate] = useState<string | null>(null)
 const [breakfastWindows, setBreakfastWindows] = useState<string[]>([])
 const [lunchWindows, setLunchWindows] = useState<string[]>([])
-const [dinnerWindows, setDinnerWindows] = useState<string[]>(['17:30-19:00'])
+const [dinnerWindows, setDinnerWindows] = useState<string[]>([])
 
 const toggleWindow = (meal: 'breakfast'|'lunch'|'dinner', windowKey: string) => {
 const setters = { breakfast: setBreakfastWindows, lunch: setLunchWindows, dinner: setDinnerWindows }
@@ -247,10 +247,10 @@ Sign out
 <p style={sub}>Your village will see your name — never your phone or address.</p>
 
 <label style={lbl}>Your name</label>
-<input value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="Megan Pete" style={inputSt} />
+<input value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="Danielle Moore" style={inputSt} />
 
 <label style={lbl}>Phone number</label>
-<input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(713) 221-6000" style={inputSt} />
+<input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(936) 555-0142" style={inputSt} />
 <p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '-8px 0 16px' }}>Used only for Y/N meal confirmations via SMS.</p>
 
 <div style={{ background: S.sageLight, border: `1.5px solid ${S.border}`, borderRadius: 10, padding: 16, marginBottom: 20 }}>
@@ -298,13 +298,13 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 <p style={sub}>Double-check it's right — we use it to find restaurants near you.</p>
 
 <label style={lbl}>Street address</label>
-<input value={form.street} onChange={e => update('street', e.target.value)} placeholder="414 Milam Street" style={inputSt} />
+<input value={form.street} onChange={e => update('street', e.target.value)} placeholder="1422 Oak Creek Dr" style={inputSt} />
 
 <label style={lbl}>Apt / Suite <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
 <input value={form.apt} onChange={e => update('apt', e.target.value)} placeholder="Apt 4B" style={inputSt} />
 
 <label style={lbl}>City</label>
-<input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Houston" style={inputSt} />
+<input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Waller" style={inputSt} />
 
 <div style={{ display: 'flex', gap: 12 }}>
 <div style={{ flex: 1 }}>
@@ -315,7 +315,7 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 </div>
 <div style={{ flex: 1 }}>
 <label style={lbl}>ZIP</label>
-<input value={form.zip} onChange={e => update('zip', e.target.value)} placeholder="77002" maxLength={5} style={inputSt} />
+<input value={form.zip} onChange={e => update('zip', e.target.value)} placeholder="77484" maxLength={5} style={inputSt} />
 </div>
 </div>
 
