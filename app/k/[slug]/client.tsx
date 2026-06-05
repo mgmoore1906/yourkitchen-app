@@ -59,9 +59,9 @@ type FavRestaurant = {
 id: string; name: string; address: string | null
 place_id: string | null; lat: number | null; lng: number | null
 favorite_meals: string[]; favorite_meal_prices: number[]
-favorite_meal_categories: string[]
+favorite_meal_categories: string[]; favorite_meal_notes: string[]
 }
-type CartItem = { name: string; price: number; qty: number; category: 'adult'|'kids'; isCustom: boolean }
+type CartItem = { name: string; price: number; qty: number; category: 'adult'|'kids'; isCustom: boolean; note?: string }
 type GroupSelection = {
 mealType: string; slots: any[]
 restaurant: FavRestaurant | null
@@ -440,7 +440,7 @@ const tier = getTipTier(miles); setTipAmount(tier.default); setTipInitialized(tr
 
 // ── Cart helpers (operate on currentGroup) ──
 const cartGet = (name:string, category:string) => currentGroup.cart.find(c=>c.name===name&&c.category===category)
-const cartAdd = (item:{name:string;price:number;category:'adult'|'kids';isCustom:boolean}) => {
+const cartAdd = (item:{name:string;price:number;category:'adult'|'kids';isCustom:boolean;note?:string}) => {
 const existing = cartGet(item.name, item.category)
 if (existing) {
 updateGroup(currentGroupIdx, { cart: currentGroup.cart.map(c=>c.name===item.name&&c.category===item.category?{...c,qty:c.qty+1}:c) })
@@ -507,7 +507,7 @@ calendar_date_id: slot.id,
 restaurant_name: g.restaurant?.name,
 restaurant_address: g.restaurant?.address,
 place_id: g.restaurant?.place_id,
-meal_items: g.cart.map(c=>({ name:c.name, price:c.price, qty:c.qty, category:c.category })),
+meal_items: g.cart.map(c=>({ name:c.name, price:c.price, qty:c.qty, category:c.category, note:c.note||'' })),
 menu_item_name: g.cart.map(c=>c.qty>1?`${c.name} ×${c.qty}`:c.name).join(', '),
 menu_item_price: cartTotal(g.cart),
 delivery_date: slot.date,
@@ -643,7 +643,7 @@ const isRecent = recentRestNames.has(fav.name?.toLowerCase())
 const hasMeals = fav.favorite_meals?.length>0
 
 // Split meals by category
-const allMeals = (fav.favorite_meals||[]).map((m,i)=>({ name:m, price:fav.favorite_meal_prices?.[i]||15, category:(fav.favorite_meal_categories?.[i]||'adult') as 'adult'|'kids' }))
+const allMeals = (fav.favorite_meals||[]).map((m,i)=>({ name:m, price:fav.favorite_meal_prices?.[i]||15, category:(fav.favorite_meal_categories?.[i]||'adult') as 'adult'|'kids', note:(fav.favorite_meal_notes?.[i]||'') }))
 const adultMeals = allMeals.filter(m=>m.category==='adult')
 const kidsMeals = allMeals.filter(m=>m.category==='kids')
 
@@ -700,9 +700,10 @@ return (
 <div key={i} style={{ background:qty>0?S.amberLight:S.warmWhite,border:`2px solid ${qty>0?S.amber:S.amberBorder}`,borderRadius:11,padding:'11px 14px',display:'flex',alignItems:'center',gap:12,transition:'all 0.1s' }}>
 <div style={{ flex:1 }}>
 <div style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:600,color:S.forest }}>{m.name}</div>
+{m.note&&<div style={{ fontSize:11.5,color:S.stone,fontWeight:300,fontStyle:'italic',marginTop:2,lineHeight:1.4 }}>&ldquo;{m.note}&rdquo;</div>}
 <div style={{ fontSize:13,fontWeight:700,color:S.amber,marginTop:1 }}>${m.price.toFixed(2)}</div>
 </div>
-<QtyStepper qty={qty} onAdd={()=>cartAdd({name:m.name,price:m.price,category:'adult',isCustom:false})} onSub={()=>cartSub(m.name,'adult')}/>
+<QtyStepper qty={qty} onAdd={()=>cartAdd({name:m.name,price:m.price,category:'adult',isCustom:false,note:m.note})} onSub={()=>cartSub(m.name,'adult')}/>
 </div>
 )
 })}
@@ -719,15 +720,16 @@ return (
 <div key={i} style={{ background:qty>0?S.amberLight:S.warmWhite,border:`2px solid ${qty>0?S.amber:S.border}`,borderRadius:11,padding:'11px 14px',display:'flex',alignItems:'center',gap:12,transition:'all 0.1s' }}>
 <div style={{ flex:1 }}>
 <div style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:600,color:S.forest }}>{m.name}</div>
+{m.note&&<div style={{ fontSize:11.5,color:S.stone,fontWeight:300,fontStyle:'italic',marginTop:2,lineHeight:1.4 }}>&ldquo;{m.note}&rdquo;</div>}
 <div style={{ fontSize:13,fontWeight:700,color:S.amber,marginTop:1 }}>${m.price.toFixed(2)}</div>
 </div>
 {qty===0?(
-<button onClick={()=>cartAdd({name:m.name,price:m.price,category:'kids',isCustom:false})} style={{ background:S.amber,border:'none',borderRadius:8,color:S.white,fontSize:13,fontWeight:600,padding:'7px 14px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0 }}>Add</button>
+<button onClick={()=>cartAdd({name:m.name,price:m.price,category:'kids',isCustom:false,note:m.note})} style={{ background:S.amber,border:'none',borderRadius:8,color:S.white,fontSize:13,fontWeight:600,padding:'7px 14px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0 }}>Add</button>
 ):(
 <div style={{ display:'flex',alignItems:'center',flexShrink:0,border:`1.5px solid ${S.amber}`,borderRadius:8,overflow:'hidden' }}>
 <button onClick={()=>cartSub(m.name,'kids')} style={{ background:S.amberLight,border:'none',color:S.amber,fontSize:18,fontWeight:600,width:30,height:32,cursor:'pointer',lineHeight:1 }}>−</button>
 <span style={{ fontSize:14,fontWeight:700,color:S.amber,width:28,textAlign:'center' }}>{qty}</span>
-<button onClick={()=>cartAdd({name:m.name,price:m.price,category:'kids',isCustom:false})} style={{ background:S.amberLight,border:'none',color:S.amber,fontSize:18,fontWeight:600,width:30,height:32,cursor:'pointer',lineHeight:1 }}>+</button>
+<button onClick={()=>cartAdd({name:m.name,price:m.price,category:'kids',isCustom:false,note:m.note})} style={{ background:S.amberLight,border:'none',color:S.amber,fontSize:18,fontWeight:600,width:30,height:32,cursor:'pointer',lineHeight:1 }}>+</button>
 </div>
 )}
 </div>
@@ -825,11 +827,11 @@ return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 
 </div>
 
 <label style={lbl}>Your name</label>
-<input value={name} onChange={e=>setName(e.target.value)} placeholder="John" style={inp}/>
+<input value={name} onChange={e=>setName(e.target.value)} placeholder="Jermaine Cole" style={inp}/>
 <label style={lbl}>Your email</label>
 <input type="email" value={email} onChange={e=>setEmail(e.target.value)} placeholder="you@example.com" style={inp}/>
 <label style={lbl}>Your phone</label>
-<input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(555) 123-4567" style={inp}/>
+<input type="tel" value={phone} onChange={e=>setPhone(e.target.value)} placeholder="(910) 323-1500" style={inp}/>
 <label style={{ display:'flex',alignItems:'flex-start',gap:10,marginTop:-8,marginBottom:18,cursor:'pointer' }}>
 <input type="checkbox" checked={smsConsent} onChange={e=>setSmsConsent(e.target.checked)} style={{ marginTop:3,width:18,height:18,flexShrink:0,accentColor:S.amber,cursor:'pointer' }}/>
 <span style={{ fontSize:12,color:S.stone,fontWeight:300,lineHeight:1.5 }}>
