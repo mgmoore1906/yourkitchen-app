@@ -99,9 +99,22 @@ const load = async () => {
 const { data: { user } } = await supabase.auth.getUser()
 if (!user) { router.push('/login'); return }
 setUserId(user.id)
-// If they already have a kitchen, onboarding is done — go to dashboard
+// Onboarding "done" is NOT just "has a kitchen" — the kitchen is created at
+// finish, BEFORE the restaurants step (which lives at /kitchen/restaurants).
+// So a kitchen can exist while setup is still in progress. If we redirect to
+// /dashboard on "has kitchen", hitting back/forward into onboarding kicks the
+// user out mid-setup. Real "done" = has a kitchen WITH at least one restaurant.
 const { data: existing } = await supabase.from('kitchens').select('id').eq('organizer_id', user.id).limit(1)
-if (existing && existing.length > 0) { router.push('/dashboard'); return }
+if (existing && existing.length > 0) {
+  const kId = existing[0].id
+  const { data: rests } = await supabase.from('kitchen_restaurants').select('id').eq('kitchen_id', kId).limit(1)
+  if (rests && rests.length > 0) {
+    // Kitchen + at least one restaurant → setup truly complete → dashboard
+    router.push('/dashboard'); return
+  }
+  // Kitchen exists but no restaurants yet → still finishing setup → continue there
+  router.push('/kitchen/restaurants?welcome=1'); return
+}
 // Pre-fill name from auth metadata if present
 const metaName = (user.user_metadata?.full_name as string) || (user.user_metadata?.name as string) || ''
 if (metaName) setForm(f => ({ ...f, full_name: metaName }))
@@ -247,10 +260,10 @@ Sign out
 <p style={sub}>Your village will see your name — never your phone or address.</p>
 
 <label style={lbl}>Your name</label>
-<input value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="Megan Pete" style={inputSt} />
+<input value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="Danielle Moore" style={inputSt} />
 
 <label style={lbl}>Phone number</label>
-<input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(713) 221-6000" style={inputSt} />
+<input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(936) 555-0142" style={inputSt} />
 <p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '-8px 0 16px' }}>Used only for Y/N meal confirmations via SMS.</p>
 
 <div style={{ background: S.sageLight, border: `1.5px solid ${S.border}`, borderRadius: 10, padding: 16, marginBottom: 20 }}>
