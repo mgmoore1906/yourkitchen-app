@@ -14,10 +14,11 @@ amberLight: '#FBF0E4', red: '#B94040',
 const DIETARY_OPTIONS = ['No shellfish', 'No nuts', 'No dairy', 'No gluten', 'Vegetarian', 'Vegan', 'Halal', 'Kosher']
 
 const TIER_BADGES: Record<string, { badge: string; price: string; period: string; color: string; bg: string; desc: string }> = {
-free:     { badge: 'Free', price: '$0', period: '/ always', color: '#6B7066', bg: '#F0F0EB', desc: 'Basic access — upgrade anytime.' },
-care:     { badge: 'Care+', price: '$9.99', period: '/ month', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Full SMS + unlimited calendar.' },
-annual:   { badge: 'Founding Member', price: '$59', period: '/ year', color: '#B88B4A', bg: '#FFF4E8', desc: 'Annual founding rate, locked forever.' },
-founding: { badge: 'Founding Member', price: '$149', period: 'lifetime', color: '#B88B4A', bg: '#FFF4E8', desc: 'Lifetime access. Thank you for founding YourKitchen.' },
+free:     { badge: 'Care', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
+trial:    { badge: 'Pilot Access', price: '', period: '', color: '#4A8FA8', bg: '#DFF0F6', desc: 'Full access during the pilot.' },
+care:     { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
+annual:   { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
+founding: { badge: 'Founding Member', price: '', period: '', color: '#B88B4A', bg: '#FFF4E8', desc: 'Thank you for founding YourKitchen.' },
 }
 
 const WINDOW_OPTIONS = {
@@ -219,8 +220,13 @@ setDeleteLoading(false); setDeleteConfirm(false)
 const activeTier = TIER_BADGES[currentTier] || TIER_BADGES.free
 
 if (loading) return (
-<div style={{ minHeight: '100vh', background: S.cream, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
-<p style={{ color: S.stone, fontSize: 14 }}>Loading settings…</p>
+<div style={{ minHeight: '100vh', background: S.cream, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, fontFamily: "'DM Sans', sans-serif" }}>
+<div style={{ width: 44, height: 44, borderRadius: '50%', border: `3px solid ${S.sageLight}`, borderTopColor: S.sage, animation: 'ykspin 0.8s linear infinite' }} />
+<div style={{ textAlign: 'center' }}>
+<div style={{ fontFamily: "'Lora', serif", fontSize: 17, color: S.forest, letterSpacing: '-0.01em' }}><span style={{ fontWeight: 400 }}>Your</span><span style={{ fontWeight: 600, color: S.sage }}>Kitchen</span></div>
+<p style={{ color: S.stone, fontSize: 12.5, margin: '4px 0 0', fontWeight: 300, letterSpacing: '0.02em' }}>Setting your table…</p>
+</div>
+<style>{`@keyframes ykspin { to { transform: rotate(360deg); } }`}</style>
 </div>
 )
 
@@ -244,21 +250,6 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 
 {success && <div style={{ background: S.sageLight, border: `1.5px solid ${S.sage}`, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}><p style={{ fontSize: 13, color: S.sage, margin: 0 }}>✓ {success}</p></div>}
 
-{/* ── YOUR PLAN (compact — links to /tiers) ── */}
-<p style={sLabel}>Your plan</p>
-<button onClick={() => router.push('/tiers')}
-style={{ width: '100%', background: S.white, border: `2px solid ${activeTier.color}`, borderRadius: 16, padding: '18px 20px', marginBottom: 24, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-<div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-<span style={{ background: activeTier.bg, color: activeTier.color, fontSize: 11, fontWeight: 700, padding: '4px 12px', borderRadius: 20, letterSpacing: '0.05em' }}>{activeTier.badge}</span>
-<span style={{ fontFamily: "'Lora', serif", fontSize: 18, fontWeight: 500, color: S.forest }}>{activeTier.price}</span>
-<span style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>{activeTier.period}</span>
-</div>
-<span style={{ fontSize: 13, fontWeight: 600, color: activeTier.color }}>View plans →</span>
-</div>
-<p style={{ fontSize: 13, color: S.stone, fontWeight: 300, margin: '8px 0 0' }}>{activeTier.desc}</p>
-</button>
-
 {/* ── PROFILE ── */}
 <p style={sLabel}>Profile</p>
 <label style={lStyle}>Your name *</label>
@@ -275,7 +266,7 @@ style={{ width: '100%', background: S.white, border: `2px solid ${activeTier.col
 <input value={form.apt} onChange={e => setForm(f => ({ ...f, apt: e.target.value }))} placeholder="Apt 4B" style={iStyle} />
 
 <label style={lStyle}>City</label>
-<input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Hockley" style={iStyle} />
+<input value={form.city} onChange={e => setForm(f => ({ ...f, city: e.target.value }))} placeholder="Waller" style={iStyle} />
 
 <div style={{ display: 'flex', gap: 12 }}>
 <div style={{ flex: 1 }}>
