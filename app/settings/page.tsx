@@ -23,7 +23,7 @@ founding: { badge: 'Founding Member', price: '$149', period: 'lifetime', color: 
 const WINDOW_OPTIONS = {
 breakfast: ['07:00-09:00', '08:00-10:00'],
 lunch: ['11:00-12:30', '12:00-13:30'],
-dinner: ['17:00-18:30', '17:30-19:00', '18:00-19:30'],
+dinner: ['17:00-18:30', '17:30-19:00', '18:00-19:30', '19:30-21:00'],
 }
 const WINDOW_LABELS: Record<string, string> = {
 '07:00-09:00': '7:00 – 9:00 AM',
@@ -33,6 +33,7 @@ const WINDOW_LABELS: Record<string, string> = {
 '17:00-18:30': '5:00 – 6:30 PM',
 '17:30-19:00': '5:30 – 7:00 PM',
 '18:00-19:30': '6:00 – 7:30 PM',
+'19:30-21:00': '7:30 – 9:00 PM',
 }
 const MEAL_LABELS: Record<string, { label: string; emoji: string; color: string }> = {
 breakfast: { label: 'Breakfast', emoji: '🌅', color: '#E8834A' },
