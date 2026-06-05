@@ -16,11 +16,11 @@ const MEAL_COLORS: Record<string, { color: string; bg: string; label: string; em
   dinner:    { color: '#3D6B4F', bg: '#EAF2ED', label: 'Dinner',    emoji: '🌙' },
 }
 const TIER_META: Record<string, { badge: string; price: string; color: string; bg: string; star?: boolean; desc: string }> = {
-  free:     { badge: 'Free',            price: '$0 / always',   color: '#3D6B4F', bg: '#EAF2ED', desc: 'Basic access — upgrade anytime.' },
-  trial:    { badge: 'Free Trial',      price: '14-day Care+',  color: '#4A8FA8', bg: '#DFF0F6', desc: 'Full Care+ features — trial active.' },
-  care:     { badge: 'Care+',           price: '$9.99 / mo',    color: '#3D6B4F', bg: '#EAF2ED', desc: 'Full SMS notifications and expanded calendar.' },
-  annual:   { badge: 'Early Adopter',   price: '$59 / yr',      color: '#6B9E7E', bg: '#EAF2ED', desc: 'Annual rate locked in forever.' },
-  founding: { badge: 'Founding Member', price: '$149 lifetime', color: '#C17F47', bg: '#FBF0E4', star: true, desc: 'Lifetime access — thank you for founding YourKitchen.' },
+  free:     { badge: 'Care',            price: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
+  trial:    { badge: 'Pilot Trial',     price: 'Care+', color: '#4A8FA8', bg: '#DFF0F6', desc: 'Full Care+ access during the pilot.' },
+  care:     { badge: 'Care+',           price: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
+  annual:   { badge: 'Care+',           price: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
+  founding: { badge: 'Founding Member', price: '', color: '#C17F47', bg: '#FBF0E4', star: true, desc: 'Thank you for founding YourKitchen.' },
 }
 const TIER_LIMITS: Record<string, number> = { free: 3, trial: 10, care: 10, annual: 10, founding: 999 }
 // Menu items allowed per restaurant by tier
@@ -396,7 +396,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
         </button>
       </div>
 
-      <button onClick={()=>router.push('/settings')}
+      <button onClick={()=>{ if(userTier==='free'||userTier==='trial'){ window.open('https://buy.stripe.com/5kQ00beDq9XD9BX5w5abK01','_blank','noopener') } else { router.push('/settings') } }}
         style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:tier.bg,border:`1px solid ${tier.color}22`,borderRadius:14,padding:'12px 16px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
         <div style={{ display:'flex',alignItems:'center',gap:8 }}>
           {tier.star&&<span style={{ fontSize:14,color:tier.color }}>★</span>}
@@ -404,7 +404,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           <span style={{ fontSize:12,color:S.stone,fontWeight:300 }}>{tier.price}</span>
         </div>
         {(userTier==='free'||userTier==='trial')&&(
-          <span style={{ fontSize:11,fontWeight:700,color:tier.color }}>Upgrade ›</span>
+          <span style={{ fontSize:11,fontWeight:700,color:tier.color }}>Become a Founder ›</span>
         )}
       </button>
     </div>
