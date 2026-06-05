@@ -77,9 +77,9 @@ household_children: 2,
 dietary_restrictions: [] as string[],
 })
 
-const [breakfastWindows, setBreakfastWindows] = useState<string[]>(['07:00-09:00'])
-const [lunchWindows, setLunchWindows] = useState<string[]>(['11:00-12:30'])
-const [dinnerWindows, setDinnerWindows] = useState<string[]>(['17:30-19:00'])
+const [breakfastWindows, setBreakfastWindows] = useState<string[]>([])
+const [lunchWindows, setLunchWindows] = useState<string[]>([])
+const [dinnerWindows, setDinnerWindows] = useState<string[]>([])
 
 useEffect(() => {
 const upgraded = params.get('upgraded')
