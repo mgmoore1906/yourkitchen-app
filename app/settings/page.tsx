@@ -221,12 +221,16 @@ const activeTier = TIER_BADGES[currentTier] || TIER_BADGES.free
 
 if (loading) return (
 <div style={{ minHeight: '100vh', background: S.cream, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 18, fontFamily: "'DM Sans', sans-serif" }}>
-<div style={{ width: 44, height: 44, borderRadius: '50%', border: `3px solid ${S.sageLight}`, borderTopColor: S.sage, animation: 'ykspin 0.8s linear infinite' }} />
+<svg width="44" height="44" viewBox="0 0 44 44" fill="none" aria-label="Loading">
+<circle cx="22" cy="22" r="19" stroke={S.sageLight} strokeWidth="3" />
+<path d="M22 3 a19 19 0 0 1 19 19" stroke={S.sage} strokeWidth="3" strokeLinecap="round">
+<animateTransform attributeName="transform" type="rotate" from="0 22 22" to="360 22 22" dur="0.8s" repeatCount="indefinite" />
+</path>
+</svg>
 <div style={{ textAlign: 'center' }}>
 <div style={{ fontFamily: "'Lora', serif", fontSize: 17, color: S.forest, letterSpacing: '-0.01em' }}><span style={{ fontWeight: 400 }}>Your</span><span style={{ fontWeight: 600, color: S.sage }}>Kitchen</span></div>
 <p style={{ color: S.stone, fontSize: 12.5, margin: '4px 0 0', fontWeight: 300, letterSpacing: '0.02em' }}>Setting your table…</p>
 </div>
-<style>{`@keyframes ykspin { to { transform: rotate(360deg); } }`}</style>
 </div>
 )
 
