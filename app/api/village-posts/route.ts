@@ -6,7 +6,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
 
-// GET /api/village-posts?slug=danielle-moore  — public, no auth required
+// GET /api/village-posts?slug=megan-pete  — public, no auth required
 // Returns top-level posts (parent_id = null) newest-first, each with its replies
 // nested oldest-first, plus image_url / reactions / post_type.
 export async function GET(request: Request) {
