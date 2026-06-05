@@ -89,7 +89,7 @@ export default function PrivacyPage() {
         <p style={p}>Questions about this Privacy Policy may be directed to YourKitchen LLC at marques@yourkitchen.app.</p>
 
         <div style={{ marginTop: 48, paddingTop: 24, borderTop: `0.5px solid ${S.border}`, fontSize: 13, color: S.stone }}>
-          YourKitchen LLC · Waller, TX · <a href="mailto:marques@yourkitchen.app" style={{ color: S.stone }}>marques@yourkitchen.app</a><br />
+          YourKitchen LLC · Hockley, TX · <a href="mailto:marques@yourkitchen.app" style={{ color: S.stone }}>marques@yourkitchen.app</a><br />
           <a href="/" style={{ color: S.stone }}>Home</a> · <a href="/terms" style={{ color: S.stone }}>Terms of Service</a> · <a href="/sms-opt-in" style={{ color: S.stone }}>SMS Opt-In</a>
         </div>
       </div>
