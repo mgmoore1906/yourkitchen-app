@@ -97,6 +97,14 @@ load()
 const handleSwitch = async (tierKey: string) => {
 if (tierKey === currentTier) return
 setError('')
+// During the Vercel lockout, founding checkout can't run through the API
+// (the price-ID env var can't be set), so route founding straight to the
+// hosted Stripe Payment Link instead. Account stays as-is; founding status
+// is provisioned manually once the payment lands.
+if (tierKey === 'founding') {
+window.open('https://buy.stripe.com/5kQ00beDq9XD9BX5w5abK01', '_blank', 'noopener')
+return
+}
 if (tierKey === 'free') {
 setSwitching('free')
 await fetch('/api/stripe-subscription', {
