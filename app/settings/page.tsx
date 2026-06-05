@@ -257,9 +257,9 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 {/* ── PROFILE ── */}
 <p style={sLabel}>Profile</p>
 <label style={lStyle}>Your name *</label>
-<input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Danielle Moore" style={iStyle} />
+<input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Megan Pete" style={iStyle} />
 <label style={lStyle}>Phone number</label>
-<input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(936) 555-0142" style={iStyle} />
+<input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(713) 221-6000" style={iStyle} />
 
 {/* ── KITCHEN ── */}
 <p style={{ ...sLabel, marginTop: 8 }}>Kitchen</p>
