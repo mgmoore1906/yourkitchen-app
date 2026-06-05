@@ -40,8 +40,10 @@ export async function GET(request: Request) {
   if (verified) {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      // "Onboarding complete" === the user has a kitchen. Must match the check
-      // used in /onboarding (mount guard) and /dashboard.
+      // "Onboarding complete" === has a kitchen WITH at least one restaurant.
+      // A kitchen alone isn't enough: it's created before the restaurants step,
+      // so keying on kitchen-only would skip people past setup. This must match
+      // the guard in /onboarding.
       const { data: kitchen } = await supabase
         .from('kitchens')
         .select('id')
@@ -51,6 +53,17 @@ export async function GET(request: Request) {
 
       if (!kitchen) {
         return NextResponse.redirect(`${origin}/onboarding`)
+      }
+
+      const { data: rests } = await supabase
+        .from('kitchen_restaurants')
+        .select('id')
+        .eq('kitchen_id', kitchen.id)
+        .limit(1)
+
+      if (!rests || rests.length === 0) {
+        // Kitchen exists but setup not finished → continue at the restaurants step
+        return NextResponse.redirect(`${origin}/kitchen/restaurants?welcome=1`)
       }
       return NextResponse.redirect(`${origin}/dashboard`)
     }
