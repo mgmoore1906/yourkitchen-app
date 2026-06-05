@@ -167,15 +167,18 @@ export async function POST(request: Request) {
     }
 
     // Create calendar dates
-    for (const date of (calendar_dates || [])) {
-      await supabase.from('calendar_dates').insert({
-        kitchen_id: kitchen.id,
-        date,
-        status: 'available',
-        delivery_window_start: delivery_window_start || '17:30',
-        delivery_window_end: delivery_window_end || '19:00',
-      })
-    }
+    // Client sends [{ date, meal_type }] — pull the string off slot.date and persist meal_type.
+for (const slot of (calendar_dates || [])) {
+  const { error: calErr } = await supabase.from('calendar_dates').insert({
+    kitchen_id: kitchen.id,
+    date: slot.date,
+    meal_type: slot.meal_type,
+    status: 'available',
+    delivery_window_start: delivery_window_start || '17:30',
+    delivery_window_end: delivery_window_end || '19:00',
+  })
+  if (calErr) console.error('calendar_date insert failed:', calErr.message, slot)
+}
 
     return NextResponse.json({ success: true, kitchen_id: kitchen.id, slug: kitchen.slug })
 
