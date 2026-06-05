@@ -910,7 +910,7 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
       <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
         <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Share an update</p>
         <textarea value={newPost} onChange={e=>setNewPost(e.target.value)}
-          placeholder="Got the meal — it was perfect, thank you 🧡 Miles slept 6 hours last night…"
+          placeholder="Got the meal — it was perfect, thank you 🧡 Kendrick slept 6 hours last night…"
           style={{ width:'100%',minHeight:72,borderRadius:10,border:`1.5px solid ${S.border}`,padding:'10px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.cream,resize:'none',outline:'none',boxSizing:'border-box',lineHeight:1.6,marginBottom:10 }}/>
         {photoPreview && (
           <div style={{ position:'relative',marginBottom:10 }}>
