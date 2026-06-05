@@ -313,39 +313,6 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 ))}
 </div>
 
-{/* ── DELIVERY WINDOWS ── */}
-<p style={{ ...sLabel, marginTop: 8 }}>Delivery windows</p>
-<p style={{ fontSize: 13, color: S.stone, fontWeight: 300, margin: '0 0 16px', lineHeight: 1.6 }}>
-Select all windows that work for your household. Coordinators will see these when placing an order.
-</p>
-
-{(['breakfast', 'lunch', 'dinner'] as const).map(meal => {
-const m = MEAL_LABELS[meal]
-const current = { breakfast: breakfastWindows, lunch: lunchWindows, dinner: dinnerWindows }[meal]
-return (
-<div key={meal} style={{ marginBottom: 16 }}>
-<div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-<span style={{ fontSize: 14 }}>{m.emoji}</span>
-<span style={{ fontSize: 12, fontWeight: 700, color: m.color, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{m.label}</span>
-</div>
-<div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-{WINDOW_OPTIONS[meal].map(w => {
-const on = current.includes(w)
-return (
-<button key={w} onClick={() => toggleWindow(meal, w)}
-style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 14px', borderRadius: 10, border: `1.5px solid ${on ? m.color : S.border}`, background: on ? `${m.color}15` : S.white, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'left' }}>
-<div style={{ width: 18, height: 18, borderRadius: '50%', border: `2px solid ${on ? m.color : S.border}`, background: on ? m.color : 'transparent', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-{on && <span style={{ color: S.white, fontSize: 11, fontWeight: 700 }}>✓</span>}
-</div>
-<span style={{ fontSize: 14, color: on ? m.color : S.forest, fontWeight: on ? 600 : 400 }}>{WINDOW_LABELS[w]}</span>
-</button>
-)
-})}
-</div>
-</div>
-)
-})}
-
 {error && <div style={{ background: '#FDE8E8', border: `1.5px solid ${S.red}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, marginTop: 8 }}><p style={{ fontSize: 13, color: S.red, margin: 0 }}>⚠️ {error}</p></div>}
 
 <button onClick={handleSave} disabled={saving}
