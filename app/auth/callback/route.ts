@@ -14,19 +14,24 @@ export async function GET(request: Request) {
       const { data: { user } } = await supabase.auth.getUser()
 
       if (user) {
-        // Check if they've completed onboarding (profile row exists)
-        const { data: profile } = await supabase
-          .from('profiles')
+        // "Onboarding complete" === the user has a kitchen.
+        // This MUST match the check used in /onboarding (mount guard) and
+        // /dashboard. Using the profiles row instead caused half-onboarded
+        // users to be bounced to /dashboard on forward navigation, because a
+        // profile can exist before onboarding actually finishes.
+        const { data: kitchen } = await supabase
+          .from('kitchens')
           .select('id')
-          .eq('id', user.id)
-          .single()
+          .eq('organizer_id', user.id)
+          .limit(1)
+          .maybeSingle()
 
-        if (!profile) {
-          // Brand new user — no profile yet → onboarding
+        if (!kitchen) {
+          // No kitchen yet → onboarding isn't finished → send them (back) into it
           return NextResponse.redirect(`${origin}/onboarding`)
         }
 
-        // Returning user — profile exists → dashboard
+        // Has a kitchen → returning user → dashboard
         return NextResponse.redirect(`${origin}/dashboard`)
       }
     }
