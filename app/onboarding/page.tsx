@@ -298,13 +298,13 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 <p style={sub}>Double-check it's right — we use it to find restaurants near you.</p>
 
 <label style={lbl}>Street address</label>
-<input value={form.street} onChange={e => update('street', e.target.value)} placeholder="1422 Oak Creek Dr" style={inputSt} />
+<input value={form.street} onChange={e => update('street', e.target.value)} placeholder="414 Milam Street" style={inputSt} />
 
 <label style={lbl}>Apt / Suite <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
 <input value={form.apt} onChange={e => update('apt', e.target.value)} placeholder="Apt 4B" style={inputSt} />
 
 <label style={lbl}>City</label>
-<input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Waller" style={inputSt} />
+<input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Houston" style={inputSt} />
 
 <div style={{ display: 'flex', gap: 12 }}>
 <div style={{ flex: 1 }}>
@@ -315,7 +315,7 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 </div>
 <div style={{ flex: 1 }}>
 <label style={lbl}>ZIP</label>
-<input value={form.zip} onChange={e => update('zip', e.target.value)} placeholder="77484" maxLength={5} style={inputSt} />
+<input value={form.zip} onChange={e => update('zip', e.target.value)} placeholder="77002" maxLength={5} style={inputSt} />
 </div>
 </div>
 
