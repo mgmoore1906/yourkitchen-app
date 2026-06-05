@@ -27,6 +27,7 @@ const DELIVERY_WINDOWS = [
 { key: '17:00-18:30', label: '5:00 PM – 6:30 PM', start: '17:00', end: '18:30', meal: 'dinner' },
 { key: '17:30-19:00', label: '5:30 PM – 7:00 PM', start: '17:30', end: '19:00', meal: 'dinner' },
 { key: '18:00-19:30', label: '6:00 PM – 7:30 PM', start: '18:00', end: '19:30', meal: 'dinner' },
+{ key: '19:30-21:00', label: '7:30 PM – 9:00 PM', start: '19:30', end: '21:00', meal: 'dinner' },
 ]
 
 // During the pilot, only two choices are offered — no feature comparison.
