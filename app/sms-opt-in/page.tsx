@@ -78,7 +78,7 @@ export default function SmsOptInPage() {
         <p style={p}>Mobile opt-in consent and phone numbers are never shared with third parties or affiliates for marketing purposes. Phone numbers are used solely to operate the YourKitchen meal coordination service.</p>
 
         <div style={{ marginTop: 48, paddingTop: 24, borderTop: `0.5px solid ${S.border}`, fontSize: 13, color: S.stone }}>
-          YourKitchen LLC · Waller, TX · <a href="mailto:marques@yourkitchen.app" style={{ color: S.stone }}>marques@yourkitchen.app</a><br />
+          YourKitchen LLC · Hockley, TX · <a href="mailto:marques@yourkitchen.app" style={{ color: S.stone }}>marques@yourkitchen.app</a><br />
           <a href="/terms" style={{ color: S.stone }}>Terms</a> · <a href="/privacy" style={{ color: S.stone }}>Privacy Policy</a>
         </div>
       </div>
