@@ -47,6 +47,7 @@ function KitchenRestaurantsContent() {
 const router = useRouter()
 const searchParams = useSearchParams()
 const isOnboarding = searchParams.get('welcome') === '1'
+const foundingPending = searchParams.get('founding') === 'pending'
 const supabase = createClient()
 
 const [loading, setLoading] = useState(true)
@@ -260,6 +261,16 @@ style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, h
 </nav>
 
 <div style={{ padding: '24px', maxWidth: 540, margin: '0 auto' }}>
+{foundingPending && (
+<div style={{ background: '#FFF4E8', border: '1.5px solid #B88B4A', borderRadius: 12, padding: '14px 16px', marginBottom: 20, display: 'flex', gap: 12, alignItems: 'flex-start' }}>
+<span style={{ fontSize: 18, lineHeight: 1 }}>💳</span>
+<div style={{ flex: 1 }}>
+<p style={{ fontSize: 14, fontWeight: 600, color: '#7A4F10', margin: '0 0 3px' }}>Your founding checkout is open in another tab</p>
+<p style={{ fontSize: 12.5, color: '#7A4F10', fontWeight: 300, lineHeight: 1.55, margin: 0 }}>Finish your $200 payment there to lock in your Founding Member benefits — permanent badge, founder access, the Founders Gift Box, and 3 years of Care+ starting at beta launch. Set up your kitchen here in the meantime.</p>
+<a href="https://buy.stripe.com/5kQ00beDq9XD9BX5w5abK01" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 12.5, fontWeight: 600, color: '#7A4F10', textDecoration: 'underline' }}>Reopen checkout →</a>
+</div>
+</div>
+)}
 <p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.sage, margin: '0 0 6px' }}>My Restaurants</p>
 <h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: S.forest, margin: '0 0 6px', letterSpacing: -0.5 }}>Favorite restaurants</h1>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 16px', fontWeight: 300, lineHeight: 1.6 }}>
