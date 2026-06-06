@@ -75,6 +75,8 @@ zip: '',
 household_adults: 2,
 household_children: 2,
 dietary_restrictions: [] as string[],
+proxy_name: '',
+proxy_phone: '',
 })
 
 const [breakfastWindows, setBreakfastWindows] = useState<string[]>([])
@@ -112,7 +114,7 @@ setForm(f => ({ ...f, full_name: name, phone: profile?.phone || '' }))
 
 const { data: kitchen } = await supabase
 .from('kitchens')
-.select('id, address, household_adults, household_children, dietary_restrictions, breakfast_windows, lunch_windows, dinner_windows')
+.select('id, address, household_adults, household_children, dietary_restrictions, breakfast_windows, lunch_windows, dinner_windows, proxy_name, proxy_phone')
 .eq('organizer_id', user.id)
 .single()
 
@@ -125,6 +127,8 @@ setForm(f => ({
 household_adults: kitchen.household_adults ?? 2,
 household_children: kitchen.household_children ?? 2,
 dietary_restrictions: kitchen.dietary_restrictions || [],
+proxy_name: kitchen.proxy_name || '',
+proxy_phone: kitchen.proxy_phone || '',
 street: parsed.street,
 apt: '',
 city: parsed.city,
@@ -165,6 +169,8 @@ address: `${form.street}${form.apt ? ` ${form.apt}` : ''}, ${form.city}, ${form.
 household_adults: form.household_adults,
 household_children: form.household_children,
 dietary_restrictions: form.dietary_restrictions,
+proxy_name: form.proxy_name.trim(),
+proxy_phone: form.proxy_phone.trim(),
 breakfast_windows: breakfastWindows,
 lunch_windows: lunchWindows,
 dinner_windows: dinnerWindows,
@@ -260,6 +266,21 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 <input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))} placeholder="Megan Pete" style={iStyle} />
 <label style={lStyle}>Phone number</label>
 <input type="tel" value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="(713) 221-6000" style={iStyle} />
+
+{/* ── CONFIRMATION PROXY ── */}
+<p style={{ ...sLabel, marginTop: 24 }}>Who confirms meals</p>
+<p style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, margin: '0 0 14px', lineHeight: 1.6 }}>
+By default, meal confirmation texts come to you. If you&rsquo;d rather a partner, parent, or friend handle the yes/no &mdash; so you don&rsquo;t have to &mdash; add them here and the confirmation texts go to them instead.
+</p>
+<label style={lStyle}>Their name <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+<input value={form.proxy_name} onChange={e => setForm(f => ({ ...f, proxy_name: e.target.value }))} placeholder="e.g. Jordan (my partner)" style={iStyle} />
+<label style={lStyle}>Their phone number</label>
+<input type="tel" value={form.proxy_phone} onChange={e => setForm(f => ({ ...f, proxy_phone: e.target.value }))} placeholder="(713) 555-0142" style={iStyle} />
+<p style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, margin: '6px 0 0', lineHeight: 1.5 }}>
+{form.proxy_phone.trim()
+  ? `Confirmation texts will go to ${form.proxy_name.trim() || 'this person'} instead of you. Leave the phone blank to take confirmations back yourself.`
+  : 'Leave blank to receive confirmation texts yourself.'}
+</p>
 
 {/* ── KITCHEN ── */}
 <p style={{ ...sLabel, marginTop: 8 }}>Kitchen</p>
