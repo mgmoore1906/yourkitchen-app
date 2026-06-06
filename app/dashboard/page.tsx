@@ -1169,8 +1169,14 @@ export default function DashboardPage() {
   const firstName    = (fullName || '').split(' ')[0] || 'there'
 
   if (loading) return (
-    <div style={{ minHeight:'100vh',background:S.cream,display:'flex',alignItems:'center',justifyContent:'center',fontFamily:"'DM Sans',sans-serif" }}>
-      <p style={{ color:S.stone,fontSize:14 }}>Loading your Kitchen…</p>
+    <div style={{ minHeight:'100vh',background:S.cream,display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:16,fontFamily:"'DM Sans',sans-serif" }}>
+      <svg width="44" height="44" viewBox="0 0 44 44" fill="none" aria-label="Loading">
+        <circle cx="22" cy="22" r="19" stroke={S.sageLight} strokeWidth="3" />
+        <path d="M22 3 a19 19 0 0 1 19 19" stroke={S.sage} strokeWidth="3" strokeLinecap="round">
+          <animateTransform attributeName="transform" type="rotate" from="0 22 22" to="360 22 22" dur="0.8s" repeatCount="indefinite" />
+        </path>
+      </svg>
+      <p style={{ color:S.stone,fontSize:13,fontWeight:300 }}>Loading your Kitchen…</p>
     </div>
   )
 
