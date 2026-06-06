@@ -120,15 +120,25 @@ export async function GET(request: Request) {
       .eq('id', recipientId)
       .single()
 
-    if (!profile?.phone) continue
+    // Confirmation proxy: if the recipient delegated confirmations to a trusted
+    // person, the text goes to the proxy instead. Falls back to the recipient.
+    const { data: kSettings } = await supabase
+      .from('kitchens')
+      .select('proxy_name, proxy_phone')
+      .eq('id', kitchenId)
+      .single()
+
+    const toPhone   = kSettings?.proxy_phone?.trim() || profile?.phone
+    const proxyName = kSettings?.proxy_name?.trim() || ''
+    if (!toPhone) continue
 
     const mealLabel = mealType === 'breakfast' ? 'breakfast'
       : mealType === 'lunch' ? 'lunch'
       : 'dinner'
 
     await sendSMS(
-      profile.phone,
-      `${coordName} wants to send you ${mealLabel} today — ` +
+      toPhone,
+      `${coordName} wants to send ${mealLabel} today — ` +
       `${mealName} from ${restName}, arriving around ${prettyTime(proposal.delivery_time, mealType)}.\n\n` +
       `Reply Y to confirm or N to decline by ${deadline}.\n\n` +
       `— YourKitchen`
