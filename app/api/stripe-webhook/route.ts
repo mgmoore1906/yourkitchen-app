@@ -18,6 +18,17 @@ async function sendSMS(to: string, body: string) {
   }
 }
 
+const DEFAULT_TIME: Record<string, string> = { breakfast: '08:00', lunch: '12:00', dinner: '18:30' }
+function prettyTime(t: string | null | undefined, mealType: string): string {
+  const raw = (t && String(t).trim()) ? String(t).split('-')[0].trim() : DEFAULT_TIME[mealType] || '18:30'
+  const [hStr, m] = raw.split(':')
+  let h = parseInt(hStr, 10)
+  if (isNaN(h)) return 'soon'
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  h = h % 12; if (h === 0) h = 12
+  return `${h}:${m || '00'} ${ampm}`
+}
+
 export async function POST(request: Request) {
   const body      = await request.text()
   const signature = request.headers.get('stripe-signature') || ''
@@ -70,7 +81,7 @@ export async function POST(request: Request) {
       const { data: proposals } = await supabase
         .from('meal_proposals')
         .select(`
-          id, meal_type,
+          id, meal_type, delivery_time,
           claims(calendar_date_id, guest_coordinators(full_name)),
           kitchen_restaurants(name),
           menu_items(name),
@@ -97,7 +108,7 @@ export async function POST(request: Request) {
           await sendSMS(
             profile.phone,
             `${coordinatorName} wants to send you ${mealLabel} — ` +
-            `${p.menu_items?.name} from ${p.kitchen_restaurants?.name}.\n\n` +
+            `${p.menu_items?.name} from ${p.kitchen_restaurants?.name}, arriving around ${prettyTime(p.delivery_time, p.meal_type)}.\n\n` +
             `Reply Y to confirm or N to decline.\n\n— YourKitchen`
           )
         }
