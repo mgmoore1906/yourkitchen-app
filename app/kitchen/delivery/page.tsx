@@ -11,12 +11,26 @@ const S = {
 }
 
 const MEALS = [
-  { key: 'breakfast', label: 'Breakfast', emoji: '🌅', color: '#E8834A', hint: 'When breakfast usually works best' },
-  { key: 'lunch',     label: 'Lunch',     emoji: '☀️', color: '#4A8FA8', hint: 'Your usual lunchtime' },
-  { key: 'dinner',    label: 'Dinner',    emoji: '🌙', color: S.sage,    hint: 'When dinner is most welcome' },
+  { key: 'breakfast', label: 'Breakfast', icon: 'sunrise', color: '#E8834A', hint: 'When breakfast usually works best' },
+  { key: 'lunch',     label: 'Lunch',     icon: 'sun',     color: '#4A8FA8', hint: 'Your usual lunchtime' },
+  { key: 'dinner',    label: 'Dinner',    icon: 'moon',    color: S.sage,    hint: 'When dinner is most welcome' },
 ] as const
 
 // Turn "19:00" → "7:00 PM" for the friendly confirmation line.
+// Clean inline SVG meal icons (consistent across devices, unlike emoji).
+function MealIcon({ kind, color }: { kind: string; color: string }) {
+  const common = { width: 20, height: 20, viewBox: '0 0 24 24', fill: 'none', stroke: color, strokeWidth: 2, strokeLinecap: 'round' as const, strokeLinejoin: 'round' as const }
+  if (kind === 'sunrise') return (
+    <svg {...common}><path d="M17 18a5 5 0 0 0-10 0"/><line x1="12" y1="2" x2="12" y2="9"/><line x1="4.22" y1="10.22" x2="5.64" y2="11.64"/><line x1="1" y1="18" x2="3" y2="18"/><line x1="21" y1="18" x2="23" y2="18"/><line x1="18.36" y1="11.64" x2="19.78" y2="10.22"/><line x1="23" y1="22" x2="1" y2="22"/><polyline points="8 6 12 2 16 6"/></svg>
+  )
+  if (kind === 'sun') return (
+    <svg {...common}><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+  )
+  return (
+    <svg {...common}><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+  )
+}
+
 function pretty(t: string): string {
   if (!t) return ''
   const [hStr, m] = t.split(':')
@@ -110,7 +124,7 @@ export default function DeliveryPreferencesPage() {
         {MEALS.map(m => (
           <div key={m.key} style={{ background: S.white, border: `1.5px solid ${S.border}`, borderRadius: 14, padding: '16px 18px', marginBottom: 14 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <span style={{ fontSize: 16 }}>{m.emoji}</span>
+              <MealIcon kind={m.icon} color={m.color} />
               <span style={{ fontSize: 12, fontWeight: 700, color: m.color, letterSpacing: '0.06em', textTransform: 'uppercase' }}>{m.label}</span>
             </div>
             <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
