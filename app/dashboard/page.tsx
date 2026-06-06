@@ -160,7 +160,7 @@ function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onS
     { label: 'My Restaurants',   action: () => router.push('/kitchen/restaurants') },
     { label: 'Order History',    action: () => router.push('/kitchen/orders') },
     { label: 'Settings',         action: () => router.push('/settings') },
-    { label: 'Delivery Windows', action: () => router.push('/settings') },
+    { label: 'Delivery Times',   action: () => router.push('/kitchen/delivery') },
     { label: 'Plans & Pricing',  action: () => router.push('/tiers') },
     { label: 'Share Your Kitchen', action: onShare },
     { label: 'Refresh',          action: onRefresh },
