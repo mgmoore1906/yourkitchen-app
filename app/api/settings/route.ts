@@ -20,6 +20,8 @@ export async function POST(request: Request) {
       breakfast_windows,
       lunch_windows,
       dinner_windows,
+      proxy_name,
+      proxy_phone,
     } = await request.json()
 
     if (!user_id)        return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
@@ -71,6 +73,8 @@ export async function POST(request: Request) {
         breakfast_windows:   breakfast_windows || ['07:00-09:00'],
         lunch_windows:       lunch_windows     || ['11:00-12:30'],
         dinner_windows:      dinner_windows    || ['17:30-19:00'],
+        proxy_name:          proxy_name?.trim() || null,
+        proxy_phone:         proxy_phone?.trim() || null,
       })
       .eq('organizer_id', user_id)
 
