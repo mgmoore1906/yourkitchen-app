@@ -104,7 +104,7 @@ export default function DeliveryPreferencesPage() {
       <div style={{ padding: '28px 24px', maxWidth: 500, margin: '0 auto' }}>
         <h1 style={{ fontFamily: "'Lora', serif", fontSize: 26, fontWeight: 500, color: S.forest, margin: '0 0 8px', letterSpacing: -0.5 }}>Delivery times</h1>
         <p style={{ fontSize: 13.5, color: S.stone, fontWeight: 300, lineHeight: 1.6, margin: '0 0 28px' }}>
-          Set the time each meal usually works best for you. Your village sees these as the default when they send a meal — and the night before, you'll get a heads-up with the time so you can plan. You can leave any meal blank.
+          Set the time each meal usually works best for you. Your village sees these as the default when they send a meal — and the night before, you'll get a heads up with the time so you can plan. You can leave any meal blank.
         </p>
 
         {MEALS.map(m => (
