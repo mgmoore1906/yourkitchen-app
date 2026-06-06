@@ -17,6 +17,24 @@ const DEADLINES: Record<string, string> = {
   dinner:    '5:00 PM',
 }
 
+// Sensible fallback times when the recipient hasn't set a preferred time.
+const DEFAULT_TIME: Record<string, string> = {
+  breakfast: '08:00',
+  lunch:     '12:00',
+  dinner:    '18:30',
+}
+
+// "19:00" → "7:00 PM"; accepts legacy "HH:MM-HH:MM" ranges (takes the start).
+function prettyTime(t: string | null | undefined, mealType: string): string {
+  const raw = (t && String(t).trim()) ? String(t).split('-')[0].trim() : DEFAULT_TIME[mealType] || '18:30'
+  const [hStr, m] = raw.split(':')
+  let h = parseInt(hStr, 10)
+  if (isNaN(h)) return 'today'
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  h = h % 12; if (h === 0) h = 12
+  return `${h}:${m || '00'} ${ampm}`
+}
+
 async function sendSMS(to: string, body: string) {
   try {
     await twilioClient.messages.create({
@@ -44,6 +62,7 @@ export async function GET(request: Request) {
     .select(`
       id,
       status,
+      delivery_time,
       claims (
         id,
         calendar_date_id,
@@ -110,7 +129,7 @@ export async function GET(request: Request) {
     await sendSMS(
       profile.phone,
       `${coordName} wants to send you ${mealLabel} today — ` +
-      `${mealName} from ${restName}.\n\n` +
+      `${mealName} from ${restName}, arriving around ${prettyTime(proposal.delivery_time, mealType)}.\n\n` +
       `Reply Y to confirm or N to decline by ${deadline}.\n\n` +
       `— YourKitchen`
     )
