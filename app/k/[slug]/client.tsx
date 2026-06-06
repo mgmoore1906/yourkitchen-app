@@ -371,6 +371,24 @@ const isPoppingRef = useRef(false)
 const KH_ADULTS = kitchen.household_adults ?? 2
 const KH_CHILDREN = kitchen.household_children ?? 2
 
+// Recipient's preferred delivery time per meal (set on their Delivery Times page,
+// stored as a single "HH:MM" in the *_windows columns). Returns a friendly
+// "7:00 PM" string, or '' when they haven't set one for that meal.
+const prefTime = (mealType: string): string => {
+  const col = mealType === 'breakfast' ? kitchen.breakfast_windows
+    : mealType === 'lunch' ? kitchen.lunch_windows
+    : kitchen.dinner_windows
+  const raw = Array.isArray(col) ? col[0] : null
+  if (!raw) return ''
+  const t = String(raw).split('-')[0].trim()
+  const [hStr, m] = t.split(':')
+  let h = parseInt(hStr, 10)
+  if (isNaN(h)) return ''
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  h = h % 12; if (h === 0) h = 12
+  return `${h}:${m || '00'} ${ampm}`
+}
+
 const sevenAgo = new Date(Date.now()-7*24*60*60*1000).toISOString().split('T')[0]
 const recentRestNames = new Set(recentMeals.filter((m:any)=>m.delivery_date>=sevenAgo).map((m:any)=>m.restaurant_name?.toLowerCase()))
 const selectedSlots = availableDates.filter((d:any)=>selectedIds.has(d.id))
@@ -576,6 +594,7 @@ return (
 <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
 <span style={{ background:mc.bg,color:mc.color,borderRadius:20,fontSize:10,fontWeight:600,padding:'2px 8px',border:`1px solid ${mc.color}` }}>{MEAL_TYPE_LABELS[slot.meal_type]}</span>
 <span style={{ fontSize:13,color:S.mahogany,fontWeight:500 }}>{d}</span>
+{prefTime(slot.meal_type) && <span style={{ fontSize:11,color:S.walnut,fontWeight:400 }}>· usually ~{prefTime(slot.meal_type)}</span>}
 
 </div>
 <button onClick={()=>removeSlot(slot.id)} style={{ background:'none',border:'none',cursor:'pointer',color:S.walnut,fontSize:16,padding:'0 4px' }}>✕</button>
