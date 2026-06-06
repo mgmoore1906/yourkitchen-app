@@ -33,12 +33,27 @@ if (guestError) return NextResponse.json({ error: guestError.message }, { status
 // ── Kitchen ──────────────────────────────────────────────────────────────
 const { data: kitchen } = await supabase
 .from('kitchens')
-.select('id, name, latitude, longitude, address')
+.select('id, name, latitude, longitude, address, breakfast_windows, lunch_windows, dinner_windows')
 .eq('slug', kitchen_slug)
 .single()
 if (!kitchen) return NextResponse.json({ error: 'Kitchen not found' }, { status: 404 })
 
 const recipientFirst = kitchen.name?.split("'")[0] || 'your recipient'
+
+// Resolve the recipient's preferred delivery time for a given meal type.
+// Stored as a single "HH:MM" target in the *_windows columns (see the
+// Delivery Times page). Empty → null, and the night-before SMS falls back to
+// a sensible default. The coordinator can override per-order in future.
+const windowFor = (mealType: string): string | null => {
+  const col =
+    mealType === 'breakfast' ? kitchen.breakfast_windows
+    : mealType === 'lunch'   ? kitchen.lunch_windows
+    : kitchen.dinner_windows
+  const raw = Array.isArray(col) ? col[0] : null
+  if (!raw) return null
+  // Accept either "HH:MM" (new format) or "HH:MM-HH:MM" (legacy range → take start)
+  return String(raw).split('-')[0].trim() || null
+}
 
 const proposalIds: string[] = []
 const lineItems: any[] = []
@@ -139,6 +154,7 @@ meal_name: mealName,
 meal_items: mealItems,
 delivery_date: use_places ? p.delivery_date : undefined,
 meal_type: use_places ? p.meal_type : undefined,
+delivery_time: use_places ? windowFor(p.meal_type || 'dinner') : undefined,
 status: 'pending',
 })
 .select('id')
@@ -148,9 +164,11 @@ if (proposalError) return NextResponse.json({ error: proposalError.message }, { 
 if (!use_places && proposal?.id) {
 const { data: calDate } = await supabase
 .from('calendar_dates').select('date, meal_type').eq('id', p.calendar_date_id).single()
+const resolvedMealType = (calDate as any)?.meal_type || 'dinner'
 await supabase.from('meal_proposals').update({
 delivery_date: calDate?.date || null,
-meal_type: (calDate as any)?.meal_type || 'dinner',
+meal_type: resolvedMealType,
+delivery_time: windowFor(resolvedMealType),
 }).eq('id', proposal.id)
 }
 
