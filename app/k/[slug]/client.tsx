@@ -576,7 +576,7 @@ return (
 <div style={{ display:'flex',alignItems:'center',gap:8,flexWrap:'wrap' }}>
 <span style={{ background:mc.bg,color:mc.color,borderRadius:20,fontSize:10,fontWeight:600,padding:'2px 8px',border:`1px solid ${mc.color}` }}>{MEAL_TYPE_LABELS[slot.meal_type]}</span>
 <span style={{ fontSize:13,color:S.mahogany,fontWeight:500 }}>{d}</span>
-<span style={{ fontSize:11,color:S.walnut,fontWeight:400 }}>· {a}A {c}K</span>
+
 </div>
 <button onClick={()=>removeSlot(slot.id)} style={{ background:'none',border:'none',cursor:'pointer',color:S.walnut,fontSize:16,padding:'0 4px' }}>✕</button>
 </div>
