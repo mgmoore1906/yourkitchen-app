@@ -10,7 +10,7 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 export async function POST(request: Request) {
   try {
-    const { proposal_id, action } = await request.json()
+    const { proposal_id, action, note, reason } = await request.json()
 
     const { data: proposal } = await supabase
       .from('meal_proposals')
@@ -52,6 +52,33 @@ if (action === 'confirm') {
   ])
 
   await stripe.paymentIntents.capture(paymentIntentId)
+  return NextResponse.json({ success: true })
+}
+
+if (action === 'decline') {
+  // Cancel the Stripe hold so the coordinator is never charged. Best-effort:
+  // the decline must still succeed even if there's no hold yet or cancel fails.
+  if (proposal.payment_intent_id) {
+    try {
+      await stripe.paymentIntents.cancel(proposal.payment_intent_id)
+    } catch (err: any) {
+      console.error('PaymentIntent cancel failed (declining anyway):', err.message)
+    }
+  }
+
+  // Store the decline reason so the coordinator sees a kind, specific message
+  // ("we're covered tonight") instead of a silent cancellation.
+  const declineReason = (reason || note || '').toString().trim() || null
+
+  await Promise.all([
+    supabase.from('meal_proposals')
+      .update({ status: 'declined', responded_at: new Date().toISOString(), decline_reason: declineReason })
+      .eq('id', proposal_id),
+    supabase.from('calendar_dates')
+      .update({ status: 'available' })
+      .eq('id', proposal.claims?.calendar_date_id),
+  ])
+
   return NextResponse.json({ success: true })
 }
 
