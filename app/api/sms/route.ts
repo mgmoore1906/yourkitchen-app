@@ -25,27 +25,41 @@ export async function POST(request: Request) {
   const body = (formData.get('Body') as string)?.trim().toUpperCase()
   const from  = formData.get('From') as string
 
-  // Find profile by phone number
+  // Identify the sender. Two authorized parties can reply Y/N:
+  //   1. The recipient (matched via their profile phone), or
+  //   2. A confirmation proxy the recipient delegated to (matched via the
+  //      kitchen's proxy_phone — the proxy may not have an account at all).
+  let kitchen: { id: string } | null = null
+
   const { data: profile } = await supabase
     .from('profiles')
     .select('id')
     .eq('phone', from)
     .single()
 
-  if (!profile) {
-    return twiml("We couldn't find your Kitchen. Visit yourkitchen.app for help.")
+  if (profile) {
+    const { data: k } = await supabase
+      .from('kitchens')
+      .select('id')
+      .eq('recipient_id', profile.id)
+      .eq('status', 'active')
+      .single()
+    kitchen = k
   }
 
-  // Find active kitchen
-  const { data: kitchen } = await supabase
-    .from('kitchens')
-    .select('id')
-    .eq('recipient_id', profile.id)
-    .eq('status', 'active')
-    .single()
+  // No recipient match → see if this number is a kitchen's confirmation proxy.
+  if (!kitchen) {
+    const { data: k } = await supabase
+      .from('kitchens')
+      .select('id')
+      .eq('proxy_phone', from)
+      .eq('status', 'active')
+      .single()
+    kitchen = k
+  }
 
   if (!kitchen) {
-    return twiml('No active Kitchen found.')
+    return twiml("We couldn't find your Kitchen. Visit yourkitchen.app for help.")
   }
 
   // Find most recent pending proposal for this kitchen
