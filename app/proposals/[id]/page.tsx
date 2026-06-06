@@ -38,6 +38,7 @@ const [confirming, setConfirming] = useState(false)
 const [declining, setDeclining] = useState(false)
 const [declined, setDeclined] = useState(false)
 const [declineNote, setDeclineNote] = useState('')
+const [declineReason, setDeclineReason] = useState('')
 const [confirmed, setConfirmed] = useState(false)
 const [error, setError] = useState('')
 const [kitchenId, setKitchenId] = useState('')
@@ -90,7 +91,7 @@ const handleDecline = async () => {
 setDeclining(true); setError('')
 const res = await fetch('/api/confirm', {
 method: 'POST', headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ proposal_id: id, action: 'decline', note: declineNote }),
+body: JSON.stringify({ proposal_id: id, action: 'decline', reason: declineReason || declineNote, note: declineNote }),
 })
 const data = await res.json()
 if (!res.ok) { setError(data.error || 'Something went wrong.'); setDeclining(false); return }
@@ -228,10 +229,26 @@ if (declining) return (
 The date will reopen so someone else in your village can claim it.
 </p>
 </div>
-<label style={labelStyle}>Send a note to {coordName} <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-<textarea value={declineNote} onChange={e => setDeclineNote(e.target.value)}
-placeholder={`e.g. "We're actually going out that night — can you try another day?"`}
-style={{ width: '100%', minHeight: 100, borderRadius: 10, border: `1.5px solid ${S.border}`, padding: '12px 14px', fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: S.forest, background: S.white, resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6, marginBottom: 16 }} />
+<label style={labelStyle}>Let {coordName} know why <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+{[
+  "We're covered for that meal — thank you!",
+  "We already have plans that day.",
+  "Could you try a different date?",
+  "The timing doesn't work this time.",
+].map(r => {
+  const on = declineReason === r
+  return (
+    <button key={r} onClick={() => { setDeclineReason(on ? '' : r); setDeclineNote('') }}
+      style={{ textAlign: 'left', padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${on ? S.sage : S.border}`, background: on ? S.sageLight : S.white, color: on ? S.sage : S.forest, fontSize: 13.5, fontWeight: on ? 600 : 400, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", lineHeight: 1.5 }}>
+      {on ? '✓ ' : ''}{r}
+    </button>
+  )
+})}
+</div>
+<textarea value={declineNote} onChange={e => { setDeclineNote(e.target.value); if (e.target.value) setDeclineReason('') }}
+placeholder="Or write your own note…"
+style={{ width: '100%', minHeight: 70, borderRadius: 10, border: `1.5px solid ${S.border}`, padding: '12px 14px', fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: S.forest, background: S.white, resize: 'none', outline: 'none', boxSizing: 'border-box', lineHeight: 1.6, marginBottom: 16 }} />
 {error && <p style={{ color: S.red, fontSize: 13, marginBottom: 12 }}>{error}</p>}
 <div style={{ display: 'flex', gap: 10 }}>
 <button onClick={() => setDeclining(false)} style={btnOutline}>← Back</button>
