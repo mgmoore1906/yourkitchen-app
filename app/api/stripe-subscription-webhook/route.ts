@@ -8,8 +8,7 @@ function getSupabase() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-
+function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!) }
 const STRIPE_PRICES: Record<string, { priceId: string; mode: 'subscription' | 'payment' }> = {
   care:     { priceId: 'price_1TS7gX1qsEWj9oGNNeLys5Xb', mode: 'subscription' },
   annual:   { priceId: 'price_1TThbJ1qsEWj9oGNX0E6NnKj', mode: 'subscription' },
@@ -17,6 +16,7 @@ const STRIPE_PRICES: Record<string, { priceId: string; mode: 'subscription' | 'p
 }
 
 export async function POST(request: Request) {
+  const stripe = getStripe()
   const supabase = getSupabase()
   try {
     const { tier, user_id } = await request.json()
