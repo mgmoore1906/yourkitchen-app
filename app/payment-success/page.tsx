@@ -29,7 +29,7 @@ function PaymentSuccessContent() {
         </h1>
 
         <p style={{ fontSize: 15.5, color: S.stone, lineHeight: 1.75, fontWeight: 300, margin: '0 0 28px' }}>
-          Your meal is on its way to becoming one less thing {name} has to worry about. They&rsquo;ll get a text to pick the moment that works, and the second they say yes, it&rsquo;s handled.
+          Your meal is on its way to becoming one less thing {name}{' '}has to worry about. They&rsquo;ll get a text to pick the moment that works, and the second they say yes, it&rsquo;s handled.
         </p>
 
         {/* Practical reassurance — kept, but secondary to the feeling */}
