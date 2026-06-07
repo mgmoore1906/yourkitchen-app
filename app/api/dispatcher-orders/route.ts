@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // GET /api/dispatcher-orders  — header: x-dispatcher-secret
 //
@@ -23,6 +25,7 @@ const supabase = createClient(
 // details, payment identifiers, Stripe data, or any other kitchen's data beyond
 // the single order row. This route is read-only — it cannot mutate anything.
 export async function GET(request: Request) {
+  const supabase = getSupabase()
   const secret = request.headers.get('x-dispatcher-secret')
   if (!process.env.DISPATCHER_SECRET || secret !== process.env.DISPATCHER_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
