@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 const BUCKET = 'village-photos'
 const MAX_BYTES = 5 * 1024 * 1024 // 5 MB — matches bucket limit
@@ -15,6 +17,7 @@ const ALLOWED = ['image/jpeg', 'image/png', 'image/webp']
 // Uploads via the service-role key (bypasses RLS), returns the public URL.
 // The browser never touches the bucket directly.
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const form = await request.formData()
     const file = form.get('file') as File | null
