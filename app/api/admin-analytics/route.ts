@@ -1,11 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
-
 // GET /api/admin-analytics?range=30d   header: x-admin-secret
 // Returns kitchens, proposals, profiles for the analytics dashboard, read with
 // the service-role key so RLS doesn't silently return empty (the browser anon
@@ -14,6 +9,14 @@ export async function GET(request: Request) {
   if (request.headers.get('x-admin-secret') !== process.env.ADMIN_SECRET) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
+
+  // Create the client INSIDE the handler (request time), not at module scope.
+  // Module-scope creation runs during the build's page-data collection, when
+  // env vars aren't populated — which throws "supabaseUrl is required".
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   const { searchParams } = new URL(request.url)
   const range = searchParams.get('range') || '30d'
