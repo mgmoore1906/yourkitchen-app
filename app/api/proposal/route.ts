@@ -4,13 +4,16 @@ import { NextResponse } from 'next/server'
 import { haversineDistance, getDeliveryFee } from '@/lib/distance'
 import { resolveCourierFee } from '@/lib/shipday'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-process.env.NEXT_PUBLIC_SUPABASE_URL!,
-process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 export async function POST(request: Request) {
+  const supabase = getSupabase()
 try {
 const {
 name, email, phone, note,
