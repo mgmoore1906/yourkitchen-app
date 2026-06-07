@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // GET /api/delivery?user_id=...  → the kitchen's saved delivery time preferences
 //
@@ -15,6 +17,7 @@ const supabase = createClient(
 // *_windows text[] columns as a single "HH:MM" target time per meal (e.g.
 // dinner_windows: ['19:00']), which the proposal/SMS code already reads.
 export async function GET(request: Request) {
+  const supabase = getSupabase()
   const { searchParams } = new URL(request.url)
   const userId = searchParams.get('user_id')
   if (!userId) return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
@@ -37,6 +40,7 @@ export async function GET(request: Request) {
 // POST /api/delivery  — body: { user_id, breakfast, lunch, dinner }
 // Each meal value is an "HH:MM" target time, or '' / null to clear it.
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const { user_id, breakfast, lunch, dinner } = await request.json()
     if (!user_id) return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
