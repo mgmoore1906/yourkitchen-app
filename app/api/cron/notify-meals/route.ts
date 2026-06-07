@@ -35,7 +35,8 @@ function prettyTime(t: string | null | undefined, mealType: string): string {
 
 async function sendSMS(to: string, body: string) {
   try {
-    await twilioClient.messages.create({
+      const client = getTwilio()
+    await client.messages.create({
       body,
       from: process.env.TWILIO_PHONE_NUMBER!,
       to,
@@ -46,7 +47,6 @@ async function sendSMS(to: string, body: string) {
 }
 
 export async function GET(request: Request) {
-  const twilioClient = getTwilio()
   const supabase = getSupabase()
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
