@@ -8,11 +8,7 @@ function getSupabase() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID!,
-  process.env.TWILIO_AUTH_TOKEN!
-)
-
+function getTwilio() { return twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!) }
 const DEADLINES: Record<string, string> = {
   breakfast: '8:30 AM',
   lunch:     '11:00 AM',
@@ -50,6 +46,7 @@ async function sendSMS(to: string, body: string) {
 }
 
 export async function GET(request: Request) {
+  const twilioClient = getTwilio()
   const supabase = getSupabase()
   const authHeader = request.headers.get('authorization')
   if (authHeader !== `Bearer ${process.env.CRON_SECRET}`) {
