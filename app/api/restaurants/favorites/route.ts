@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY!
 
@@ -37,6 +39,7 @@ async function fetchPlaceDetails(placeId: string): Promise<{ address: string | n
 }
 
 export async function GET(request: Request) {
+  const supabase = getSupabase()
   const { searchParams } = new URL(request.url)
   const kitchenSlug = searchParams.get('slug')
   const kitchenId = searchParams.get('kitchen_id')
@@ -60,6 +63,7 @@ export async function GET(request: Request) {
 }
 
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const { kitchen_id, place_id, name, address, cuisine, lat, lng } = await request.json()
     if (!kitchen_id || !name) return NextResponse.json({ error: 'kitchen_id and name required' }, { status: 400 })
@@ -122,6 +126,7 @@ export async function POST(request: Request) {
 }
 
 export async function PATCH(request: Request) {
+  const supabase = getSupabase()
   try {
     const { restaurant_id, favorite_meals, favorite_meal_prices, favorite_meal_categories, favorite_meal_notes, is_active } = await request.json()
     if (!restaurant_id) return NextResponse.json({ error: 'restaurant_id required' }, { status: 400 })
@@ -140,6 +145,7 @@ export async function PATCH(request: Request) {
 }
 
 export async function DELETE(request: Request) {
+  const supabase = getSupabase()
   try {
     const { restaurant_id, kitchen_id, delete_all } = await request.json()
     if (delete_all && kitchen_id) {
