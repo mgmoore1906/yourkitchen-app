@@ -9,13 +9,11 @@ function getSupabase() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
-const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
-const twilioClient = twilio(
-  process.env.TWILIO_ACCOUNT_SID!,
-  process.env.TWILIO_AUTH_TOKEN!
-)
-
+function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!) }
+function getTwilio() { return twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!) }
 export async function POST(request: Request) {
+  const stripe = getStripe()
+  const twilioClient = getTwilio()
   const supabase = getSupabase()
   try {
     const body = await request.json()
