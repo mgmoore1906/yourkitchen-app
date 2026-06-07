@@ -85,7 +85,7 @@ export async function POST(request: Request) {
       const { data: proposals } = await supabase
         .from('meal_proposals')
         .select(`
-          id, meal_type, delivery_time,
+          id, meal_type, delivery_time, meal_name, meal_items,
           claims(calendar_date_id, guest_coordinators(full_name)),
           kitchen_restaurants(name),
           menu_items(name),
@@ -109,10 +109,17 @@ export async function POST(request: Request) {
         if (profile?.phone) {
           const mealLabel = p.meal_type === 'breakfast' ? 'breakfast'
             : p.meal_type === 'lunch' ? 'lunch' : 'dinner'
+          // Resolve the meal name the same way the proposals page does:
+          // direct meal_name column → items list → menu_items join → generic fallback.
+          const itemsArr = Array.isArray(p.meal_items) ? p.meal_items : []
+          const mealName = p.meal_name
+            || (itemsArr.length ? itemsArr.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : null)
+            || p.menu_items?.name
+            || 'a meal'
           await sendSMS(
             profile.phone,
             `${coordinatorName} wants to send you ${mealLabel} — ` +
-            `${p.menu_items?.name} from ${p.kitchen_restaurants?.name}, arriving around ${prettyTime(p.delivery_time, p.meal_type)}.\n\n` +
+            `${mealName} from ${p.kitchen_restaurants?.name}, arriving around ${prettyTime(p.delivery_time, p.meal_type)}.\n\n` +
             `Reply Y to confirm or N to decline.\n\n— YourKitchen`
           )
         }
