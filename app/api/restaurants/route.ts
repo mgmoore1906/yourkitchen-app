@@ -1,13 +1,16 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // POST — add a new restaurant to the kitchen
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const { kitchen_id, name, cuisine, doordash_store_id } = await request.json()
 
@@ -31,6 +34,7 @@ export async function POST(request: Request) {
 
 // PATCH — toggle is_active on an existing restaurant
 export async function PATCH(request: Request) {
+  const supabase = getSupabase()
   try {
     const { restaurant_id, is_active } = await request.json()
 
