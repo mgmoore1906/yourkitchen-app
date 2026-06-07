@@ -2,10 +2,12 @@ import { createClient } from '@supabase/supabase-js'
 import twilio from 'twilio'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 const twClient = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
 
 async function sendSMS(to: string, body: string) {
@@ -111,6 +113,7 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
 }
 
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const adminSecret = request.headers.get('x-admin-secret')
     if (adminSecret !== process.env.ADMIN_SECRET) {
