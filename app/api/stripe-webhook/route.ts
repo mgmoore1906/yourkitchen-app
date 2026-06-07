@@ -3,10 +3,12 @@ import Stripe from 'stripe'
 import twilio from 'twilio'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 const stripe   = new Stripe(process.env.STRIPE_SECRET_KEY!)
 const twClient = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
 
@@ -30,6 +32,7 @@ function prettyTime(t: string | null | undefined, mealType: string): string {
 }
 
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   const body      = await request.text()
   const signature = request.headers.get('stripe-signature') || ''
 
