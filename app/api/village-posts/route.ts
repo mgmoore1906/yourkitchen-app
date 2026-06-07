@@ -1,15 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // GET /api/village-posts?slug=megan-pete  — public, no auth required
 // Returns top-level posts (parent_id = null) newest-first, each with its replies
 // nested oldest-first, plus image_url / reactions / post_type.
 export async function GET(request: Request) {
+  const supabase = getSupabase()
   try {
     const { searchParams } = new URL(request.url)
     const slug = searchParams.get('slug')
@@ -63,6 +66,7 @@ export async function GET(request: Request) {
 //   parent_id:   set for a reply; replies can only point at top-level posts
 //   post_type:   'note' (default) | 'system'
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const { kitchen_id, content, author_name, author_type, image_url, parent_id, post_type } = await request.json()
 
@@ -116,6 +120,7 @@ export async function POST(request: Request) {
 // PATCH /api/village-posts  — toggle/increment an emoji reaction.
 // Body: { post_id, emoji, direction? }  direction: 'add' (default) | 'remove'
 export async function PATCH(request: Request) {
+  const supabase = getSupabase()
   try {
     const { post_id, emoji, direction } = await request.json()
     if (!post_id || !emoji) {
@@ -156,6 +161,7 @@ export async function PATCH(request: Request) {
 // DELETE /api/village-posts  — recipient removes a post from their own board.
 // Body: { post_id, kitchen_id }  (kitchen_id guards against cross-kitchen deletes)
 export async function DELETE(request: Request) {
+  const supabase = getSupabase()
   try {
     const { post_id, kitchen_id } = await request.json()
     if (!post_id || !kitchen_id) {
