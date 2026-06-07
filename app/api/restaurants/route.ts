@@ -8,7 +8,7 @@ function getSupabase() {
   )
 }
 
-// POST — add a new restaurant to the kitchen
+// POST — add a new restaurant to the kitchen!
 export async function POST(request: Request) {
   const supabase = getSupabase()
   try {
