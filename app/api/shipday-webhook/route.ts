@@ -42,8 +42,9 @@ export async function POST(request: Request) {
   const { data: proposal } = await supabase
     .from('meal_proposals')
     .select(`
-      id, status,
-      kitchens:kitchen_id(recipient_id),
+      id, status, coordinator_name,
+      kitchens:kitchen_id(recipient_id, name),
+      claims(guest_coordinators(full_name, phone)),
       kitchen_restaurants(name),
       menu_items(name)
     `)
@@ -68,32 +69,60 @@ export async function POST(request: Request) {
 
   await supabase.from('meal_proposals').update(updates).eq('id', proposal.id)
 
-  // Send SMS on key status changes
-  const recipientId = (proposal as any).kitchens?.recipient_id
+  // Gather names for personalized messaging.
+  const p = proposal as any
+  const recipientId   = p.kitchens?.recipient_id
+  const mealName      = p.menu_items?.name || 'your meal'
+  const restName      = p.kitchen_restaurants?.name || 'the restaurant'
+  const coordName     = p.claims?.guest_coordinators?.full_name || p.coordinator_name || 'someone who cares about you'
+  const coordPhone    = p.claims?.guest_coordinators?.phone || null
+  // Recipient first name, derived from the kitchen name ("Megan's Kitchen" → "Megan").
+  const kitchenName   = p.kitchens?.name || ''
+  const recipientFirst = kitchenName.split("'")[0].replace(/'?s Kitchen.*$/i, '').trim() || 'them'
+  const track = trackingUrl ? ` Track: ${trackingUrl}` : ''
+
+  // Recipient's phone
+  let recipientPhone: string | null = null
   if (recipientId) {
     const { data: profile } = await supabase
       .from('profiles').select('phone').eq('id', recipientId).single()
+    recipientPhone = profile?.phone || null
+  }
 
-    const mealName = (proposal as any).menu_items?.name || 'your meal'
-    const restName = (proposal as any).kitchen_restaurants?.name || 'the restaurant'
+  if (['assigned', 'driver_assigned', 'accepted'].includes(status)) {
+    // To the RECIPIENT — names who sent it.
+    if (recipientPhone) {
+      await sendSMS(recipientPhone,
+        `🚗 ${driverName ? driverName + ' is' : 'A driver is'} on the way with ${mealName} from ${restName} — sent by ${coordName}.${track}` +
+        `\n\nBrought to you by YourKitchen 🧡`)
+    }
+    // To the COORDINATOR — names who it's going to.
+    if (coordPhone) {
+      await sendSMS(coordPhone,
+        `🚗 The ${mealName} from ${restName} you sent is on its way to ${recipientFirst}.${track}` +
+        `\n\nBrought to you by YourKitchen 🧡`)
+    }
+  }
 
-    if (profile?.phone) {
-      if (['assigned', 'driver_assigned', 'accepted'].includes(status)) {
-        await sendSMS(profile.phone,
-          `🚗 ${driverName ? driverName + ' is' : 'A driver is'} on the way with ${mealName} from ${restName}.` +
-          (trackingUrl ? ` Track: ${trackingUrl}` : '') +
-          `\n\n— YourKitchen`)
-      }
+  if (['delivered', 'complete', 'completed'].includes(status)) {
+    if (recipientPhone) {
+      await sendSMS(recipientPhone,
+        `✅ ${mealName} from ${restName} has been delivered. Enjoy! 🧡\n\nBrought to you by YourKitchen`)
+    }
+    if (coordPhone) {
+      await sendSMS(coordPhone,
+        `✅ The ${mealName} you sent ${recipientFirst} has been delivered. 🧡\n\nBrought to you by YourKitchen`)
+    }
+  }
 
-      if (['delivered', 'complete', 'completed'].includes(status)) {
-        await sendSMS(profile.phone,
-          `✅ ${mealName} from ${restName} has been delivered. Enjoy! 🧡\n\n— YourKitchen`)
-      }
-
-      if (['cancelled', 'canceled', 'failed'].includes(status)) {
-        await sendSMS(profile.phone,
-          `⚠️ There was an issue with your delivery from ${restName}. We'll look into it and follow up shortly.\n\n— YourKitchen`)
-      }
+  if (['cancelled', 'canceled', 'failed'].includes(status)) {
+    if (recipientPhone) {
+      await sendSMS(recipientPhone,
+        `⚠️ There was an issue with your delivery from ${restName}. We'll look into it and follow up shortly.\n\n— YourKitchen`)
+    }
+    if (coordPhone) {
+      await sendSMS(coordPhone,
+        `⚠️ There was an issue delivering the ${mealName} you sent ${recipientFirst}. We're looking into it and will follow up.\n\n— YourKitchen`)
     }
   }
 
