@@ -2,10 +2,12 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import { geocodeAddress } from '@/lib/geocode'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 const MENU_ITEMS: Record<string, { name: string; description: string; price: number; is_favorite: boolean }[]> = {
   'first-watch': [
@@ -63,6 +65,7 @@ const DOORDASH_STORE_IDS: Record<string, string> = {
 }
 
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const {
       user_id, full_name, phone, sms_consent, address,
