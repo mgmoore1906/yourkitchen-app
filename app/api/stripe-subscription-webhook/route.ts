@@ -2,10 +2,12 @@ import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
 const STRIPE_PRICES: Record<string, { priceId: string; mode: 'subscription' | 'payment' }> = {
@@ -15,6 +17,7 @@ const STRIPE_PRICES: Record<string, { priceId: string; mode: 'subscription' | 'p
 }
 
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const { tier, user_id } = await request.json()
 
