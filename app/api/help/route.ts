@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // POST /api/help — capture a help request from the in-app help page.
 //
@@ -26,6 +28,7 @@ const supabase = createClient(
 //     created_at timestamptz default now()
 //   );
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const { name, email, topic, message, user_id, page } = await request.json()
 
