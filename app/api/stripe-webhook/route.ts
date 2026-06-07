@@ -9,9 +9,8 @@ function getSupabase() {
     process.env.SUPABASE_SERVICE_ROLE_KEY!
   )
 }
-const stripe   = new Stripe(process.env.STRIPE_SECRET_KEY!)
-const twClient = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
-
+function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!) }
+function getTwilio() { return twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!) }
 async function sendSMS(to: string, body: string) {
   try {
     await twClient.messages.create({ body, from: process.env.TWILIO_PHONE_NUMBER!, to })
@@ -32,6 +31,8 @@ function prettyTime(t: string | null | undefined, mealType: string): string {
 }
 
 export async function POST(request: Request) {
+  const stripe = getStripe()
+  const twClient = getTwilio()
   const supabase = getSupabase()
   const body      = await request.text()
   const signature = request.headers.get('stripe-signature') || ''
