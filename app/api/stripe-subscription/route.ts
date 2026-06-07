@@ -4,10 +4,12 @@ import Stripe from 'stripe'
 
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // Paid tiers → Stripe price IDs (set these env vars in Vercel)
 const PRICE_IDS: Record<string, string | undefined> = {
@@ -17,6 +19,7 @@ const PRICE_IDS: Record<string, string | undefined> = {
 }
 
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const { tier, user_id } = await request.json()
 
