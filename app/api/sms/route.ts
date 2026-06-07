@@ -3,10 +3,12 @@ import { NextResponse } from 'next/server'
 import twilio from 'twilio'
 import Stripe from 'stripe'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 const twilioClient = twilio(
   process.env.TWILIO_ACCOUNT_SID!,
   process.env.TWILIO_AUTH_TOKEN!
@@ -21,6 +23,7 @@ function twiml(msg: string) {
 }
 
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   const formData = await request.formData()
   const body = (formData.get('Body') as string)?.trim().toUpperCase()
   const from  = formData.get('From') as string
