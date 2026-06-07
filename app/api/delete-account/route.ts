@@ -1,10 +1,12 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 export const dynamic = 'force-dynamic'
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-)
+function getSupabase() {
+  return createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
+}
 
 // POST /api/delete-account  — body: { user_id }
 //
@@ -21,6 +23,7 @@ const supabase = createClient(
 //
 // Order matters: delete children before parents to respect foreign keys.
 export async function POST(request: Request) {
+  const supabase = getSupabase()
   try {
     const { user_id } = await request.json()
     if (!user_id) return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
