@@ -401,7 +401,7 @@ Delete my account
 const US_STATES = ['AL','AK','AZ','AR','CA','CO','CT','DE','FL','GA','HI','ID','IL','IN','IA','KS','KY','LA','ME','MD','MA','MI','MN','MS','MO','MT','NE','NV','NH','NJ','NM','NY','NC','ND','OH','OK','OR','PA','RI','SC','SD','TN','TX','UT','VT','VA','WV','WI','WY']
 
 // Best-effort parse of a stored "Street, City, ST ZIP" address back into parts,
-// so the broken-out form pre-fills when the user opens settings.
+// so the broken-out form pre fills when the user opens settings.
 function parseAddress(addr: string): { street: string; city: string; state: string; zip: string } {
   const out = { street: '', city: '', state: 'TX', zip: '' }
   if (!addr) return out
