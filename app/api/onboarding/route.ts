@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       user_id, full_name, phone, sms_consent, address,
       street, apt, city, state, zip,
       household_size, household_adults, household_children,
-      dietary_restrictions, tier, restaurants, calendar_dates,
+      dietary_restrictions, use_case, tier, restaurants, calendar_dates,
       breakfast_windows, lunch_windows, dinner_windows,
       delivery_window_start, delivery_window_end, favorites
     } = await request.json()
@@ -126,6 +126,7 @@ export async function POST(request: Request) {
         household_adults: household_adults ?? 2,
         household_children: household_children ?? 2,
         dietary_restrictions: dietary_restrictions || [],
+        use_case: use_case || null,
         breakfast_windows: breakfast_windows || [],
         lunch_windows: lunch_windows || [],
         dinner_windows: dinner_windows || ['17:30-19:00'],
