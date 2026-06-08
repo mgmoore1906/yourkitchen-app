@@ -8,9 +8,9 @@ export async function GET(request: Request) {
     const lat    = searchParams.get('lat')
     const lng    = searchParams.get('lng')
     const query  = searchParams.get('query') || 'restaurant'
-    // 8 miles default (~13km) — optimal for tip economics
-    // Caller can pass ?radius=XXXX to override
-    const radius = searchParams.get('radius') || '13000'
+    // ~10 miles default (16093m). Caller can pass ?radius=XXXX to override.
+    // Widened from 13000 (~8mi) so restaurants out to 10 miles populate.
+    const radius = searchParams.get('radius') || '16093'
 
     if (!lat || !lng) {
       return NextResponse.json({ error: 'lat and lng required' }, { status: 400 })
