@@ -23,7 +23,7 @@ type Order = {
   coordinator_name: string; restaurant_name: string; meal_name: string
   tip_amount: number | null; doordash_tracking_url: string | null
   doordash_delivery_id: string | null; kitchen_name: string; kitchen_address: string
-  restaurant_address?: string; restaurant_phone?: string
+  restaurant_address?: string; restaurant_phone?: string; is_pickup?: boolean
 }
 
 type AnalyticsData = { kitchens: any[]; proposals: any[]; profiles: any[] }
@@ -317,7 +317,7 @@ function AnalyticsTab() {
 // ── Dispatch tab ──────────────────────────────────────────────────────────────
 function DispatchTab(props: any) {
   const { orders, loading, filter, setFilter, dispatching, cancelling, msgs, cancelReasons, setCancelReasons, handleDispatch, handleCancel } = props
-  const needsDispatch = (o: Order) => !o.delivery_status || o.delivery_status === 'awaiting_dispatch'
+  const needsDispatch = (o: Order) => (!o.delivery_status || o.delivery_status === 'awaiting_dispatch') && !o.is_pickup
 
   const todayOrders = orders.filter((o: Order) => o.delivery_date === TODAY).sort(sortByMealType)
   const tomorrowOrders = orders.filter((o: Order) => o.delivery_date === TOMORROW).sort(sortByMealType)
@@ -392,11 +392,12 @@ function DispatchTab(props: any) {
               )}
               {dateOrders.map((order: Order) => {
                 const isAwaiting = needsDispatch(order)
+                const isPickupOrder = !!order.is_pickup
                 const isDispatching_ = dispatching === order.id
                 const isCancelling_ = cancelling === order.id
                 const msg = msgs[order.id]
                 return (
-                  <div key={order.id} style={{ background: S.white, border: `2px solid ${isAwaiting ? S.red : S.border}`, borderRadius: 16, padding: 20, marginBottom: 12, opacity: isAwaiting ? 1 : 0.75 }}>
+                  <div key={order.id} style={{ background: S.white, border: `2px solid ${isAwaiting ? S.red : isPickupOrder ? S.blue : S.border}`, borderRadius: 16, padding: 20, marginBottom: 12, opacity: (isAwaiting || isPickupOrder) ? 1 : 0.75 }}>
                     <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
                       <div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
@@ -410,8 +411,8 @@ function DispatchTab(props: any) {
                         {order.restaurant_address && <div style={{ fontSize: 12, color: S.stone, marginTop: 1 }}>📍 {order.restaurant_address}</div>}
                         <div style={{ fontSize: 12, color: S.stone, marginTop: 2 }}>from <strong style={{ color: S.forest }}>{order.coordinator_name}</strong></div>
                       </div>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: isAwaiting ? S.redLight : S.sageLight, color: isAwaiting ? S.red : S.sage, flexShrink: 0 }}>
-                        {isAwaiting ? '🔴 Needs dispatch' : '✅ Dispatched'}
+                      <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: isAwaiting ? S.redLight : isPickupOrder ? S.blueLight : S.sageLight, color: isAwaiting ? S.red : isPickupOrder ? S.blue : S.sage, flexShrink: 0 }}>
+                        {isAwaiting ? '🔴 Needs dispatch' : isPickupOrder ? '🥡 Pickup' : '✅ Dispatched'}
                       </span>
                     </div>
 
@@ -449,6 +450,18 @@ function DispatchTab(props: any) {
                       </div>
                     )}
 
+                    {isPickupOrder && (
+                      <div style={{ background: S.blueLight, border: `1px solid ${S.blue}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+                        <div style={{ fontSize: 11, fontWeight: 700, color: S.blue, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 8 }}>🥡 Pickup order — place at restaurant</div>
+                        <div style={{ fontSize: 13, color: S.forest, display: 'flex', flexDirection: 'column', gap: 5 }}>
+                          <div>☐ &nbsp;Place a <strong>PICKUP</strong> order at <strong>{order.restaurant_name}</strong></div>
+                          {order.restaurant_address && <div style={{ paddingLeft: 22, fontSize: 12, color: S.stone, marginTop: -2 }}>📍 {order.restaurant_address}{order.restaurant_phone ? ` · ${order.restaurant_phone}` : ''}</div>}
+                          <div>☐ &nbsp;Name on order: <strong>{order.coordinator_name}</strong></div>
+                          <div>☐ &nbsp;No courier — recipient picks it up</div>
+                        </div>
+                      </div>
+                    )}
+
                     {order.doordash_tracking_url && (
                       <a href={order.doordash_tracking_url} target="_blank" rel="noopener noreferrer"
                         style={{ display: 'block', background: S.blueLight, color: S.blue, borderRadius: 9, padding: '10px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginBottom: 10, textAlign: 'center' }}>
@@ -457,11 +470,12 @@ function DispatchTab(props: any) {
                     )}
 
                     {isAwaiting && (
-                      <>
                         <button onClick={() => handleDispatch(order.id)} disabled={isDispatching_ || isCancelling_}
                           style={{ width: '100%', padding: 14, background: isDispatching_ ? S.border : S.forest, color: isDispatching_ ? S.stone : S.white, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: isDispatching_ ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif", marginBottom: 10 }}>
                           {isDispatching_ ? '⏳ Dispatching…' : '🚀 Dispatch to Shipday →'}
                         </button>
+                    )}
+                    {(isAwaiting || isPickupOrder) && (
                         <div style={{ borderTop: `0.5px solid ${S.border}`, paddingTop: 12 }}>
                           <p style={{ fontSize: 11, fontWeight: 700, color: S.stone, letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 8px' }}>Cancel order</p>
                           <div style={{ display: 'flex', gap: 8 }}>
@@ -474,7 +488,6 @@ function DispatchTab(props: any) {
                           </div>
                           <p style={{ fontSize: 11, color: S.stone, margin: '6px 0 0', fontWeight: 300 }}>Voids charge · re-opens calendar date · SMS both parties</p>
                         </div>
-                      </>
                     )}
 
                     {msg && <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 9, background: msg.startsWith('✅') ? S.sageLight : S.redLight, color: msg.startsWith('✅') ? S.sage : S.red, fontSize: 13, fontWeight: 500 }}>{msg}</div>}
@@ -506,6 +519,7 @@ export default function AdminPage() {
   const [refreshTick, setRefreshTick] = useState(0)
   const [backfilling, setBackfilling] = useState(false)
   const [backfillMsg, setBackfillMsg] = useState('')
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null)
 
   const loadOrders = useCallback(async (secret?: string) => {
     const key = secret || sessionStorage.getItem('yk_admin_secret') || ''
@@ -513,6 +527,7 @@ export default function AdminPage() {
       const res = await fetch('/api/admin-orders', { headers: { 'x-admin-secret': key } })
       const json = await res.json()
       setOrders(json.orders || [])
+      setLastUpdated(new Date())
     } catch {
       setOrders([])
     }
@@ -525,7 +540,14 @@ export default function AdminPage() {
     else setLoading(false)
   }, [])
 
-  const needsDispatch = (o: Order) => !o.delivery_status || o.delivery_status === 'awaiting_dispatch'
+  // Live feed: poll the dispatch view every 20s so confirmed orders appear without a manual refresh.
+  useEffect(() => {
+    if (!authed || view !== 'dispatch') return
+    const id = setInterval(() => { loadOrders() }, 20000)
+    return () => clearInterval(id)
+  }, [authed, view, loadOrders])
+
+  const needsDispatch = (o: Order) => (!o.delivery_status || o.delivery_status === 'awaiting_dispatch') && !o.is_pickup
   const urgentToday = orders.filter(o => o.delivery_date === TODAY && needsDispatch(o)).length
 
   const handleAuth = async () => {
@@ -604,6 +626,7 @@ export default function AdminPage() {
   return (
     <div style={{ minHeight: '100vh', background: S.cream, fontFamily: "'DM Sans',sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;500;600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+      <style>{`@keyframes ykpulse { 0% { box-shadow: 0 0 0 0 rgba(91,208,138,0.6) } 70% { box-shadow: 0 0 0 6px rgba(91,208,138,0) } 100% { box-shadow: 0 0 0 0 rgba(91,208,138,0) } }`}</style>
 
       <div style={{ background: S.forest, padding: '14px 24px', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <div>
@@ -616,6 +639,12 @@ export default function AdminPage() {
             style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '8px 14px', color: S.white, fontSize: 12, cursor: backfilling ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif", opacity: backfilling ? 0.6 : 1 }}>
             {backfilling ? 'Fixing…' : 'Fix Addresses'}
           </button>
+          {authed && view === 'dispatch' && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, color: S.sageMid, fontSize: 11 }}>
+              <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#5BD08A', animation: 'ykpulse 1.8s infinite' }} />
+              <span>Live{lastUpdated ? ` · ${lastUpdated.toLocaleTimeString([], { hour: 'numeric', minute: '2-digit' })}` : ''}</span>
+            </div>
+          )}
           <button onClick={() => { if (view === 'analytics') setRefreshTick(t => t + 1); else loadOrders() }} style={{ background: 'rgba(255,255,255,0.1)', border: 'none', borderRadius: 8, padding: '8px 14px', color: S.white, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>Refresh</button>
         </div>
       </div>
