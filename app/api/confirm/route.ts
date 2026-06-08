@@ -12,6 +12,45 @@ function getSupabase() {
 }
 function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!) }
 
+// GET — safe, read-only proposal summary for the public confirm page (email hedge).
+// Never mutates anything; confirming/declining always goes through POST below,
+// so an email client prefetching this link can't trigger a charge.
+export async function GET(request: Request) {
+  const supabase = getSupabase()
+  const { searchParams } = new URL(request.url)
+  const proposalId = searchParams.get('id') || searchParams.get('proposal_id')
+  if (!proposalId) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
+
+  const { data: p } = await supabase
+    .from('meal_proposals')
+    .select(`id, status, meal_type, delivery_time, meal_name, meal_items, is_pickup,
+      claims(guest_coordinators(full_name)),
+      kitchen_restaurants(name),
+      menu_items(name),
+      kitchens:kitchen_id(name)`)
+    .eq('id', proposalId)
+    .single()
+
+  if (!p) return NextResponse.json({ error: 'not_found' }, { status: 404 })
+  const pp = p as any
+  const itemsArr = Array.isArray(pp.meal_items) ? pp.meal_items : []
+  const mealName = pp.meal_name
+    || (itemsArr.length ? itemsArr.map((i: any) => i.qty > 1 ? `${i.name} \u00d7${i.qty}` : i.name).join(', ') : null)
+    || pp.menu_items?.name || 'a meal'
+
+  return NextResponse.json({
+    id: pp.id,
+    status: pp.status,
+    meal_type: pp.meal_type,
+    delivery_time: pp.delivery_time,
+    is_pickup: !!pp.is_pickup,
+    meal_name: mealName,
+    restaurant: pp.kitchen_restaurants?.name || '',
+    coordinator_name: pp.claims?.guest_coordinators?.full_name || 'Someone',
+    kitchen_name: pp.kitchens?.name || '',
+  })
+}
+
 export async function POST(request: Request) {
   const supabase = getSupabase()
   const stripe = getStripe()
