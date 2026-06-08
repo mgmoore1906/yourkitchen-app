@@ -73,6 +73,7 @@ export async function POST(request: Request) {
       menu_items(*)
     `)
     .eq('status', 'pending')
+    .eq('kitchen_id', kitchen.id)
     .order('proposed_at', { ascending: false })
     .limit(1)
     .single()
