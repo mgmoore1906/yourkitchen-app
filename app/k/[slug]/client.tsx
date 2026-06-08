@@ -41,10 +41,7 @@ breakfast: { color: '#E8834A', bg: '#FFF0E8' },
 lunch: { color: '#4A8FA8', bg: '#E8F4F8' },
 dinner: { color: S.sage, bg: S.sageLight },
 }
-const DELIVERY_PREFS = [
-{ value: 'leave_at_door', title: 'Leave at door', subtitle: 'Text when arrived — no knock' },
-{ value: 'hand_to_recipient', title: 'Hand to me', subtitle: 'Driver hands order directly' },
-]
+// Delivery preference removed from coordinator checkout — orders default to leave-at-door.
 
 // Distance-based courier delivery fee estimate
 function getDeliveryFee(miles: number | null): number {
@@ -180,13 +177,8 @@ style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?
 </div>
 ))}
 </div>
-<div style={{ background:S.forest,borderRadius:16,padding:'16px 18px',marginTop:14 }}>
-<p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:600,color:S.white,margin:'0 0 4px' }}>Connect with the village</p>
-<p style={{ fontSize:12,color:'rgba(255,255,255,0.65)',fontWeight:300,margin:'0 0 12px',lineHeight:1.5 }}>See what others have sent and leave {recipientFirst} a message.</p>
-<button onClick={onOpenVillage}
-  style={{ width:'100%',padding:'12px',borderRadius:10,border:'none',background:S.sage,color:S.white,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:44 }}>
-  {recipientFirst}'s Village →
-</button>
+<div style={{ marginTop:18,textAlign:'center' }}>
+<button onClick={onOpenVillage} style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:13,fontWeight:500,fontFamily:"'DM Sans',sans-serif",textDecoration:'underline',textUnderlineOffset:3,padding:'8px 4px' }}>💬 See {recipientFirst}'s village</button>
 </div>
 </div>
 )
@@ -281,7 +273,7 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, onClose }: 
 
   return (
     <div style={{ position:'fixed',inset:0,background:S.cream,zIndex:400,display:'flex',flexDirection:'column',fontFamily:"'DM Sans',sans-serif" }}>
-      <div style={{ background:S.headerBg,padding:'12px 20px',display:'flex',alignItems:'center',gap:12,flexShrink:0,position:'sticky',top:0,zIndex:10 }}>
+      <div style={{ background:S.forest,padding:'12px 20px',display:'flex',alignItems:'center',gap:12,flexShrink:0,position:'sticky',top:0,zIndex:10 }}>
         <button onClick={onClose} style={{ background:'none',border:'none',cursor:'pointer',color:S.white,fontSize:22,padding:'4px 8px',lineHeight:1 }}>←</button>
         <div>
           <div style={{ fontFamily:"'Lora',serif",fontSize:17,fontWeight:600,color:S.white,lineHeight:1.1 }}>{recipientFirst}'s Village</div>
@@ -361,9 +353,10 @@ const [note, setNote] = useState('')
 const [tipAmount, setTipAmount] = useState(300)
 const [tipInitialized, setTipInitialized] = useState(false)
 const [showTipAdjust, setShowTipAdjust] = useState(false)
-const [deliveryPreference, setDeliveryPreference] = useState<'leave_at_door'|'hand_to_recipient'>('leave_at_door')
 const [deliveryNote, setDeliveryNote] = useState('')
 const [isPickup, setIsPickup] = useState(false)
+const [showDeliveryNote, setShowDeliveryNote] = useState(false)
+const [showPriceDetails, setShowPriceDetails] = useState(false)
 const [loading, setLoading] = useState(false)
 const [errorMsg, setErrorMsg] = useState('')
 
@@ -535,7 +528,7 @@ meal_type: slot.meal_type,
 try {
 const res=await fetch('/api/proposal',{
 method:'POST', headers:{'Content-Type':'application/json'},
-body:JSON.stringify({ name,email,phone,note,proposals,kitchen_slug:kitchen.slug,tip_amount:tipAmount,delivery_preference:deliveryPreference,delivery_note:deliveryNote.trim()||null,is_pickup:isPickup,use_places:true }),
+body:JSON.stringify({ name,email,phone,note,proposals,kitchen_slug:kitchen.slug,tip_amount:tipAmount,delivery_preference:'leave_at_door',delivery_note:deliveryNote.trim()||null,is_pickup:isPickup,use_places:true }),
 })
 const data=await res.json()
 if(!res.ok){ setErrorMsg(data.error||'Something went wrong.');setLoading(false);return }
@@ -876,24 +869,15 @@ I agree to receive recurring SMS from YourKitchen — meal proposals, confirmati
 
 {isPickup ? (
 <div style={{ background:S.sageLight,border:`1.5px solid ${S.sage}`,borderRadius:14,padding:'14px 16px',marginBottom:20 }}>
-<p style={{ fontSize:13,color:S.forest,margin:0,fontWeight:500,lineHeight:1.5 }}>You'll pick this up from the restaurant yourself — so there's no courier fee or tip. We'll text you when it's ready to grab.</p>
+<p style={{ fontSize:13,color:S.forest,margin:0,fontWeight:500,lineHeight:1.5 }}>{recipientFirst} will pick this up from the restaurant — so there's no courier fee or tip. We'll text {recipientFirst} when it's ready to grab.</p>
 </div>
 ) : (<>
-<label style={lbl}>Delivery preference</label>
-<p style={{ fontSize:12,color:S.stone,fontWeight:300,marginTop:-4,marginBottom:10,lineHeight:1.5 }}>For families with a sleeping newborn, "leave at door" is the kinder choice.</p>
-<div style={{ display:'flex',gap:10,marginBottom:20 }}>
-{DELIVERY_PREFS.map(pref=>(
-<button key={pref.value} onClick={()=>setDeliveryPreference(pref.value as any)}
-style={{ flex:1,padding:'14px 12px',borderRadius:12,border:`2px solid ${deliveryPreference===pref.value?S.amber:S.amberBorder}`,background:deliveryPreference===pref.value?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'left',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
-{pref.value==='leave_at_door'?(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{marginBottom:6,display:'block'}}><rect x="3" y="3" width="18" height="18" rx="2" stroke={deliveryPreference===pref.value?S.amber:S.stone} strokeWidth="1.7"/><path d="M8 21V11h8v10M12 11v4" stroke={deliveryPreference===pref.value?S.amber:S.stone} strokeWidth="1.7" strokeLinecap="round"/></svg>):(<svg width="22" height="22" viewBox="0 0 24 24" fill="none" style={{marginBottom:6,display:'block'}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke={deliveryPreference===pref.value?S.amber:S.stone} strokeWidth="1.7" strokeLinecap="round"/><circle cx="12" cy="7" r="4" stroke={deliveryPreference===pref.value?S.amber:S.stone} strokeWidth="1.7"/></svg>)}
-<div style={{ fontSize:13,fontWeight:600,color:deliveryPreference===pref.value?S.amber:S.mahogany,marginBottom:3 }}>{pref.title}</div>
-<div style={{ fontSize:11,color:S.stone,fontWeight:300,lineHeight:1.4 }}>{pref.subtitle}</div>
+<button onClick={()=>setShowDeliveryNote(s=>!s)} style={{ background:'none',border:'none',cursor:'pointer',fontSize:12,color:S.stone,fontFamily:"'DM Sans',sans-serif",padding:'0 0 12px',display:'flex',alignItems:'center',gap:4 }}>
+<span>{showDeliveryNote?'▲':'▼'}</span><span>{showDeliveryNote?'Hide delivery note':'Add a delivery note (optional)'}</span>
 </button>
-))}
-</div>
-
-<label style={lbl}>Delivery note <span style={{ fontWeight:300,textTransform:'none',letterSpacing:0 }}>(optional)</span></label>
+{showDeliveryNote && (
 <input value={deliveryNote} onChange={e=>setDeliveryNote(e.target.value)} placeholder="Gate code 4521 · leave at back door" style={inp}/>
+)}
 
 <label style={lbl}>Tip for your Dasher</label>
 <div style={{ background:S.amberLight,border:`1.5px solid ${S.amberBorder}`,borderRadius:14,padding:'14px 16px',marginBottom:12 }}>
@@ -930,7 +914,15 @@ style={{ flex:1,padding:'11px 4px',borderRadius:10,border:'none',background:tipA
 {/* Price breakdown */}
 {mealSubtotal > 0 && (
 <div style={{ background:S.warmWhite,border:`1px solid ${S.border}`,borderRadius:14,padding:'14px 16px',marginBottom:20 }}>
-<p style={{ fontSize:11,fontWeight:700,color:S.stone,letterSpacing:'0.08em',textTransform:'uppercase',margin:'0 0 10px' }}>Price estimate</p>
+<div style={{ display:'flex',justifyContent:'space-between',alignItems:'center' }}>
+<button onClick={()=>setShowPriceDetails(s=>!s)} style={{ background:'none',border:'none',cursor:'pointer',padding:0,display:'flex',alignItems:'center',gap:5,fontFamily:"'DM Sans',sans-serif" }}>
+<span style={{ fontSize:11,fontWeight:700,color:S.stone,letterSpacing:'0.08em',textTransform:'uppercase' }}>Estimated total</span>
+<span style={{ fontSize:10,color:S.stone }}>{showPriceDetails?'▲':'▼'}</span>
+</button>
+<span style={{ fontSize:18,fontWeight:700,color:S.amber }}>${grandTotal.toFixed(2)}</span>
+</div>
+{showPriceDetails && (
+<div style={{ marginTop:12,paddingTop:12,borderTop:`0.5px solid ${S.border}` }}>
 {groups.map(g=>{
 const sub=cartTotal(g.cart)*g.slots.length
 if(!sub)return null
@@ -960,14 +952,11 @@ return (
 <span style={{ fontSize:13,color:S.stone }}>Service fee</span>
 <span style={{ fontSize:13,color:S.forest }}>${serviceFee.toFixed(2)}</span>
 </div>
-<div style={{ height:0.5,background:S.border,margin:'8px 0' }}/>
-<div style={{ display:'flex',justifyContent:'space-between' }}>
-<span style={{ fontSize:14,fontWeight:700,color:S.forest }}>Estimated total</span>
-<span style={{ fontSize:14,fontWeight:700,color:S.amber }}>${grandTotal.toFixed(2)}</span>
-</div>
-<p style={{ fontSize:11,color:S.stone,margin:'8px 0 0',fontWeight:300,lineHeight:1.5 }}>
+<p style={{ fontSize:11,color:S.stone,margin:'10px 0 0',fontWeight:300,lineHeight:1.5 }}>
 Price reflects what {recipientFirst} saved. Actual price may vary slightly.
 </p>
+</div>
+)}
 </div>
 )}
 
