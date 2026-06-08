@@ -296,6 +296,32 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 
 {success && <div style={{ background: S.sageLight, border: `1.5px solid ${S.sage}`, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}><p style={{ fontSize: 13, color: S.sage, margin: 0 }}>✓ {success}</p></div>}
 
+{/* ── YOUR PLAN ── */}
+<div style={{ background: activeTier.bg, border: `1.5px solid ${activeTier.color}`, borderRadius: 14, padding: '14px 16px', marginBottom: 24 }}>
+<div style={{ fontSize: 11, fontWeight: 700, color: activeTier.color, letterSpacing: '0.04em' }}>{activeTier.badge}</div>
+<div style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, marginTop: 2 }}>{activeTier.desc}</div>
+<button onClick={() => toggle('plan')} style={{ background: 'none', border: 'none', padding: 0, marginTop: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5, fontFamily: "'DM Sans', sans-serif" }}>
+<span style={{ fontSize: 12, fontWeight: 600, color: activeTier.color }}>What's the difference?</span>
+<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={activeTier.color} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open.plan ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
+</button>
+{open.plan && (
+<div style={{ marginTop: 12, paddingTop: 12, borderTop: `0.5px solid ${activeTier.color}33`, display: 'flex', flexDirection: 'column', gap: 10 }}>
+<div>
+<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care &middot; free</div>
+<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Your kitchen with an unlimited calendar and your full village. Delivery confirmation included.</div>
+</div>
+<div>
+<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care+ &middot; $9.99/mo or $90/yr</div>
+<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Everything in Care, plus multiple kitchens, a custom link, priority support, and a warmer thank-you and tracking layer.</div>
+</div>
+<div>
+<div style={{ fontSize: 12.5, fontWeight: 700, color: '#B88B4A' }}>Founding Member &middot; $200 once</div>
+<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Three years of Care+, a founder badge, early access, and the Founders Gift Box. Limited to the first 250.</div>
+</div>
+</div>
+)}
+</div>
+
 {/* ── PROFILE ── */}
 <p style={sLabel}>Profile</p>
 <label style={lStyle}>Your name *</label>
