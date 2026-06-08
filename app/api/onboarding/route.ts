@@ -93,7 +93,10 @@ export async function POST(request: Request) {
       zip: zip || null,
       household_size: household_size || null,
       dietary_restrictions: dietary_restrictions || [],
-      tier: tier || 'free',
+      // Paid tiers (founding) are provisioned to the profile ONLY by the Stripe
+      // webhook on a completed checkout. Until then the account is a normal pilot
+      // ('trial') account — so an unpaid founder never gets the founding badge.
+      tier: (tier && tier !== 'free') ? 'trial' : 'free',
     }, { onConflict: 'id' })
 
     // Geocode the delivery address → lat/lng (Places API). Non-blocking: if this
