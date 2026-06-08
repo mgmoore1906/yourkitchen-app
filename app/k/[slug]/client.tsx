@@ -56,7 +56,7 @@ type FavRestaurant = {
 id: string; name: string; address: string | null
 place_id: string | null; lat: number | null; lng: number | null
 favorite_meals: string[]; favorite_meal_prices: number[]
-favorite_meal_categories: string[]; favorite_meal_notes: string[]
+favorite_meal_categories: string[]; favorite_meal_notes: string[]; pickup_preferred?: boolean
 }
 type CartItem = { name: string; price: number; qty: number; category: 'adult'|'kids'; isCustom: boolean; note?: string }
 type GroupSelection = {
@@ -371,6 +371,7 @@ const [loading, setLoading] = useState(false)
 const [errorMsg, setErrorMsg] = useState('')
 
 const isPoppingRef = useRef(false)
+const pickupTouchedRef = useRef(false)
 
 const KH_ADULTS = kitchen.household_adults ?? 2
 const KH_CHILDREN = kitchen.household_children ?? 2
@@ -403,6 +404,11 @@ fetch(`/api/restaurants/favorites?slug=${kitchen.slug}`)
 .then(r=>r.json()).then(d=>{ setFavorites(d.favorites||[]); setLoadingFavs(false) })
 .catch(()=>setLoadingFavs(false))
 },[kitchen.slug])
+
+useEffect(()=>{
+if(pickupTouchedRef.current)return
+setIsPickup(groups.some(g=>g.restaurant?.pickup_preferred===true))
+},[groups])
 
 useEffect(()=>{
 window.history.pushState({ ykStep:1, ykGroup:0 }, '')
@@ -867,11 +873,11 @@ I agree to receive recurring SMS from YourKitchen — meal proposals, confirmati
 
 <label style={lbl}>How should this arrive?</label>
 <div style={{ display:'flex',gap:10,marginBottom:16 }}>
-<button onClick={()=>setIsPickup(false)} style={{ flex:1,padding:'13px 12px',borderRadius:12,border:`2px solid ${!isPickup?S.amber:S.amberBorder}`,background:!isPickup?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'center',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
+<button onClick={()=>{pickupTouchedRef.current=true;setIsPickup(false)}} style={{ flex:1,padding:'13px 12px',borderRadius:12,border:`2px solid ${!isPickup?S.amber:S.amberBorder}`,background:!isPickup?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'center',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
 <div style={{ fontSize:13,fontWeight:600,color:!isPickup?S.amber:S.mahogany }}>🚗 Delivered</div>
 <div style={{ fontSize:11,color:S.stone,fontWeight:300,marginTop:2 }}>Courier brings it to the door</div>
 </button>
-<button onClick={()=>setIsPickup(true)} style={{ flex:1,padding:'13px 12px',borderRadius:12,border:`2px solid ${isPickup?S.amber:S.amberBorder}`,background:isPickup?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'center',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
+<button onClick={()=>{pickupTouchedRef.current=true;setIsPickup(true)}} style={{ flex:1,padding:'13px 12px',borderRadius:12,border:`2px solid ${isPickup?S.amber:S.amberBorder}`,background:isPickup?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'center',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
 <div style={{ fontSize:13,fontWeight:600,color:isPickup?S.amber:S.mahogany }}>🥡 Pickup</div>
 <div style={{ fontSize:11,color:S.stone,fontWeight:300,marginTop:2 }}>You grab it — no fees</div>
 </button>
