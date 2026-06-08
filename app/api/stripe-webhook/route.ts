@@ -120,7 +120,8 @@ export async function POST(request: Request) {
             profile.phone,
             `${coordinatorName} wants to send you ${mealLabel} — ` +
             `${mealName} from ${p.kitchen_restaurants?.name}, arriving around ${prettyTime(p.delivery_time, p.meal_type)}.\n\n` +
-            `Reply Y to confirm or N to decline.\n\n— YourKitchen`
+            `Reply Y to confirm or N to decline.\n` +
+            `Reply STOP to opt out.\n\n— YourKitchen`
           )
         }
       }
@@ -168,6 +169,9 @@ export async function POST(request: Request) {
       })
       .eq('id', (proposal as any).id)
 
+    // Receipt total actually captured (cents → dollars) for the payer's confirmation SMS
+    const receiptTotal = ((pi.amount_received ?? pi.amount ?? 0) / 100).toFixed(2)
+
     // Alert Marques via SMS so he knows to place the food order
     const marquesPhone = process.env.MARQUES_PHONE
     if (marquesPhone) {
@@ -193,7 +197,9 @@ export async function POST(request: Request) {
       await sendSMS(
         coordPhone,
         `✅ Your meal gift was confirmed! ${mealName} from ${restName} is being arranged for delivery.\n\n` +
-        `We'll text you when it's on the way. Thank you for showing up. 🧡\n\n— YourKitchen`
+        `Receipt: $${receiptTotal} charged.\n` +
+        `We'll text you when it's on the way. Thank you for showing up. 🧡\n\n` +
+        `Reply STOP to opt out.\n— YourKitchen`
       )
     }
 
@@ -205,7 +211,8 @@ export async function POST(request: Request) {
         await sendSMS(
           recipientProfile.phone,
           `✅ Confirmed! ${mealName} from ${restName} is being arranged. ` +
-          `We'll send a tracking link once it's on the way.\n\n— YourKitchen`
+          `We'll send a tracking link once it's on the way.\n\n` +
+          `Reply STOP to opt out.\n— YourKitchen`
         )
       }
     }
