@@ -292,6 +292,17 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, onClose }: 
       </div>
 
       <div style={{ flex:1,overflowY:'auto',padding:'16px 20px',maxWidth:500,margin:'0 auto',width:'100%',boxSizing:'border-box' }}>
+
+
+        {loading ? (
+          <p style={{ textAlign:'center',color:S.stone,fontSize:13 }}>Loading the board…</p>
+        ) : posts.length>0 ? (
+          posts.map(p=><PostCard key={p.id} p={p}/>)
+        ) : (
+          <div style={{ background:S.amberLight,borderRadius:14,padding:'20px',textAlign:'center' }}>
+            <p style={{ fontSize:14,color:S.mahogany,margin:0,lineHeight:1.7 }}>Be the first to leave {recipientFirst} a note. 🧡</p>
+          </div>
+        )}
         {/* Composer */}
         <div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
           <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Leave a note</p>
@@ -305,15 +316,6 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, onClose }: 
           </button>
         </div>
 
-        {loading ? (
-          <p style={{ textAlign:'center',color:S.stone,fontSize:13 }}>Loading the board…</p>
-        ) : posts.length>0 ? (
-          posts.map(p=><PostCard key={p.id} p={p}/>)
-        ) : (
-          <div style={{ background:S.amberLight,borderRadius:14,padding:'20px',textAlign:'center' }}>
-            <p style={{ fontSize:14,color:S.mahogany,margin:0,lineHeight:1.7 }}>Be the first to leave {recipientFirst} a note. 🧡</p>
-          </div>
-        )}
       </div>
     </div>
   )
@@ -406,8 +408,10 @@ fetch(`/api/restaurants/favorites?slug=${kitchen.slug}`)
 },[kitchen.slug])
 
 useEffect(()=>{
+const locked = groups.some((g:any)=>g.restaurant?.pickup_preferred===true)
+if(locked){ setIsPickup(true); return }
 if(pickupTouchedRef.current)return
-setIsPickup(groups.some(g=>g.restaurant?.pickup_preferred===true))
+setIsPickup(false)
 },[groups])
 
 useEffect(()=>{
@@ -518,6 +522,7 @@ return haversineDistance(kitchen.latitude, kitchen.longitude, fav.lat, fav.lng)
 })()
 const activeTipTier = activeMiles !== null ? getTipTier(activeMiles) : null
 const deliveryFee = isPickup ? 0 : getDeliveryFee(activeMiles)
+const pickupLocked = groups.some((g:any)=>g.restaurant?.pickup_preferred===true)
 
 // Price estimate — sum of cart × qty × dates per group
 const mealSubtotal = groups.reduce((sum,g)=> sum + cartTotal(g.cart) * g.slots.length, 0)
@@ -872,6 +877,7 @@ I agree to receive recurring SMS from YourKitchen — meal proposals, confirmati
 <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder={getNotePlaceholder()} style={{ ...inp,minHeight:90,resize:'none' as const }}/>
 
 <label style={lbl}>How should this arrive?</label>
+{!pickupLocked && (
 <div style={{ display:'flex',gap:10,marginBottom:16 }}>
 <button onClick={()=>{pickupTouchedRef.current=true;setIsPickup(false)}} style={{ flex:1,padding:'13px 12px',borderRadius:12,border:`2px solid ${!isPickup?S.amber:S.amberBorder}`,background:!isPickup?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'center',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
 <div style={{ fontSize:13,fontWeight:600,color:!isPickup?S.amber:S.mahogany }}>🚗 Delivered</div>
@@ -882,6 +888,7 @@ I agree to receive recurring SMS from YourKitchen — meal proposals, confirmati
 <div style={{ fontSize:11,color:S.stone,fontWeight:300,marginTop:2 }}>You grab it — no fees</div>
 </button>
 </div>
+)}
 
 {isPickup ? (
 <div style={{ background:S.sageLight,border:`1.5px solid ${S.sage}`,borderRadius:14,padding:'14px 16px',marginBottom:20 }}>
