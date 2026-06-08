@@ -36,7 +36,7 @@ type Proposal = {
   id: string; status: string; coordinator_name: string; restaurant_name: string
   meal_name: string; delivery_date: string; meal_type: string; coordinator_note: string | null
   doordash_tracking_url: string | null; doordash_delivery_id: string | null
-  doordash_status: string | null; proposed_at: string
+  doordash_status: string | null; proposed_at: string; coordinator_email: string | null
 }
 type VillagePost = { id: string; content: string; author_name: string | null; author_type: string | null; posted_at: string; image_url?: string | null; parent_id?: string | null; reactions?: Record<string,number>; post_type?: string; replies?: VillagePost[] }
 
@@ -415,7 +415,12 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
 function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any }) {
   const onTheWay = proposals.filter(p => p.status==='confirmed' && p.doordash_status!=='cancelled')
   const pending  = proposals.filter(p => p.status==='pending')
-  const previous = proposals.filter(p => ['delivered','declined','expired','cancelled'].includes(p.status)||(p.status==='confirmed'&&p.doordash_status==='cancelled'))
+  const previousAll = proposals.filter(p => ['delivered','declined','expired','cancelled'].includes(p.status)||(p.status==='confirmed'&&p.doordash_status==='cancelled'))
+  const previous = [...previousAll].sort((a,b)=>(b.delivery_date||'').localeCompare(a.delivery_date||''))
+  const RECENT_N = 5
+  const recentPrev = previous.slice(0, RECENT_N)
+  const olderPrev  = previous.slice(RECENT_N)
+  const [showOlder, setShowOlder] = useState(false)
   const fmt = (s:string) => new Date(s+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})
 
   const handleShare = async (p: Proposal, platform: 'instagram'|'facebook') => {
@@ -426,6 +431,42 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
       try { await navigator.clipboard.writeText(text) } catch {}
       window.open('https://www.instagram.com/','_blank')
     }
+  }
+
+  const renderPrev = (p: Proposal) => (
+    <div key={p.id} style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12,marginBottom:8,opacity:['declined','expired'].includes(p.status)?0.65:1 }}>
+      <span style={{ fontSize:18 }}>{MEAL_COLORS[p.meal_type]?.emoji||'🍽'}</span>
+      <div style={{ flex:1,overflow:'hidden' }}>
+        <div style={{ fontFamily:"'Lora',serif",fontSize:13,fontWeight:600,color:S.forest,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{p.meal_name}</div>
+        <div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{p.restaurant_name} · {fmt(p.delivery_date)}</div>
+        {p.coordinator_name&&(
+          <div style={{ fontSize:11,color:S.stone,fontWeight:300,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>from <strong style={{ color:S.forest,fontWeight:600 }}>{p.coordinator_name}</strong>{p.coordinator_email?<span> · {p.coordinator_email}</span>:null}</div>
+        )}
+      </div>
+      <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6 }}>
+        <span style={{ fontSize:9,fontWeight:700,padding:'3px 9px',borderRadius:20,background:p.status==='delivered'?S.sageLight:'#F5F5F5',color:p.status==='delivered'?S.sage:S.stone }}>
+          {p.status==='delivered'?'🧡 Delivered':p.status==='declined'?'✕ Declined':p.status.charAt(0).toUpperCase()+p.status.slice(1)}
+        </span>
+        {(p.status==='delivered'||p.status==='confirmed')&&(
+          <button onClick={()=>handleShare(p,'instagram')} style={{ fontSize:9,fontWeight:600,color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif" }}>Share 📸</button>
+        )}
+      </div>
+    </div>
+  )
+
+  const exportSupporters = () => {
+    const seen = new Map<string,string>()
+    proposals.forEach(p => {
+      if (!p.coordinator_name) return
+      const cur = seen.get(p.coordinator_name)
+      if (cur === undefined || (!cur && p.coordinator_email)) seen.set(p.coordinator_name, p.coordinator_email || '')
+    })
+    const rows: string[][] = [['Name','Email'], ...[...seen.entries()].map(([n,e]) => [n, e])]
+    const csv = rows.map(r => r.map(f => `"${(f||'').replace(/"/g,'""')}"`).join(',')).join('\n')
+    const blob = new Blob([csv], { type:'text/csv;charset=utf-8' })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a'); a.href = url; a.download = 'yourkitchen-supporters.csv'; a.click()
+    URL.revokeObjectURL(url)
   }
 
   if (proposals.length===0) return (
@@ -496,24 +537,20 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
 
       {previous.length>0&&(
         <div>
-          <p style={sLabel}>Previous Orders</p>
-          {previous.map(p=>(
-            <div key={p.id} style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12,marginBottom:8,opacity:['declined','expired'].includes(p.status)?0.65:1 }}>
-              <span style={{ fontSize:18 }}>{MEAL_COLORS[p.meal_type]?.emoji||'🍽'}</span>
-              <div style={{ flex:1,overflow:'hidden' }}>
-                <div style={{ fontFamily:"'Lora',serif",fontSize:13,fontWeight:600,color:S.forest,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{p.meal_name}</div>
-                <div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{p.restaurant_name} · {fmt(p.delivery_date)}</div>
-              </div>
-              <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6 }}>
-                <span style={{ fontSize:9,fontWeight:700,padding:'3px 9px',borderRadius:20,background:p.status==='delivered'?S.sageLight:'#F5F5F5',color:p.status==='delivered'?S.sage:S.stone }}>
-                  {p.status==='delivered'?'🧡 Delivered':p.status==='declined'?'✕ Declined':p.status.charAt(0).toUpperCase()+p.status.slice(1)}
-                </span>
-                {(p.status==='delivered'||p.status==='confirmed')&&(
-                  <button onClick={()=>handleShare(p,'instagram')} style={{ fontSize:9,fontWeight:600,color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif" }}>Share 📸</button>
-                )}
-              </div>
-            </div>
-          ))}
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10 }}>
+            <p style={{ ...sLabel, margin:0 }}>Previous Orders</p>
+            <button onClick={exportSupporters} style={{ fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase' }}>⬇ Export supporters</button>
+          </div>
+          {recentPrev.map(renderPrev)}
+          {olderPrev.length>0&&(
+            <>
+              <button onClick={()=>setShowOlder(v=>!v)} style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:'none',border:'none',cursor:'pointer',padding:'10px 2px',marginTop:2,fontFamily:"'DM Sans',sans-serif" }}>
+                <span style={{ fontSize:12,fontWeight:600,color:S.stone }}>{showOlder?'Hide':'Show'} older orders ({olderPrev.length})</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform:showOlder?'rotate(180deg)':'none',transition:'transform 0.2s' }}><path d="M6 9l6 6 6-6" stroke={S.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+              </button>
+              {showOlder&&olderPrev.map(renderPrev)}
+            </>
+          )}
         </div>
       )}
     </div>
@@ -1010,7 +1047,7 @@ export default function DashboardPage() {
 
   const loadProposals = useCallback(async (kitchenId: string) => {
     const { data } = await supabase.from('meal_proposals')
-      .select('id, status, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, coordinator_note, doordash_tracking_url, doordash_delivery_id, doordash_status, proposed_at')
+      .select('id, status, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, coordinator_note, doordash_tracking_url, doordash_delivery_id, doordash_status, proposed_at, coordinator_email')
       .eq('kitchen_id', kitchenId)
       .order('proposed_at', { ascending: false })
     setAllProposals((data || []) as Proposal[])
