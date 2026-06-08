@@ -69,6 +69,8 @@ const [searchQuery, setSearchQuery] = useState('')
 const [searchResults, setSearchResults]= useState<PlaceResult[]>([])
 const [searching, setSearching] = useState(false)
 const [adding, setAdding] = useState<string | null>(null)
+const [listOpen, setListOpen] = useState(false)
+const [searchOpen, setSearchOpen] = useState(false)
 
 useEffect(() => {
 const load = async () => {
@@ -331,16 +333,22 @@ Upgrade →
 {/* Saved favorites */}
 {restaurants.length > 0 && (
 <div style={{ marginBottom: 28 }}>
-<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: listOpen ? 12 : 0 }}>
+<button onClick={() => setListOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'DM Sans', sans-serif" }}>
 <p style={{ fontSize: 11, fontWeight: 600, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
 Your favorites ({restaurants.length})
 </p>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform: listOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6" stroke={S.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+</button>
+{listOpen && (
 <button onClick={deleteAll}
 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: S.red, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", padding: '4px 8px' }}>
 Clear all
 </button>
+)}
 </div>
 
+{listOpen && (
 <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
 {restaurants.map(r => {
 const isExpanded = expandedId === r.id
@@ -455,15 +463,20 @@ style={{ width: '100%', boxSizing: 'border-box', marginTop: 8, padding: '10px 12
 )
 })}
 </div>
+)}
 </div>
 )}
 
 {/* Search & add */}
 <div style={{ background: S.white, border: `1.5px solid ${S.border}`, borderRadius: 16, padding: '20px' }}>
-<p style={{ fontSize: 13, fontWeight: 600, color: S.forest, margin: '0 0 4px' }}>
+<button onClick={() => setSearchOpen(v => !v)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
+<p style={{ fontSize: 13, fontWeight: 600, color: S.forest, margin: 0 }}>
 {restaurants.length === 0 ? 'Add your first favorites' : '+ Add more restaurants'}
 </p>
-<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 14px', lineHeight: 1.6 }}>
+<svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ transform: (searchOpen || restaurants.length === 0 || isOnboarding) ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6" stroke={S.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+</button>
+{(searchOpen || restaurants.length === 0 || isOnboarding) && (<>
+<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '12px 0 14px', lineHeight: 1.6 }}>
 Search within 8 miles of your delivery address. Restaurants over 7 miles may need a larger tip.
 </p>
 {!kitchenLat && (
@@ -527,6 +540,7 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', background: atLi
 </div>
 </div>
 )}
+</>)}
 </div>
 
 <button onClick={() => { if (!(isOnboarding && activeCount === 0)) router.push('/dashboard') }} disabled={isOnboarding && activeCount === 0}
