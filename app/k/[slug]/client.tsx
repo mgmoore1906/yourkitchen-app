@@ -608,7 +608,7 @@ return (
 </button>
 <div style={{ marginTop:16,paddingTop:16,borderTop:`0.5px solid ${S.amberBorder}`,textAlign:'center' }}>
 <p style={{ fontSize:12,color:S.walnut,fontWeight:300,margin:'0 0 8px',lineHeight:1.6 }}>Does someone you love need their village to show up?</p>
-<a href="/signup" style={{ fontSize:13,color:S.amber,fontWeight:500,textDecoration:'none' }}>Create a free Kitchen →</a>
+<a href="/signup" style={{ fontSize:16,color:S.amber,fontWeight:600,textDecoration:'none' }}>Create a free Kitchen →</a>
 </div>
 </>)}
 
