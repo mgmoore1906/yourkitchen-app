@@ -272,7 +272,7 @@ function FoundingRibbon() {
   )
 }
 
-function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, handleBulkAdd, tier, router, userTier, onShare }: any) {
+function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, handleBulkAdd, handleClearDays, tier, router, userTier, onShare }: any) {
 
   const today     = new Date()
   const todayStr  = today.toISOString().split('T')[0]
@@ -324,6 +324,18 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
     setPaintSet((prev:Set<string>)=>{ if(prev.has(dt)) return prev; const n=new Set(prev); n.add(dt); if(n.size>1) dragMovedRef.current=true; return n })
   }
   const finishPaint = () => { if(!paintingRef.current) return; paintingRef.current=false; if(!dragMovedRef.current) setPaintSet(new Set()) }
+  const clearPaintedDays = async () => {
+    if (rangeBusy) return
+    const ids:string[] = []
+    ;[...paintSet].forEach((dt:string)=> (dateMap[dt]||[]).forEach((s:CalDate)=>{ if(s.status==='available') ids.push(s.id) }))
+    if (!ids.length) { setRangeMsg('Nothing to clear on these days.'); setTimeout(()=>setRangeMsg(''),3000); return }
+    setRangeBusy(true); setRangeMsg('')
+    await handleClearDays(ids)
+    setRangeBusy(false)
+    setRangeMsg(`Cleared ${ids.length} slot${ids.length!==1?'s':''}`)
+    setPaintSet(new Set()); dragMovedRef.current=false
+    setTimeout(()=>setRangeMsg(''), 3000)
+  }
   const applyRange = async () => {
     if (paintSet.size===0 || rangeMeals.size===0 || rangeBusy) return
     setRangeBusy(true); setRangeMsg('')
@@ -455,6 +467,10 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           <button onClick={applyRange} disabled={rangeMeals.size===0||rangeBusy}
             style={{ width:'100%',padding:'12px',borderRadius:10,border:'none',background:rangeMeals.size===0?S.border:S.sage,color:S.white,fontSize:14,fontWeight:600,cursor:(rangeMeals.size===0||rangeBusy)?'default':'pointer',fontFamily:"'DM Sans',sans-serif",opacity:rangeBusy?0.7:1 }}>
             {rangeBusy?'Opening\u2026':`Open these ${paintSet.size} days`}
+          </button>
+          <button onClick={clearPaintedDays} disabled={rangeBusy}
+            style={{ width:'100%',padding:'10px',borderRadius:10,border:`1.5px solid ${S.border}`,background:S.white,color:S.stone,fontSize:13,fontWeight:600,cursor:rangeBusy?'default':'pointer',fontFamily:"'DM Sans',sans-serif",marginTop:8 }}>
+            Clear all meals on these days
           </button>
           {rangeMsg&&<p style={{ fontSize:12,color:S.sage,fontWeight:600,textAlign:'center',margin:'10px 0 0' }}>{rangeMsg}</p>}
         </div>
@@ -1408,6 +1424,14 @@ export default function DashboardPage() {
     if (kitchen) await loadCalDates(kitchen.id)
   }
 
+  const handleClearDays = async (dateIds: string[]) => {
+    if (!dateIds.length) return
+    await Promise.all(dateIds.map(id =>
+      fetch('/api/calendar', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date_id: id }) })
+    ))
+    if (kitchen) await loadCalDates(kitchen.id)
+  }
+
   const signOut = async () => { await supabase.auth.signOut(); router.push('/login') }
 
   // ── Share kitchen link (native share sheet → clipboard fallback) ─────────────
@@ -1515,7 +1539,7 @@ export default function DashboardPage() {
                 </span>
               </div>
             )}
-            {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier} handleBulkAdd={handleBulkAdd} onShare={handleShare}/>}
+            {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier} handleBulkAdd={handleBulkAdd} handleClearDays={handleClearDays} onShare={handleShare}/>}
             {activeTab==='activity' && <ActivityTab proposals={allProposals} router={router}/>}
             {activeTab==='insights' && <InsightsTab proposals={allProposals} kitchenName={kitchen.name}/>}
             {activeTab==='share'    && <ShareTab kitchenUrl={kitchenUrl} kitchen={kitchen} restaurantCount={restaurantCount} router={router} proposals={allProposals}/>}
