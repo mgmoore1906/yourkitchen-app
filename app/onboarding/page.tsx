@@ -198,8 +198,8 @@ await new Promise(r => setTimeout(r, 800))
 // is already created as 'trial', so an unpaid founder still has a working pilot
 // account — we provision founding status once the payment lands.
 if (selectedTier === 'founding') {
-if (payTab && !payTab.closed) payTab.location.href = FOUNDING_PAYMENT_LINK
-else window.open(FOUNDING_PAYMENT_LINK, '_blank') // fallback if pre-open was blocked
+if (payTab && !payTab.closed) payTab.location.href = `${FOUNDING_PAYMENT_LINK}?client_reference_id=${user.id}`
+else window.open(`${FOUNDING_PAYMENT_LINK}?client_reference_id=${user.id}`, '_blank') // fallback if pre-open was blocked
 router.push('/kitchen/restaurants?welcome=1&founding=pending')
 return
 }
