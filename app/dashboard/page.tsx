@@ -302,6 +302,39 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
   const [bulkBusy, setBulkBusy] = useState(false)
   const [bulkMsg, setBulkMsg] = useState('')
   const toggleBulkMeal = (mt:string) => setBulkMeals((prev:Set<string>)=>{ const n=new Set(prev); n.has(mt)?n.delete(mt):n.add(mt); return n })
+
+  // ── Tap-and-slide: drag across the calendar grid to open several days at once ──
+  const paintingRef = useRef(false)
+  const dragMovedRef = useRef(false)
+  const [paintSet, setPaintSet] = useState<Set<string>>(new Set())
+  const [rangeMeals, setRangeMeals] = useState<Set<string>>(new Set(['dinner']))
+  const [rangeBusy, setRangeBusy] = useState(false)
+  const [rangeMsg, setRangeMsg] = useState('')
+  const toggleRangeMeal = (mt:string) => setRangeMeals((prev:Set<string>)=>{ const n=new Set(prev); n.has(mt)?n.delete(mt):n.add(mt); return n })
+  const dateAtPoint = (x:number,y:number):string|null => {
+    const el = document.elementFromPoint(x,y) as HTMLElement|null
+    const cell = el?.closest?.('[data-cal-date]') as HTMLElement|null
+    if (!cell || cell.getAttribute('data-cal-past')==='1') return null
+    return cell.getAttribute('data-cal-date')
+  }
+  const beginPaint = (dt:string|null) => { if(!dt) return; paintingRef.current=true; dragMovedRef.current=false; setPaintSet(new Set([dt])) }
+  const extendPaint = (x:number,y:number) => {
+    if (!paintingRef.current) return
+    const dt = dateAtPoint(x,y); if(!dt) return
+    setPaintSet((prev:Set<string>)=>{ if(prev.has(dt)) return prev; const n=new Set(prev); n.add(dt); if(n.size>1) dragMovedRef.current=true; return n })
+  }
+  const finishPaint = () => { if(!paintingRef.current) return; paintingRef.current=false; if(!dragMovedRef.current) setPaintSet(new Set()) }
+  const applyRange = async () => {
+    if (paintSet.size===0 || rangeMeals.size===0 || rangeBusy) return
+    setRangeBusy(true); setRangeMsg('')
+    const slots:{date:string;meal_type:string}[] = []
+    ;[...paintSet].sort().forEach((dt:string)=> rangeMeals.forEach((mt:string)=> slots.push({ date:dt, meal_type:mt })))
+    const r = await handleBulkAdd(slots)
+    setRangeBusy(false)
+    setRangeMsg(`Opened ${r.added} slot${r.added!==1?'s':''}${r.skipped?` \u00b7 ${r.skipped} already open`:''}`)
+    setPaintSet(new Set()); dragMovedRef.current=false
+    setTimeout(()=>setRangeMsg(''), 3000)
+  }
   const runBulkAdd = async () => {
     if (!bulkFrom || !bulkTo || bulkMeals.size===0 || bulkBusy) return
     setBulkBusy(true); setBulkMsg('')
@@ -364,18 +397,23 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
             <div key={d} style={{ textAlign:'center',fontSize:11,fontWeight:600,color:S.stone,padding:'2px 0' }}>{d}</div>
           ))}
         </div>
-        <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2 }}>
+        <div
+          onPointerDown={(e:any)=>{ const dt=dateAtPoint(e.clientX,e.clientY); if(dt) beginPaint(dt) }}
+          onPointerMove={(e:any)=>{ if(paintingRef.current){ e.preventDefault(); extendPaint(e.clientX,e.clientY) } }}
+          onPointerUp={finishPaint} onPointerCancel={finishPaint}
+          style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2,touchAction:'none',userSelect:'none',WebkitUserSelect:'none' }}>
           {cells.map((day,i) => {
             if(!day) return <div key={i}/>
             const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
             const isPast  = dateStr < todayStr
             const isToday = dateStr === todayStr
             const isSel   = selectedDate === dateStr
+            const isPaint = paintSet.has(dateStr)
             const slots   = dateMap[dateStr]||[]
             return (
-              <button key={i} onClick={() => { if(!isPast) setSelectedDate((p:string|null)=>p===dateStr?null:dateStr) }} disabled={isPast}
-                style={{ background:isSel?S.sageLight:slots.length?'#F8FAF8':S.white,border:isSel?`2px solid ${S.sage}`:isToday?`2px solid ${S.sageMid}`:slots.length?`1px solid #C8DDD0`:'1px solid transparent',borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
-                <span style={{ fontSize:12,fontWeight:isToday?700:500,color:isSel?S.sage:S.forest,lineHeight:1 }}>{day}</span>
+              <button key={i} data-cal-date={dateStr} data-cal-past={isPast?'1':'0'} onClick={() => { if(dragMovedRef.current){ dragMovedRef.current=false; return } if(!isPast) setSelectedDate((p:string|null)=>p===dateStr?null:dateStr) }} disabled={isPast}
+                style={{ background:(isSel||isPaint)?S.sageLight:slots.length?'#F8FAF8':S.white,border:(isSel||isPaint)?`2px solid ${S.sage}`:isToday?`2px solid ${S.sageMid}`:slots.length?`1px solid #C8DDD0`:'1px solid transparent',borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:isPast?'default':'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
+                <span style={{ fontSize:12,fontWeight:isToday?700:500,color:(isSel||isPaint)?S.sage:S.forest,lineHeight:1 }}>{day}</span>
                 {slots.length
                   ? <div style={{ display:'flex',gap:2,flexWrap:'wrap',justifyContent:'center' }}>
                       {slots.map((s:CalDate,si:number)=><div key={si} style={{ width:5,height:5,borderRadius:'50%',background:MEAL_COLORS[s.meal_type]?.color||S.sage }}/>)}
@@ -385,6 +423,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
             )
           })}
         </div>
+        <p style={{ fontSize:10.5,color:S.stone,fontWeight:300,textAlign:'center',margin:'8px 0 2px' }}>Tap a day — or drag across days to open several at once.</p>
         <div style={{ display:'flex',gap:12,marginTop:10,paddingTop:10,borderTop:`0.5px solid ${S.border}`,flexWrap:'wrap' }}>
           {Object.entries(MEAL_COLORS).map(([k,v])=>(
             <div key={k} style={{ display:'flex',alignItems:'center',gap:3 }}>
@@ -394,6 +433,32 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           ))}
         </div>
       </div>
+
+      {paintSet.size>1 && (
+        <div style={{ background:S.white,border:`2px solid ${S.sage}`,borderRadius:16,padding:'16px',marginBottom:14 }}>
+          <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10 }}>
+            <p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>Open {paintSet.size} selected days</p>
+            <button onClick={()=>{ setPaintSet(new Set()); dragMovedRef.current=false }} style={{ background:'none',border:'none',fontSize:16,color:S.stone,cursor:'pointer',padding:4 }}>✕</button>
+          </div>
+          <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 10px' }}>Pick which meals to open on these days.</p>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:12 }}>
+            {Object.entries(MEAL_COLORS).map(([type,mc]:any)=>{
+              const on=rangeMeals.has(type)
+              return (
+                <button key={type} onClick={()=>toggleRangeMeal(type)} style={{ background:on?mc.bg:S.white,border:`1.5px solid ${on?mc.color:S.border}`,borderRadius:9,padding:'9px 6px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
+                  <div style={{ fontSize:15,marginBottom:2 }}>{mc.emoji}</div>
+                  <div style={{ fontSize:11,fontWeight:600,color:on?mc.color:S.stone }}>{on?`\u2713 ${mc.label}`:mc.label}</div>
+                </button>
+              )
+            })}
+          </div>
+          <button onClick={applyRange} disabled={rangeMeals.size===0||rangeBusy}
+            style={{ width:'100%',padding:'12px',borderRadius:10,border:'none',background:rangeMeals.size===0?S.border:S.sage,color:S.white,fontSize:14,fontWeight:600,cursor:(rangeMeals.size===0||rangeBusy)?'default':'pointer',fontFamily:"'DM Sans',sans-serif",opacity:rangeBusy?0.7:1 }}>
+            {rangeBusy?'Opening\u2026':`Open these ${paintSet.size} days`}
+          </button>
+          {rangeMsg&&<p style={{ fontSize:12,color:S.sage,fontWeight:600,textAlign:'center',margin:'10px 0 0' }}>{rangeMsg}</p>}
+        </div>
+      )}
 
       {/* Bulk open — pick a range + meals, open many days at once */}
       <div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:16,padding:'14px 16px',marginBottom:14 }}>
