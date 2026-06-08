@@ -44,6 +44,17 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
   const customNote  = proposal.delivery_note ? ` Note: ${proposal.delivery_note}` : ''
   const instruction = `YourKitchen delivery — sent by ${coordName}. ${prefNote}${customNote}`
 
+  // Temporary-location resolver — if this order's delivery date falls inside the
+  // kitchen's temporary window, route it to the temp address instead of home.
+  // Auto-reverts when the window ends; nothing to flip back.
+  const dDate  = proposal.delivery_date ? String(proposal.delivery_date).slice(0, 10) : null
+  const tStart = kitchen?.temp_start_date ? String(kitchen.temp_start_date).slice(0, 10) : null
+  const tEnd   = kitchen?.temp_end_date   ? String(kitchen.temp_end_date).slice(0, 10)   : null
+  const inTempWindow = !!(kitchen?.temp_address && tStart && tEnd && dDate && dDate >= tStart && dDate <= tEnd)
+  const destAddress = inTempWindow ? kitchen.temp_address   : (kitchen?.address || '')
+  const destLatRaw  = inTempWindow ? kitchen.temp_latitude  : kitchen?.latitude
+  const destLngRaw  = inTempWindow ? kitchen.temp_longitude : kitchen?.longitude
+
   const payload: any = {
     orderNumber,
     orderTime:           new Date().toISOString(),
@@ -51,7 +62,7 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
     restaurantAddress:   restaurant?.address || '',
     restaurantPhone:     restaurant?.phone || '',
     customerName:        kitchen?.name || 'Recipient',
-    customerAddress:     kitchen?.address || '',
+    customerAddress:     destAddress,
     customerEmail:       '',
     customerPhone:       recipientPhone || '',
     deliveryInstruction: instruction,
@@ -67,8 +78,8 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
   // address 174mi away instead of the restaurant).
   const pLat = restaurant?.lat != null ? Number(restaurant.lat) : null
   const pLng = restaurant?.lng != null ? Number(restaurant.lng) : null
-  const dLat = kitchen?.latitude != null ? Number(kitchen.latitude) : null
-  const dLng = kitchen?.longitude != null ? Number(kitchen.longitude) : null
+  const dLat = destLatRaw != null ? Number(destLatRaw) : null
+  const dLng = destLngRaw != null ? Number(destLngRaw) : null
 
   if (pLat != null && !Number.isNaN(pLat) && pLng != null && !Number.isNaN(pLng)) {
     payload.pickupLatitude  = pLat
@@ -109,6 +120,7 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
     orderNumber,
     shipdayOrderId: data.orderId,
     trackingUrl:    data.trackingLink || null,
+    tempDestination: inTempWindow ? destAddress : null,
   }
 }
 
@@ -133,7 +145,7 @@ export async function POST(request: Request) {
         coordinator_name, restaurant_name, meal_name, meal_items,
         claims(calendar_date_id, guest_coordinators(phone)),
         kitchen_restaurants(name, address, phone, lat, lng),
-        kitchens:kitchen_id(id, name, address, recipient_id, latitude, longitude)
+        kitchens:kitchen_id(id, name, address, recipient_id, latitude, longitude, temp_address, temp_latitude, temp_longitude, temp_start_date, temp_end_date)
       `)
       .eq('id', proposal_id)
       .single()
@@ -160,7 +172,7 @@ export async function POST(request: Request) {
       recipientPhone = rp?.phone || ''
     }
 
-    const { orderNumber, shipdayOrderId, trackingUrl } = await dispatchShipday(proposal as any, kitchen, recipientPhone)
+    const { orderNumber, shipdayOrderId, trackingUrl, tempDestination } = await dispatchShipday(proposal as any, kitchen, recipientPhone)
 
     await supabase.from('meal_proposals').update({
       doordash_delivery_id:  shipdayOrderId ? String(shipdayOrderId) : orderNumber,
@@ -195,6 +207,7 @@ export async function POST(request: Request) {
           recipientProfile.phone,
           `🚗 ${itemSummary} from ${restName} is on its way!` +
           (trackingUrl ? ` Track your order: ${trackingUrl}` : '') +
+          (tempDestination ? `\n\nDelivering to: ${tempDestination}` : '') +
           `\n\n— YourKitchen`
         )
       }
