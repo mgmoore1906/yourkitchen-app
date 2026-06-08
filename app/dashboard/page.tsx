@@ -211,10 +211,11 @@ function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onS
 
 // ── Notification Panel ─────────────────────────────────────────────────────────
 function NotifPanel({ proposals, onClose, router }: { proposals: Proposal[]; onClose: () => void; router: any }) {
+  const cut = new Date(Date.now()-7*864e5).toISOString()
   const groups = [
     { key:'pending',   label:'Awaiting reply', items:proposals.filter(p=>p.status==='pending'),   color:S.amber },
-    { key:'confirmed', label:'On the way',      items:proposals.filter(p=>p.status==='confirmed'), color:S.sage  },
-    { key:'declined',  label:'Declined',        items:proposals.filter(p=>p.status==='declined'),  color:S.stone },
+    { key:'confirmed', label:'On the way',      items:proposals.filter(p=>p.status==='confirmed' && (p.proposed_at||'') >= cut), color:S.sage  },
+    { key:'declined',  label:'Declined',        items:proposals.filter(p=>p.status==='declined' && (p.proposed_at||'') >= cut),  color:S.stone },
   ].filter(g => g.items.length > 0)
 
   return (
@@ -564,16 +565,15 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
   const recentPrev = previous.slice(0, RECENT_N)
   const olderPrev  = previous.slice(RECENT_N)
   const [showOlder, setShowOlder] = useState(false)
+  const [showPrev, setShowPrev] = useState(true)
   const fmt = (s:string) => new Date(s+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})
 
-  const handleShare = async (p: Proposal, platform: 'instagram'|'facebook') => {
+  const handleShare = async (p: Proposal) => {
     const text = `${p.coordinator_name} showed up for my family tonight 🧡\n\n${p.meal_name} from ${p.restaurant_name}\n\nThrough YourKitchen — your kitchen, covered.\n\nyourkitchen.app`
-    if (platform==='facebook') {
-      window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent('https://yourkitchen.app')}&quote=${encodeURIComponent(text)}`,'_blank')
-    } else {
-      try { await navigator.clipboard.writeText(text) } catch {}
-      window.open('https://www.instagram.com/','_blank')
+    if (typeof navigator !== 'undefined' && (navigator as any).share) {
+      try { await (navigator as any).share({ text }); return } catch { /* cancelled */ }
     }
+    try { await navigator.clipboard.writeText(text); alert('Copied — paste it into Instagram, Facebook, or wherever you share 🧡') } catch {}
   }
 
   const renderPrev = (p: Proposal) => (
@@ -591,13 +591,13 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
           {p.status==='delivered'?'🧡 Delivered':p.status==='declined'?'✕ Declined':p.status.charAt(0).toUpperCase()+p.status.slice(1)}
         </span>
         {(p.status==='delivered'||p.status==='confirmed')&&(
-          <button onClick={()=>handleShare(p,'instagram')} style={{ fontSize:9,fontWeight:600,color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif" }}>Share 📸</button>
+          <button onClick={()=>handleShare(p)} style={{ fontSize:9,fontWeight:600,color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif" }}>Share 📸</button>
         )}
       </div>
     </div>
   )
 
-  const exportSupporters = () => {
+  const exportSupporters = async () => {
     const seen = new Map<string,string>()
     proposals.forEach(p => {
       if (!p.coordinator_name) return
@@ -606,9 +606,16 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
     })
     const rows: string[][] = [['Name','Email'], ...[...seen.entries()].map(([n,e]) => [n, e])]
     const csv = rows.map(r => r.map(f => `"${(f||'').replace(/"/g,'""')}"`).join(',')).join('\n')
+    const filename = 'yourkitchen-supporters.csv'
+    // Mobile-friendly: hand the file to the OS share sheet (Save to Files, email, open in Sheets/Excel/Numbers).
+    try {
+      const file = new File([csv], filename, { type:'text/csv' })
+      const nav: any = navigator
+      if (nav.canShare && nav.canShare({ files:[file] })) { await nav.share({ files:[file], title:'YourKitchen supporters' }); return }
+    } catch { /* fall through to download */ }
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8' })
     const url = URL.createObjectURL(blob)
-    const a = document.createElement('a'); a.href = url; a.download = 'yourkitchen-supporters.csv'; a.click()
+    const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
     URL.revokeObjectURL(url)
   }
 
@@ -643,10 +650,7 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
                     🚗 Track My Delivery
                   </a>
                 )}
-                <div style={{ display:'flex',gap:8 }}>
-                  <button onClick={()=>handleShare(p,'instagram')} style={{ flex:1,padding:'9px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>📸 Instagram</button>
-                  <button onClick={()=>handleShare(p,'facebook')} style={{ flex:1,padding:'9px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}><svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{marginRight:5,flexShrink:0}}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" fill="none"/></svg>Share</button>
-                </div>
+                <button onClick={()=>handleShare(p)} style={{ width:'100%',padding:'9px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>🧡 Share this meal</button>
               </div>
             </div>
           ))}
@@ -681,9 +685,13 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
       {previous.length>0&&(
         <div>
           <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10 }}>
-            <p style={{ ...sLabel, margin:0 }}>Previous Orders</p>
+            <button onClick={()=>setShowPrev(v=>!v)} style={{ display:'flex',alignItems:'center',gap:6,background:'none',border:'none',cursor:'pointer',padding:0 }}>
+              <span style={{ ...sLabel, margin:0 }}>Previous Orders</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ transform:showPrev?'rotate(180deg)':'none',transition:'transform 0.2s' }}><path d="M6 9l6 6 6-6" stroke={S.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            </button>
             <button onClick={exportSupporters} style={{ fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase' }}>⬇ Export supporters</button>
           </div>
+          {showPrev && (<>
           {recentPrev.map(renderPrev)}
           {olderPrev.length>0&&(
             <>
@@ -694,6 +702,7 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
               {showOlder&&olderPrev.map(renderPrev)}
             </>
           )}
+          </>)}
         </div>
       )}
     </div>
@@ -909,6 +918,7 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
   const [photoPreview, setPhotoPreview] = useState<string | null>(null)
   const [replyTo, setReplyTo]     = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
+  const [showRoster, setShowRoster] = useState(true)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const recipientFirst = kitchen.name?.split(/[\s']/)[0] || 'You'
@@ -1124,8 +1134,11 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
       {/* Village roster */}
       {uniqueCoords.length>0&&(
         <div>
-          <p style={sLabel}>Your Village ({uniqueCoords.length})</p>
-          {uniqueCoords.map((coord:any)=>(
+          <button onClick={()=>setShowRoster(v=>!v)} style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:'none',border:'none',cursor:'pointer',padding:0,marginBottom:10 }}>
+            <span style={sLabel}>Your Village ({uniqueCoords.length})</span>
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ transform:showRoster?'rotate(180deg)':'none',transition:'transform 0.2s' }}><path d="M6 9l6 6 6-6" stroke={S.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </button>
+          {showRoster && uniqueCoords.map((coord:any)=>(
             <div key={coord.name} style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12,marginBottom:8 }}>
               <div style={{ width:36,height:36,borderRadius:11,background:S.sageLight,display:'flex',alignItems:'center',justifyContent:'center',color:S.sage,fontSize:15,fontWeight:700,flexShrink:0 }}>
                 {coord.name.charAt(0).toUpperCase()}
@@ -1355,7 +1368,7 @@ export default function DashboardPage() {
   // ── Derived counts ──────────────────────────────────────────────────────────
   const pendingCount = allProposals.filter(p => p.status === 'pending').length
   const activeCount  = allProposals.filter(p => p.status === 'confirmed' && p.doordash_status !== 'cancelled').length
-  const badgeCount   = pendingCount + activeCount
+  const badgeCount   = pendingCount
   const tier         = TIER_META[userTier] || TIER_META.free
   const firstName    = (fullName || '').split(' ')[0] || 'there'
 
