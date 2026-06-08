@@ -336,6 +336,12 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
     setPaintSet(new Set()); dragMovedRef.current=false
     setTimeout(()=>setRangeMsg(''), 3000)
   }
+  const clearSelectedDay = async () => {
+    if (!selectedDate) return
+    const ids = (dateMap[selectedDate]||[]).filter((s:CalDate)=>s.status==='available').map((s:CalDate)=>s.id)
+    if (!ids.length) return
+    await handleClearDays(ids)
+  }
   const applyRange = async () => {
     if (paintSet.size===0 || rangeMeals.size===0 || rangeBusy) return
     setRangeBusy(true); setRangeMsg('')
@@ -542,7 +548,12 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           </div>
           {(dateMap[selectedDate]||[]).length>0&&(
             <div style={{ marginBottom:12 }}>
-              <p style={{ fontSize:9,fontWeight:600,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',margin:'0 0 6px' }}>Open slots</p>
+              <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',margin:'0 0 6px' }}>
+                <p style={{ fontSize:9,fontWeight:600,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',margin:0 }}>Open slots</p>
+                {(dateMap[selectedDate]||[]).some((s:CalDate)=>s.status==='available')&&(
+                  <button onClick={clearSelectedDay} style={{ background:'none',border:'none',cursor:'pointer',fontSize:11,fontWeight:600,color:S.red,fontFamily:"'DM Sans',sans-serif",padding:0 }}>Clear all</button>
+                )}
+              </div>
               <div style={{ display:'flex',gap:6,flexWrap:'wrap' }}>
                 {(dateMap[selectedDate]||[]).map((slot:CalDate)=>{
                   const mc=MEAL_COLORS[slot.meal_type]||MEAL_COLORS.dinner
