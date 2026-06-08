@@ -154,6 +154,21 @@ export async function POST(request: Request) {
       return NextResponse.json({ received: true })
     }
 
+    // Founding via static Payment Link: the link carries no metadata.tier/type, but
+    // client_reference_id holds the user id (appended in onboarding). It's the only
+    // checkout that arrives with no metadata.type, so it uniquely marks a founding
+    // purchase. Provision founding + stamp the 3-year term here — on PAID checkout only.
+    if (!type && !tierMeta && session.client_reference_id) {
+      const fid = session.client_reference_id
+      const expiry = new Date()
+      expiry.setFullYear(expiry.getFullYear() + 3)
+      await supabase.from('profiles')
+        .update({ tier: 'founding', founding_expires_at: expiry.toISOString() })
+        .eq('id', fid)
+      console.log(`Founding provisioned via payment link: ${fid}`)
+      return NextResponse.json({ received: true })
+    }
+
     // Proposal payment — save payment_intent_id + notify recipient
     if (type === 'proposal' && proposalIds.length > 0) {
       const coordEmail = session.customer_details?.email || null
