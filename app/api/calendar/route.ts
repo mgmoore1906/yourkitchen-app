@@ -12,10 +12,43 @@ function getSupabase() {
 export async function POST(request: Request) {
   const supabase = getSupabase()
   try {
-    const { kitchen_id, date, delivery_window_start, delivery_window_end, meal_type } = await request.json()
+    const { kitchen_id, date, delivery_window_start, delivery_window_end, meal_type, slots } = await request.json()
 
-    if (!kitchen_id || !date) {
-      return NextResponse.json({ error: 'Missing kitchen_id or date' }, { status: 400 })
+    if (!kitchen_id) {
+      return NextResponse.json({ error: 'Missing kitchen_id' }, { status: 400 })
+    }
+
+    // ── Batch mode: open many (date × meal_type) slots at once ──
+    // slots = [{ date, meal_type }]. Skips any combo that already exists.
+    if (Array.isArray(slots)) {
+      if (slots.length === 0) return NextResponse.json({ error: 'No slots provided' }, { status: 400 })
+      const dates = [...new Set(slots.map((s: any) => s.date).filter(Boolean))]
+      const { data: existing } = await supabase
+        .from('calendar_dates')
+        .select('date, meal_type')
+        .eq('kitchen_id', kitchen_id)
+        .in('date', dates)
+      const have = new Set((existing || []).map((e: any) => `${e.date}|${e.meal_type}`))
+      const toInsert = slots
+        .filter((s: any) => s.date && s.meal_type && !have.has(`${s.date}|${s.meal_type}`))
+        .map((s: any) => ({
+          kitchen_id,
+          date: s.date,
+          status: 'available',
+          meal_type: s.meal_type,
+          delivery_window_start: delivery_window_start || '17:30',
+          delivery_window_end: delivery_window_end || '19:00',
+        }))
+      if (toInsert.length === 0) {
+        return NextResponse.json({ success: true, added: 0, skipped: slots.length })
+      }
+      const { error } = await supabase.from('calendar_dates').insert(toInsert)
+      if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+      return NextResponse.json({ success: true, added: toInsert.length, skipped: slots.length - toInsert.length })
+    }
+
+    if (!date) {
+      return NextResponse.json({ error: 'Missing date' }, { status: 400 })
     }
 
     // Check if this exact meal_type already exists for this date
