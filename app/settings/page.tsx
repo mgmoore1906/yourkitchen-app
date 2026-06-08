@@ -84,6 +84,11 @@ proxy_phone: '',
 const [breakfastWindows, setBreakfastWindows] = useState<string[]>([])
 const [lunchWindows, setLunchWindows] = useState<string[]>([])
 const [dinnerWindows, setDinnerWindows] = useState<string[]>([])
+const [tempAddress, setTempAddress] = useState('')
+const [tempStart, setTempStart] = useState('')
+const [tempEnd, setTempEnd] = useState('')
+const [tempSaving, setTempSaving] = useState(false)
+const [tempMsg, setTempMsg] = useState('')
 
 useEffect(() => {
 const upgraded = params.get('upgraded')
@@ -116,12 +121,15 @@ setForm(f => ({ ...f, full_name: name, phone: profile?.phone || '' }))
 
 const { data: kitchen } = await supabase
 .from('kitchens')
-.select('id, address, household_adults, household_children, dietary_restrictions, breakfast_windows, lunch_windows, dinner_windows, proxy_name, proxy_phone')
+.select('id, address, household_adults, household_children, dietary_restrictions, breakfast_windows, lunch_windows, dinner_windows, proxy_name, proxy_phone, temp_address, temp_start_date, temp_end_date')
 .eq('organizer_id', user.id)
 .single()
 
 if (kitchen) {
 setKitchenId(kitchen.id)
+setTempAddress(kitchen.temp_address || '')
+setTempStart(kitchen.temp_start_date ? String(kitchen.temp_start_date).slice(0,10) : '')
+setTempEnd(kitchen.temp_end_date ? String(kitchen.temp_end_date).slice(0,10) : '')
 const addr = kitchen.address || ''
 const parsed = parseAddress(addr)
 setForm(f => ({
@@ -182,6 +190,32 @@ const data = await res.json()
 if (!res.ok) { setError(data.error || 'Something went wrong.'); setSaving(false); return }
 setSuccess('Settings saved.')
 setSaving(false)
+}
+
+const handleTempSave = async () => {
+if (!tempAddress.trim() || !tempStart || !tempEnd) { setTempMsg('Add an address and both dates.'); return }
+if (tempEnd < tempStart) { setTempMsg('The end date can’t be before the start date.'); return }
+setTempSaving(true); setTempMsg('')
+const res = await fetch('/api/temp-location', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ user_id: userId, temp_address: tempAddress.trim(), temp_start_date: tempStart, temp_end_date: tempEnd }),
+})
+const data = await res.json()
+setTempSaving(false)
+if (!res.ok) { setTempMsg(data.error || 'Could not save.'); return }
+setTempMsg('Saved — meals scheduled in this window go to the temporary address, then it switches back on its own.')
+}
+
+const handleTempClear = async () => {
+setTempSaving(true); setTempMsg('')
+const res = await fetch('/api/temp-location', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ user_id: userId, clear: true }),
+})
+const data = await res.json()
+setTempSaving(false)
+if (!res.ok) { setTempMsg(data.error || 'Could not clear.'); return }
+setTempAddress(''); setTempStart(''); setTempEnd(''); setTempMsg('Cleared — back to your home address.')
 }
 
 const handleEmailChange = async () => {
@@ -338,6 +372,37 @@ This is the default for every meal date — your village uses it as a guide. You
 <button key={d} onClick={() => toggleDiet(d)}
 style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', background: form.dietary_restrictions.includes(d) ? S.sage : S.sageLight, color: form.dietary_restrictions.includes(d) ? S.white : S.sage, fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>{d}</button>
 ))}
+</div>
+)}
+
+<button onClick={() => toggle('temp')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', marginBottom: open.temp ? 12 : 24, fontFamily: "'DM Sans', sans-serif" }}>
+<span style={{ ...lStyle, marginBottom: 0 }}>Temporary delivery address{tempAddress.trim() ? ' · on' : ''}</span>
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7066" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open.temp ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
+</button>
+{open.temp && (
+<div style={{ marginBottom: 24 }}>
+<p style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, margin: '0 0 14px', lineHeight: 1.6 }}>
+Away from home for a stretch — a hospital stay, recovery at a parent’s place? Set an address and the dates, and any meal your village sends in that window goes there instead. It switches back to home on its own when the window ends — nothing for you to remember.
+</p>
+<label style={lStyle}>Where to send meals</label>
+<input value={tempAddress} onChange={e => setTempAddress(e.target.value)} placeholder="e.g. Memorial Hermann, 6411 Fannin St, Houston, TX 77030" style={iStyle} />
+<div style={{ display: 'flex', gap: 12 }}>
+<div style={{ flex: 1 }}>
+<label style={lStyle}>From</label>
+<input type="date" value={tempStart} min={new Date().toISOString().slice(0,10)} onChange={e => setTempStart(e.target.value)} style={iStyle} />
+</div>
+<div style={{ flex: 1 }}>
+<label style={lStyle}>Until</label>
+<input type="date" value={tempEnd} min={tempStart || new Date().toISOString().slice(0,10)} onChange={e => setTempEnd(e.target.value)} style={iStyle} />
+</div>
+</div>
+<div style={{ display: 'flex', gap: 10, marginTop: 14 }}>
+<button onClick={handleTempSave} disabled={tempSaving} style={{ flex: 1, padding: '12px', borderRadius: 10, border: 'none', background: S.sage, color: S.white, fontSize: 14, fontWeight: 600, cursor: tempSaving ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: tempSaving ? 0.7 : 1 }}>{tempSaving ? 'Saving…' : 'Save temporary address'}</button>
+{tempAddress.trim() && (
+<button onClick={handleTempClear} disabled={tempSaving} style={{ padding: '12px 16px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: S.white, color: S.stone, fontSize: 14, fontWeight: 600, cursor: tempSaving ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Clear</button>
+)}
+</div>
+{tempMsg && <p style={{ fontSize: 12.5, color: S.sage, fontWeight: 500, margin: '10px 0 0', lineHeight: 1.5 }}>{tempMsg}</p>}
 </div>
 )}
 
