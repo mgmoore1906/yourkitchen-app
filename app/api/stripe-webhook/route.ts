@@ -139,7 +139,7 @@ export async function POST(request: Request) {
     const { data: proposal } = await supabase
       .from('meal_proposals')
       .select(`
-        id, meal_type, status, tip_amount, delivery_date,
+        id, meal_type, status, tip_amount, delivery_date, is_pickup,
         claims(calendar_date_id, guest_coordinators(phone, full_name)),
         kitchen_restaurants(name, address, phone),
         menu_items(name, price),
@@ -157,6 +157,7 @@ export async function POST(request: Request) {
     const mealName = (proposal as any).menu_items?.name || 'the meal'
     const restName = (proposal as any).kitchen_restaurants?.name || 'the restaurant'
     const mealType = (proposal as any).meal_type || 'meal'
+    const isPickup = !!(proposal as any).is_pickup
 
     // Update status → awaiting_dispatch (food order not yet placed).
     // Also store the captured total (cents) so analytics GMV has a source —
@@ -164,7 +165,7 @@ export async function POST(request: Request) {
     await supabase.from('meal_proposals')
       .update({
         status: 'confirmed',
-        delivery_status: 'awaiting_dispatch',
+        delivery_status: isPickup ? 'pickup_pending' : 'awaiting_dispatch',
         stripe_amount: pi.amount_received ?? pi.amount ?? null,
       })
       .eq('id', (proposal as any).id)
@@ -179,28 +180,37 @@ export async function POST(request: Request) {
         ? new Date((proposal as any).delivery_date + 'T12:00:00')
             .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
         : 'today'
-      await sendSMS(
-        marquesPhone,
-        `🍽 YK ORDER READY\n` +
-        `${mealName} from ${restName}\n` +
-        `${mealType.charAt(0).toUpperCase() + mealType.slice(1)} · ${delivDate}\n` +
-        `Delivery: ${kitchen?.address || 'address on file'}\n\n` +
-        `1. Place order at restaurant\n` +
-        `2. Tap Dispatch in admin panel\n\n` +
-        `app.yourkitchen.app/admin`
-      )
+      const marquesBody = isPickup
+        ? `🥡 YK PICKUP ORDER\n` +
+          `${mealName} from ${restName}\n` +
+          `${mealType.charAt(0).toUpperCase() + mealType.slice(1)} · ${delivDate}\n` +
+          `Pickup at: ${restName}\n\n` +
+          `1. Place a PICKUP order at the restaurant\n` +
+          `2. No courier — recipient grabs it\n\n` +
+          `app.yourkitchen.app/admin`
+        : `🍽 YK ORDER READY\n` +
+          `${mealName} from ${restName}\n` +
+          `${mealType.charAt(0).toUpperCase() + mealType.slice(1)} · ${delivDate}\n` +
+          `Delivery: ${kitchen?.address || 'address on file'}\n\n` +
+          `1. Place order at restaurant\n` +
+          `2. Tap Dispatch in admin panel\n\n` +
+          `app.yourkitchen.app/admin`
+      await sendSMS(marquesPhone, marquesBody)
     }
 
     // Notify coordinator — payment captured, meal is being arranged
     const coordPhone = (proposal as any).claims?.guest_coordinators?.phone
     if (coordPhone) {
-      await sendSMS(
-        coordPhone,
-        `✅ Your meal gift was confirmed! ${mealName} from ${restName} is being arranged for delivery.\n\n` +
-        `Receipt: $${receiptTotal} charged.\n` +
-        `We'll text you when it's on the way. Thank you for showing up. 🧡\n\n` +
-        `Reply STOP to opt out.\n— YourKitchen`
-      )
+      const coordBody = isPickup
+        ? `✅ Your meal gift was confirmed! ${mealName} from ${restName}.\n\n` +
+          `Receipt: $${receiptTotal} charged.\n` +
+          `This is a pickup order — we'll text when it's ready at the restaurant. Thank you for showing up. 🧡\n\n` +
+          `Reply STOP to opt out.\n— YourKitchen`
+        : `✅ Your meal gift was confirmed! ${mealName} from ${restName} is being arranged for delivery.\n\n` +
+          `Receipt: $${receiptTotal} charged.\n` +
+          `We'll text you when it's on the way. Thank you for showing up. 🧡\n\n` +
+          `Reply STOP to opt out.\n— YourKitchen`
+      await sendSMS(coordPhone, coordBody)
     }
 
     // Notify recipient — confirmed, delivery coming
@@ -208,12 +218,14 @@ export async function POST(request: Request) {
       const { data: recipientProfile } = await supabase
         .from('profiles').select('phone').eq('id', kitchen.recipient_id).single()
       if (recipientProfile?.phone) {
-        await sendSMS(
-          recipientProfile.phone,
-          `✅ Confirmed! ${mealName} from ${restName} is being arranged. ` +
-          `We'll send a tracking link once it's on the way.\n\n` +
-          `Reply STOP to opt out.\n— YourKitchen`
-        )
+        const recipBody = isPickup
+          ? `✅ Confirmed! ${mealName} from ${restName} is being arranged for pickup. ` +
+            `We'll text you when it's ready to grab.\n\n` +
+            `Reply STOP to opt out.\n— YourKitchen`
+          : `✅ Confirmed! ${mealName} from ${restName} is being arranged. ` +
+            `We'll send a tracking link once it's on the way.\n\n` +
+            `Reply STOP to opt out.\n— YourKitchen`
+        await sendSMS(recipientProfile.phone, recipBody)
       }
     }
 
