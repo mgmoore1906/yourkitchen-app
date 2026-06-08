@@ -125,7 +125,17 @@ return (
 )
 }
 
-function CoordCalendar({ availableDates,selectedIds,onToggle,recipientFirst,kitchenSlug,onOpenVillage }: { availableDates:any[];selectedIds:Set<string>;onToggle:(s:any)=>void;recipientFirst:string;kitchenSlug:string;onOpenVillage:()=>void }) {
+// Village CTA copy keyed to the kitchen's use case (captured in onboarding). Text-first,
+// and deliberately neutral for bereavement — no celebratory emoji on a grief flow.
+const VILLAGE_CTA: Record<string,string> = {
+  new_baby: 'Welcome the new arrival',
+  illness: 'Send a little strength',
+  bereavement: 'Share a message of comfort',
+  deployment: 'Send support from home',
+  caregiving: 'Send a little care',
+  celebration: 'Offer your congratulations',
+}
+function CoordCalendar({ availableDates,selectedIds,onToggle,recipientFirst,kitchenSlug,onOpenVillage,useCase }: { availableDates:any[];selectedIds:Set<string>;onToggle:(s:any)=>void;recipientFirst:string;kitchenSlug:string;onOpenVillage:()=>void;useCase?:string }) {
 const today=new Date()
 const [viewYear,setViewYear]=useState(today.getFullYear())
 const [viewMonth,setViewMonth]=useState(today.getMonth())
@@ -178,7 +188,7 @@ style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?
 ))}
 </div>
 <div style={{ marginTop:18,textAlign:'center' }}>
-<button onClick={onOpenVillage} style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:13,fontWeight:500,fontFamily:"'DM Sans',sans-serif",textDecoration:'underline',textUnderlineOffset:3,padding:'8px 4px' }}>💬 See {recipientFirst}'s village</button>
+<button onClick={onOpenVillage} style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:13,fontWeight:500,fontFamily:"'DM Sans',sans-serif",textDecoration:'underline',textUnderlineOffset:3,padding:'8px 4px' }}>💬 {(useCase && VILLAGE_CTA[useCase]) || `See ${recipientFirst}'s village`}</button>
 </div>
 </div>
 )
@@ -574,7 +584,7 @@ return (
 <p style={{ color:S.mahogany,margin:0 }}>No open dates right now. Check back soon!</p>
 </div>
 ):(
-<CoordCalendar availableDates={availableDates} selectedIds={selectedIds} onToggle={toggleSlot} recipientFirst={recipientFirst} kitchenSlug={kitchen.slug} onOpenVillage={()=>setShowVillage(true)}/>
+<CoordCalendar availableDates={availableDates} selectedIds={selectedIds} onToggle={toggleSlot} recipientFirst={recipientFirst} kitchenSlug={kitchen.slug} onOpenVillage={()=>setShowVillage(true)} useCase={kitchen.use_case}/>
 )}
 {selectedSlots.length>0&&(
 <div style={{ background:S.amberLight,borderRadius:14,padding:'14px 16px',marginBottom:16,border:`1px solid ${S.amberBorder}` }}>
