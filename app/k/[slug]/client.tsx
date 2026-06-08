@@ -281,7 +281,7 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, onClose }: 
 
   return (
     <div style={{ position:'fixed',inset:0,background:S.cream,zIndex:400,display:'flex',flexDirection:'column',fontFamily:"'DM Sans',sans-serif" }}>
-      <div style={{ background:S.headerBg,padding:'12px 20px',display:'flex',alignItems:'center',gap:12,flexShrink:0 }}>
+      <div style={{ background:S.headerBg,padding:'12px 20px',display:'flex',alignItems:'center',gap:12,flexShrink:0,position:'sticky',top:0,zIndex:10 }}>
         <button onClick={onClose} style={{ background:'none',border:'none',cursor:'pointer',color:S.white,fontSize:22,padding:'4px 8px',lineHeight:1 }}>←</button>
         <div>
           <div style={{ fontFamily:"'Lora',serif",fontSize:17,fontWeight:600,color:S.white,lineHeight:1.1 }}>{recipientFirst}'s Village</div>
