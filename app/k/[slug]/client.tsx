@@ -107,13 +107,13 @@ const mc=MEAL_TYPE_COLORS[m.meal_type]||MEAL_TYPE_COLORS.dinner
 const isRecent=m.delivery_date>=sevenAgo
 return (
 <div key={m.id} style={{ display:'flex',alignItems:'center',gap:10,padding:'9px 0',borderBottom:i<meals.length-1?`0.5px solid ${S.amberBorder}`:'none' }}>
-<span style={{ background:mc.bg,color:mc.color,fontSize:9,fontWeight:700,padding:'2px 7px',borderRadius:20,flexShrink:0 }}>{MEAL_TYPE_LABELS[m.meal_type]?.split(' ')[1]||m.meal_type}</span>
+<span style={{ background:mc.bg,color:mc.color,fontSize:11,fontWeight:700,padding:'2px 7px',borderRadius:20,flexShrink:0 }}>{MEAL_TYPE_LABELS[m.meal_type]?.split(' ')[1]||m.meal_type}</span>
 <div style={{ flex:1,overflow:'hidden' }}>
 <div style={{ fontSize:12,fontWeight:500,color:S.forest,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{m.meal_name}</div>
 <div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{m.restaurant_name}</div>
 </div>
 <div style={{ display:'flex',alignItems:'center',gap:6,flexShrink:0 }}>
-{isRecent&&<span style={{ fontSize:9,fontWeight:700,background:S.redLight,color:S.red,borderRadius:20,padding:'2px 6px' }}>Recent</span>}
+{isRecent&&<span style={{ fontSize:11,fontWeight:700,background:S.redLight,color:S.red,borderRadius:20,padding:'2px 6px' }}>Recent</span>}
 <span style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{fmtD(m.delivery_date)}</span>
 </div>
 </div>
@@ -183,7 +183,7 @@ style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?
 {([['#E8834A','🌅','Breakfast'],['#4A8FA8','☀️','Lunch'],[S.sage,'🌙','Dinner']] as [string,string,string][]).map(([color,emoji,label])=>(
 <div key={label} style={{ display:'flex',alignItems:'center',gap:3 }}>
 <div style={{ width:6,height:6,borderRadius:'50%',background:color }}/>
-<span style={{ fontSize:9,color:S.stone,fontWeight:500 }}>{emoji} {label}</span>
+<span style={{ fontSize:11,color:S.stone,fontWeight:500 }}>{emoji} {label}</span>
 </div>
 ))}
 </div>
@@ -305,7 +305,7 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, onClose }: 
         )}
         {/* Composer */}
         <div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
-          <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Leave a note</p>
+          <p style={{ fontSize:11,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Leave a note</p>
           <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"
             style={{ width:'100%',borderRadius:9,border:`1.5px solid ${S.amberBorder}`,padding:'9px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.warmWhite,outline:'none',boxSizing:'border-box',marginBottom:8 }}/>
           <textarea value={newPost} onChange={e=>setNewPost(e.target.value)} placeholder={`Thinking of you, ${recipientFirst} 🧡 Hope the meal hits the spot…`}
@@ -612,7 +612,7 @@ return (
 {prefTime(slot.meal_type) && <span style={{ fontSize:11,color:S.walnut,fontWeight:400 }}>· usually ~{prefTime(slot.meal_type)}</span>}
 
 </div>
-<button onClick={()=>removeSlot(slot.id)} style={{ background:'none',border:'none',cursor:'pointer',color:S.walnut,fontSize:16,padding:'0 4px' }}>✕</button>
+<button onClick={()=>removeSlot(slot.id)} aria-label="Remove this date" style={{ background:'none',border:'none',cursor:'pointer',color:S.walnut,fontSize:16,padding:'4px 8px' }}>✕</button>
 </div>
 )
 })}
@@ -689,7 +689,7 @@ style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap
 <div style={{ display:'flex',alignItems:'center',gap:6,flexWrap:'wrap',marginBottom:3 }}>
 <span style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:600,color:S.forest }}>{fav.name}</span>
 {miles!==null&&<span style={{ fontSize:10,fontWeight:700,color:tipTier!.badge.color,background:tipTier!.badge.bg,borderRadius:20,padding:'2px 8px' }}>{tipTier!.badge.text}</span>}
-{isRecent&&<span style={{ fontSize:9,fontWeight:700,background:S.redLight,color:S.red,borderRadius:20,padding:'2px 7px' }}>Ordered recently</span>}
+{isRecent&&<span style={{ fontSize:11,fontWeight:700,background:S.redLight,color:S.red,borderRadius:20,padding:'2px 7px' }}>Ordered recently</span>}
 </div>
 {fav.address&&<div style={{ fontSize:12,color:S.stone,fontWeight:300,marginBottom:4 }}>{fav.address}</div>}
 {hasMeals?(
@@ -803,7 +803,7 @@ style={{ background:(!currentGroup.customMeal.trim()||!(parseFloat(currentGroup.
 {/* ── CART SUMMARY ── */}
 {currentGroup.cart.length>0&&(
 <div style={{ background:S.warmWhite,border:`1.5px solid ${S.amberBorder}`,borderRadius:12,padding:'14px 16px',marginTop:16 }}>
-<p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.08em',textTransform:'uppercase',margin:'0 0 10px' }}>Your order</p>
+<p style={{ fontSize:11,fontWeight:700,color:S.stone,letterSpacing:'0.08em',textTransform:'uppercase',margin:'0 0 10px' }}>Your order</p>
 {currentGroup.cart.map((c,i)=>(
 <div key={i} style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:6 }}>
 <span style={{ fontSize:13,color:S.forest }}>
@@ -975,8 +975,8 @@ return (
 <span style={{ fontSize:13,color:S.stone }}>Service fee</span>
 <span style={{ fontSize:13,color:S.forest }}>${serviceFee.toFixed(2)}</span>
 </div>
-<p style={{ fontSize:11,color:S.stone,margin:'10px 0 0',fontWeight:300,lineHeight:1.5 }}>
-Price reflects what {recipientFirst} saved. Actual price may vary slightly.
+<p style={{ fontSize:11.5,color:S.stone,margin:'10px 0 0',fontWeight:300,lineHeight:1.6 }}>
+Price reflects what {recipientFirst} saved; the actual total may vary slightly. The service fee (5% + $0.99) covers card processing and keeps YourKitchen running{!isPickup ? ' — and 100% of your tip goes to the driver' : ''}.
 </p>
 </div>
 )}
