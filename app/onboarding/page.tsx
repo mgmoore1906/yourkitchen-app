@@ -60,6 +60,7 @@ const [userId, setUserId] = useState('')
 
 const [form, setForm] = useState({
 full_name: '', phone: '', sms_consent: false,
+use_case: '',
 household_adults: 2, household_children: 2,
 dietary_restrictions: [] as string[],
 street: '', apt: '', city: '', state: 'TX', zip: '',
@@ -171,6 +172,7 @@ household_adults: form.household_adults,
 household_children: form.household_children,
 household_size: `${form.household_adults + form.household_children}`,
 dietary_restrictions: form.dietary_restrictions,
+use_case: form.use_case || null,
 tier: selectedTier,
 restaurants: [],
 calendar_dates: calendarDatesPayload,
@@ -298,6 +300,19 @@ style={{ flex: 1, padding: '11px 4px', borderRadius: 10, border: 'none', backgro
 style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', background: form.dietary_restrictions.includes(d) ? S.sage : S.sageLight, color: form.dietary_restrictions.includes(d) ? S.white : S.sage, fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>{d}</button>
 ))}
 </div>
+
+<label style={lbl}>What's this Kitchen for?</label>
+<select value={form.use_case} onChange={e => update('use_case', e.target.value)} style={{ ...inputSt, cursor: 'pointer' }}>
+<option value="">Select one…</option>
+<option value="new_baby">New baby / postpartum</option>
+<option value="illness">Illness, surgery, or treatment</option>
+<option value="bereavement">Bereavement / loss</option>
+<option value="deployment">Military deployment</option>
+<option value="caregiving">Aging parent / caregiving</option>
+<option value="celebration">Celebration / milestone</option>
+<option value="other">Other</option>
+</select>
+<p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '-8px 0 20px' }}>Helps your village know how to show up.</p>
 
 <button onClick={() => setStep('address')} disabled={!profileValid} style={btnPrimary(!profileValid)}>Next: Delivery Address →</button>
 </div>
