@@ -22,7 +22,7 @@ export async function GET(request: Request) {
   const { data, error } = await supabase
     .from('meal_proposals')
     .select(`
-      id, status, delivery_status, meal_type, delivery_date,
+      id, status, delivery_status, meal_type, delivery_date, is_pickup,
       delivery_preference, delivery_note, coordinator_name,
       restaurant_name, meal_name, meal_items, tip_amount,
       doordash_tracking_url, doordash_delivery_id,
