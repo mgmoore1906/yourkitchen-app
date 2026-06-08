@@ -224,11 +224,12 @@ function NotifPanel({ proposals, onClose, router }: { proposals: Proposal[]; onC
       <div style={{ position:'fixed',top:58,right:16,width:'min(300px,calc(100vw - 32px))',background:S.white,borderRadius:16,boxShadow:'0 8px 32px rgba(30,38,32,0.15)',border:`0.5px solid ${S.border}`,zIndex:151,overflow:'hidden',maxHeight:'70vh',overflowY:'auto' }}>
         <div style={{ padding:'14px 16px',borderBottom:`0.5px solid ${S.border}`,display:'flex',justifyContent:'space-between',alignItems:'center' }}>
           <span style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest }}>Notifications</span>
-          <button onClick={onClose} style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:16 }}>✕</button>
+          <button onClick={onClose} aria-label="Close notifications" style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:16,padding:'4px 6px' }}>✕</button>
         </div>
         {groups.length === 0 ? (
           <div style={{ padding:'24px',textAlign:'center' }}>
-            <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:0 }}>You're all caught up 🧡</p>
+            <p style={{ fontSize:14,color:S.forest,fontWeight:500,margin:'0 0 4px' }}>You're all caught up 🧡</p>
+            <p style={{ fontSize:12.5,color:S.stone,fontWeight:300,margin:0,lineHeight:1.5 }}>New meals from your village show up here for your yes or no.</p>
           </div>
         ) : groups.map(g => (
           <div key={g.key}>
@@ -310,6 +311,9 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
   const [rangeMeals, setRangeMeals] = useState<Set<string>>(new Set(['dinner']))
   const [rangeBusy, setRangeBusy] = useState(false)
   const [rangeMsg, setRangeMsg] = useState('')
+  const [showCalHint, setShowCalHint] = useState(false)
+  useEffect(() => { try { if (!localStorage.getItem('yk_cal_hint_seen')) setShowCalHint(true) } catch {} }, [])
+  const dismissCalHint = () => { try { localStorage.setItem('yk_cal_hint_seen','1') } catch {} ; setShowCalHint(false) }
   const toggleRangeMeal = (mt:string) => setRangeMeals((prev:Set<string>)=>{ const n=new Set(prev); n.has(mt)?n.delete(mt):n.add(mt); return n })
   const dateAtPoint = (x:number,y:number):string|null => {
     const el = document.elementFromPoint(x,y) as HTMLElement|null
@@ -329,6 +333,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
     const ids:string[] = []
     ;[...paintSet].forEach((dt:string)=> (dateMap[dt]||[]).forEach((s:CalDate)=>{ if(s.status==='available') ids.push(s.id) }))
     if (!ids.length) { setRangeMsg('Nothing to clear on these days.'); setTimeout(()=>setRangeMsg(''),3000); return }
+    if (!confirm('Clear all open meals on these days? Anything already claimed stays put.')) return
     setRangeBusy(true); setRangeMsg('')
     await handleClearDays(ids)
     setRangeBusy(false)
@@ -340,6 +345,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
     if (!selectedDate) return
     const ids = (dateMap[selectedDate]||[]).filter((s:CalDate)=>s.status==='available').map((s:CalDate)=>s.id)
     if (!ids.length) return
+    if (!confirm('Clear all open meals on this day? Anything already claimed stays put.')) return
     await handleClearDays(ids)
   }
   const applyRange = async () => {
@@ -441,12 +447,17 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
             )
           })}
         </div>
-        <p style={{ fontSize:10.5,color:S.stone,fontWeight:300,textAlign:'center',margin:'8px 0 2px' }}>Tap a day — or drag across days to open several at once.</p>
+        {showCalHint && (
+        <div style={{ display:'flex',alignItems:'center',gap:8,background:S.sageLight,border:`1px solid ${S.sageMid}`,borderRadius:10,padding:'8px 12px',margin:'10px 0 2px' }}>
+          <span style={{ fontSize:12.5,color:S.sage,fontWeight:500,lineHeight:1.4,flex:1 }}>Tap a day to open it — or drag across days to open several at once.</span>
+          <button onClick={dismissCalHint} aria-label="Dismiss tip" style={{ background:S.sage,color:S.white,border:'none',borderRadius:8,padding:'5px 10px',fontSize:11.5,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",flexShrink:0 }}>Got it</button>
+        </div>
+        )}
         <div style={{ display:'flex',gap:12,marginTop:10,paddingTop:10,borderTop:`0.5px solid ${S.border}`,flexWrap:'wrap' }}>
           {Object.entries(MEAL_COLORS).map(([k,v])=>(
             <div key={k} style={{ display:'flex',alignItems:'center',gap:3 }}>
               <div style={{ width:6,height:6,borderRadius:'50%',background:v.color }}/>
-              <span style={{ fontSize:9,color:S.stone,fontWeight:500 }}>{v.emoji} {v.label}</span>
+              <span style={{ fontSize:11,color:S.stone,fontWeight:500 }}>{v.emoji} {v.label}</span>
             </div>
           ))}
         </div>
@@ -456,7 +467,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
         <div style={{ background:S.white,border:`2px solid ${S.sage}`,borderRadius:16,padding:'16px',marginBottom:14 }}>
           <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:10 }}>
             <p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>Open {paintSet.size} selected days</p>
-            <button onClick={()=>{ setPaintSet(new Set()); dragMovedRef.current=false }} style={{ background:'none',border:'none',fontSize:16,color:S.stone,cursor:'pointer',padding:4 }}>✕</button>
+            <button onClick={()=>{ setPaintSet(new Set()); dragMovedRef.current=false }} aria-label="Cancel selection" style={{ background:'none',border:'none',fontSize:16,color:S.stone,cursor:'pointer',padding:'6px 8px' }}>✕</button>
           </div>
           <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 10px' }}>Pick which meals to open on these days.</p>
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:12 }}>
@@ -541,15 +552,15 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
         <div style={{ background:S.white,border:`2px solid ${S.sage}`,borderRadius:16,padding:'16px',marginBottom:14 }}>
           <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12 }}>
             <div>
-              <p style={{ fontSize:9,fontWeight:700,color:S.sage,letterSpacing:'0.08em',textTransform:'uppercase',margin:'0 0 2px' }}>Selected date</p>
+              <p style={{ fontSize:11,fontWeight:700,color:S.sage,letterSpacing:'0.08em',textTransform:'uppercase',margin:'0 0 2px' }}>Selected date</p>
               <p style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:500,color:S.forest,margin:0 }}>{formatDate(selectedDate)}</p>
             </div>
-            <button onClick={()=>setSelectedDate(null)} style={{ background:'none',border:'none',fontSize:16,color:S.stone,cursor:'pointer',padding:4 }}>✕</button>
+            <button onClick={()=>setSelectedDate(null)} aria-label="Close" style={{ background:'none',border:'none',fontSize:16,color:S.stone,cursor:'pointer',padding:'6px 8px' }}>✕</button>
           </div>
           {(dateMap[selectedDate]||[]).length>0&&(
             <div style={{ marginBottom:12 }}>
               <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',margin:'0 0 6px' }}>
-                <p style={{ fontSize:9,fontWeight:600,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',margin:0 }}>Open slots</p>
+                <p style={{ fontSize:11,fontWeight:600,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',margin:0 }}>Open slots</p>
                 {(dateMap[selectedDate]||[]).some((s:CalDate)=>s.status==='available')&&(
                   <button onClick={clearSelectedDay} style={{ background:'none',border:'none',cursor:'pointer',fontSize:11,fontWeight:600,color:S.red,fontFamily:"'DM Sans',sans-serif",padding:0 }}>Clear all</button>
                 )}
@@ -560,14 +571,14 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
                   return (
                     <div key={slot.id} style={{ display:'flex',alignItems:'center',gap:5,background:mc.bg,border:`1px solid ${mc.color}`,borderRadius:20,padding:'4px 10px 4px 9px' }}>
                       <span style={{ fontSize:11,fontWeight:600,color:mc.color }}>{mc.emoji} {mc.label}</span>
-                      {slot.status==='available'&&<button onClick={()=>handleRemoveSlot(slot.id)} style={{ background:'none',border:'none',cursor:'pointer',color:mc.color,fontSize:12,padding:0,lineHeight:1,marginLeft:2 }}>✕</button>}
+                      {slot.status==='available'&&<button onClick={()=>handleRemoveSlot(slot.id)} aria-label="Remove this meal slot" style={{ background:'none',border:'none',cursor:'pointer',color:mc.color,fontSize:13,padding:'2px 4px',lineHeight:1,marginLeft:2 }}>✕</button>}
                     </div>
                   )
                 })}
               </div>
             </div>
           )}
-          <p style={{ fontSize:9,fontWeight:600,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',margin:'0 0 8px' }}>
+          <p style={{ fontSize:11,fontWeight:600,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',margin:'0 0 8px' }}>
             {(dateMap[selectedDate]||[]).length>0?'Add another slot':'Add a meal slot'}
           </p>
           <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6 }}>
@@ -614,7 +625,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           <div onClick={e=>e.stopPropagation()} style={{ background:'#FAFAF5',width:'100%',maxWidth:500,maxHeight:'85vh',borderTopLeftRadius:22,borderTopRightRadius:22,overflowY:'auto',padding:'20px 18px 28px' }}>
             <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6 }}>
               <p style={{ fontFamily:"'Lora',serif",fontSize:18,fontWeight:500,color:S.forest,margin:0 }}>Add a restaurant</p>
-              <button onClick={()=>setAddRestOpen(false)} style={{ background:'none',border:'none',fontSize:20,color:S.stone,cursor:'pointer',padding:4 }}>✕</button>
+              <button onClick={()=>setAddRestOpen(false)} aria-label="Close" style={{ background:'none',border:'none',fontSize:20,color:S.stone,cursor:'pointer',padding:'6px 8px' }}>✕</button>
             </div>
             <p style={{ fontSize:12.5,color:S.stone,fontWeight:300,margin:'0 0 14px',lineHeight:1.5 }}>Search near your address and add a spot — you won&rsquo;t leave this page.</p>
             <div style={{ display:'flex',gap:8,marginBottom:14 }}>
@@ -679,11 +690,11 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
         )}
       </div>
       <div style={{ display:'flex',flexDirection:'column',alignItems:'flex-end',gap:6 }}>
-        <span style={{ fontSize:9,fontWeight:700,padding:'3px 9px',borderRadius:20,background:p.status==='delivered'?S.sageLight:'#F5F5F5',color:p.status==='delivered'?S.sage:S.stone }}>
+        <span style={{ fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:20,background:p.status==='delivered'?S.sageLight:'#F5F5F5',color:p.status==='delivered'?S.sage:S.stone }}>
           {p.status==='delivered'?'🧡 Delivered':p.status==='declined'?'✕ Declined':p.status.charAt(0).toUpperCase()+p.status.slice(1)}
         </span>
         {(p.status==='delivered'||p.status==='confirmed')&&(
-          <button onClick={()=>handleShare(p)} style={{ fontSize:9,fontWeight:600,color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif" }}>Share 📸</button>
+          <button onClick={()=>handleShare(p)} style={{ fontSize:11,fontWeight:600,color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif" }}>Share 📸</button>
         )}
       </div>
     </div>
@@ -733,7 +744,7 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
                   <div style={{ fontSize:12,color:S.stone,fontWeight:300 }}>{p.restaurant_name} · {fmt(p.delivery_date)}</div>
                   <div style={{ fontSize:12,color:S.stone,fontWeight:300 }}>from <strong style={{ color:S.forest }}>{p.coordinator_name}</strong></div>
                 </div>
-                <span style={{ background:S.sageLight,color:S.sage,fontSize:9,fontWeight:700,padding:'3px 9px',borderRadius:20 }}>Confirmed</span>
+                <span style={{ background:S.sageLight,color:S.sage,fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:20 }}>Confirmed</span>
               </div>
               <div style={{ padding:'0 16px 14px',display:'flex',flexDirection:'column',gap:8 }}>
                 {p.doordash_tracking_url&&(
@@ -761,7 +772,7 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
                   <div style={{ fontSize:12,color:S.stone,fontWeight:300 }}>{p.restaurant_name} · {fmt(p.delivery_date)}</div>
                   {p.coordinator_note&&<p style={{ fontSize:12,color:S.stone,fontStyle:'italic',margin:'5px 0 0',lineHeight:1.5 }}>"{p.coordinator_note}"</p>}
                 </div>
-                <span style={{ background:S.amberLight,color:S.amber,fontSize:9,fontWeight:700,padding:'3px 9px',borderRadius:20 }}>Pending</span>
+                <span style={{ background:S.amberLight,color:S.amber,fontSize:11,fontWeight:700,padding:'3px 9px',borderRadius:20 }}>Pending</span>
               </div>
               <div style={{ padding:'0 16px 14px' }}>
                 <button onClick={()=>router.push(`/proposals/${p.id}`)}
