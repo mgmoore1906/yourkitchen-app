@@ -22,6 +22,7 @@ kitchen_slug,
 tip_amount,
 delivery_preference,
 delivery_note,
+is_pickup,
 use_places,
 } = await request.json()
 
@@ -152,6 +153,7 @@ coordinator_note: note || null,
 tip_amount: tip_amount || 0,
 delivery_preference: delivery_preference || 'leave_at_door',
 delivery_note: delivery_note || null,
+is_pickup: !!is_pickup,
 restaurant_name: restName,
 meal_name: mealName,
 meal_items: mealItems,
@@ -218,6 +220,9 @@ quantity: 1,
 // ── Courier delivery fee (real Shipday quote, fallback to mileage estimate) ──
 // Prefer the actual courier quote so the coordinator is charged what delivery
 // truly costs; fall back to the distance-based estimate if Shipday has no quote.
+// Pickup orders skip the courier entirely — no Shipday quote, no delivery fee.
+let deliveryFeeAmt = 0
+if (!is_pickup) {
 const mileageEstimate = getDeliveryFee(deliveryMiles)
 const courierQuote = await resolveCourierFee({
 pickupLat,
@@ -228,7 +233,7 @@ dropoffLng: kitchen.longitude != null ? Number(kitchen.longitude) : null,
 dropoffAddress: (kitchen as any).address || '',
 tipDollars: (tip_amount || 0) / 100,
 }, mileageEstimate)
-const deliveryFeeAmt = courierQuote.feeDollars
+deliveryFeeAmt = courierQuote.feeDollars
 const distanceNote = courierQuote.source === 'shipday'
 ? 'Live courier quote'
 : (deliveryMiles !== null
@@ -243,9 +248,10 @@ unit_amount: Math.round(deliveryFeeAmt * 100),
 },
 quantity: 1,
 })
+}
 
 // ── Dasher tip (100% pass-through) ───────────────────────────────────────
-if ((tip_amount || 0) > 0) {
+if (!is_pickup && (tip_amount || 0) > 0) {
 lineItems.push({
 price_data: {
 currency: 'usd',
@@ -262,7 +268,7 @@ quantity: 1,
 // it scales with order size and is never underwater, even on small meals.
 // All component amounts here are in CENTS.
 const courierCents = Math.round(deliveryFeeAmt * 100)
-const tipCents = tip_amount || 0
+const tipCents = is_pickup ? 0 : (tip_amount || 0)
 const preFeeCents = mealSubtotalCents + courierCents + tipCents
 const SERVICE_PCT = 0.05
 const SERVICE_FLAT_CENTS = 99
