@@ -63,6 +63,8 @@ const [deleteLoading, setDeleteLoading] = useState(false)
 const [currentTier, setCurrentTier] = useState('free')
 const [kitchenId, setKitchenId] = useState('')
 const [userId, setUserId] = useState('')
+const [open, setOpen] = useState<Record<string, boolean>>({})
+const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }))
 
 const [form, setForm] = useState({
 full_name: '',
@@ -326,13 +328,18 @@ style={{ flex: 1, padding: '11px 4px', borderRadius: 10, border: 'none', backgro
 This is the default for every meal date — your village uses it as a guide. You can adjust any single date when you add it to the calendar.
 </p>
 
-<label style={lStyle}>Dietary restrictions</label>
+<button onClick={() => toggle('diet')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', marginBottom: open.diet ? 12 : 24, fontFamily: "'DM Sans', sans-serif" }}>
+<span style={{ ...lStyle, marginBottom: 0 }}>Dietary restrictions{form.dietary_restrictions.length > 0 ? ` \u00b7 ${form.dietary_restrictions.length}` : ''}</span>
+<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7066" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open.diet ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
+</button>
+{open.diet && (
 <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 24 }}>
 {DIETARY_OPTIONS.map(d => (
 <button key={d} onClick={() => toggleDiet(d)}
 style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer', background: form.dietary_restrictions.includes(d) ? S.sage : S.sageLight, color: form.dietary_restrictions.includes(d) ? S.white : S.sage, fontSize: 13, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>{d}</button>
 ))}
 </div>
+)}
 
 {error && <div style={{ background: '#FDE8E8', border: `1.5px solid ${S.red}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, marginTop: 8 }}><p style={{ fontSize: 13, color: S.red, margin: 0 }}>⚠️ {error}</p></div>}
 
@@ -343,7 +350,8 @@ style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', backg
 
 {/* ── EMAIL ── */}
 <div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
-<p style={sLabel}>Email address</p>
+<CollapseHeader label="Email address" openState={!!open.email} onClick={() => toggle('email')} />
+{open.email && (<div style={{ marginTop: 16 }}>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
 Your current email is <strong style={{ color: S.forest, fontWeight: 500 }}>{currentEmail || '—'}</strong>. Changing it sends a confirmation link to the new address.
 </p>
@@ -354,11 +362,13 @@ Your current email is <strong style={{ color: S.forest, fontWeight: 500 }}>{curr
 style={{ width: '100%', padding: '13px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: 'transparent', fontSize: 14, color: S.forest, cursor: (emailLoading || !newEmail.trim()) ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: (emailLoading || !newEmail.trim()) ? 0.5 : 1 }}>
 {emailLoading ? 'Sending…' : 'Update Email'}
 </button>
+</div>)}
 </div>
 
 {/* ── ACCOUNT ── */}
 <div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
-<p style={sLabel}>Account</p>
+<CollapseHeader label="Account" openState={!!open.account} onClick={() => toggle('account')} />
+{open.account && (<div style={{ marginTop: 16 }}>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
 Send a password reset link to your registered email.
 </p>
@@ -367,11 +377,13 @@ Send a password reset link to your registered email.
 style={{ width: '100%', padding: '13px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: 'transparent', fontSize: 14, color: S.forest, cursor: passwordLoading ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
 {passwordLoading ? 'Sending…' : 'Send Password Reset Email'}
 </button>
+</div>)}
 </div>
 
 {/* ── DANGER ZONE ── */}
 <div style={{ background: S.white, border: `1.5px solid ${S.red}`, borderRadius: 16, padding: '20px' }}>
-<p style={{ ...sLabel, color: S.red }}>Danger Zone</p>
+<CollapseHeader label="Danger Zone" openState={!!open.danger} onClick={() => toggle('danger')} color={S.red} />
+{open.danger && (<div style={{ marginTop: 16 }}>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
 Permanently delete your account and all Kitchen data. This cannot be undone.
 </p>
@@ -392,9 +404,19 @@ Permanently delete your account and all Kitchen data. This cannot be undone.
 Delete my account
 </button>
 )}
+</div>)}
 </div>
 </div>
 </div>
+)
+}
+
+function CollapseHeader({ label, openState, onClick, color }: { label: string; openState: boolean; onClick: () => void; color?: string }) {
+return (
+<button onClick={onClick} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+<span style={{ ...sLabel, margin: 0, color: color || '#6B7066' }}>{label}</span>
+<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke={color || '#6B7066'} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: openState ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
+</button>
 )
 }
 
