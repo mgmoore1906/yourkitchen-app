@@ -54,7 +54,7 @@ export async function GET(request: Request) {
 
   const { data } = await supabase
     .from('kitchen_restaurants')
-    .select('id, name, cuisine, place_id, address, phone, is_active, favorite_meals, favorite_meal_prices, favorite_meal_categories, favorite_meal_notes, lat, lng')
+    .select('id, name, cuisine, place_id, address, phone, is_active, favorite_meals, favorite_meal_prices, favorite_meal_categories, favorite_meal_notes, lat, lng, pickup_preferred')
     .eq('kitchen_id', kId)
     .eq('is_active', true)
     .order('created_at', { ascending: true })
@@ -128,7 +128,7 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const supabase = getSupabase()
   try {
-    const { restaurant_id, favorite_meals, favorite_meal_prices, favorite_meal_categories, favorite_meal_notes, is_active } = await request.json()
+    const { restaurant_id, favorite_meals, favorite_meal_prices, favorite_meal_categories, favorite_meal_notes, is_active, pickup_preferred } = await request.json()
     if (!restaurant_id) return NextResponse.json({ error: 'restaurant_id required' }, { status: 400 })
     const updates: any = {}
     if (favorite_meals !== undefined) updates.favorite_meals = favorite_meals
@@ -136,6 +136,7 @@ export async function PATCH(request: Request) {
     if (favorite_meal_categories !== undefined) updates.favorite_meal_categories = favorite_meal_categories
     if (favorite_meal_notes !== undefined) updates.favorite_meal_notes = favorite_meal_notes
     if (is_active !== undefined) updates.is_active = is_active
+    if (pickup_preferred !== undefined) updates.pickup_preferred = pickup_preferred
     const { error } = await supabase.from('kitchen_restaurants').update(updates).eq('id', restaurant_id)
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ success: true })
