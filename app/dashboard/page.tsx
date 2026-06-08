@@ -294,7 +294,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
   const formatDate = (s:string) => new Date(s+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})
 
   return (
-    <div style={{ padding:'16px 20px 16px' }}>
+    <div style={{ padding:'16px 20px 16px',maxWidth:500,margin:'0 auto' }}>
       <div style={{ background:S.white,border:`0.5px solid ${isFounding(userTier)?'#E6C99A':S.border}`,borderRadius:18,padding:'16px',marginBottom:14,position:'relative',overflow:'hidden' }}>
         {isFounding(userTier) && <FoundingRibbon/>}
         <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
