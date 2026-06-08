@@ -16,7 +16,7 @@ const MEAL_LIMITS: Record<string, number> = { free: 4, trial: 12, care: 12, annu
 const TIER_LABELS: Record<string, string> = { free: 'Free', trial: 'Free Trial', care: 'Care+', annual: 'Early Adopter', founding: 'Founding Member' }
 
 type Restaurant = {
-id: string; name: string; cuisine: string; is_active: boolean
+id: string; name: string; cuisine: string; is_active: boolean; pickup_preferred: boolean
 place_id: string | null; address: string | null
 lat: number | null; lng: number | null
 favorite_meals: string[]; favorite_meal_prices: number[]; favorite_meal_categories: string[]; favorite_meal_notes: string[]
@@ -93,7 +93,7 @@ load()
 const loadRestaurants = async (kId: string) => {
 const { data } = await supabase
 .from('kitchen_restaurants')
-.select('id, name, cuisine, is_active, place_id, address, lat, lng, favorite_meals, favorite_meal_prices, favorite_meal_categories')
+.select('id, name, cuisine, is_active, place_id, address, lat, lng, favorite_meals, favorite_meal_prices, favorite_meal_categories, pickup_preferred')
 .eq('kitchen_id', kId).order('created_at', { ascending: true })
 const mapped = (data || []).map((r: any) => ({
 ...r,
@@ -101,6 +101,7 @@ favorite_meals: r.favorite_meals || [],
 favorite_meal_prices: r.favorite_meal_prices || [],
 favorite_meal_categories: r.favorite_meal_categories || [],
 favorite_meal_notes: r.favorite_meal_notes || [],
+pickup_preferred: r.pickup_preferred ?? false,
 }))
 setRestaurants(mapped)
 return mapped
@@ -162,6 +163,17 @@ method: 'PATCH', headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({ restaurant_id: id, is_active: newActive }),
 })
 setSaveMsg(newActive ? 'Shown to your village ✓' : 'Hidden from your village')
+setTimeout(() => setSaveMsg(''), 2500)
+}
+
+const togglePickup = async (id: string, current: boolean) => {
+const next = !current
+setRestaurants(prev => prev.map(r => r.id === id ? { ...r, pickup_preferred: next } : r))
+await fetch('/api/restaurants/favorites', {
+method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ restaurant_id: id, pickup_preferred: next }),
+})
+setSaveMsg(next ? 'Pickup preferred for this spot 🥡' : 'Delivery default restored')
 setTimeout(() => setSaveMsg(''), 2500)
 }
 
@@ -366,6 +378,16 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, 
 
 {isExpanded && (
 <div style={{ borderTop: `0.5px solid ${S.border}`, padding: '16px', background: '#FAFDF9' }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: r.pickup_preferred ? S.sageLight : S.white, border: `1px solid ${r.pickup_preferred ? S.sage : S.border}`, borderRadius: 10, marginBottom: 14 }}>
+<div style={{ flex: 1 }}>
+<div style={{ fontSize: 13, fontWeight: 600, color: S.forest }}>🥡 Prefer pickup here</div>
+<div style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, lineHeight: 1.5, marginTop: 2 }}>When your village sends from this spot, it defaults to pickup — no courier fee, you grab it yourself.</div>
+</div>
+<button onClick={() => togglePickup(r.id, !!r.pickup_preferred)}
+style={{ width: 44, height: 24, borderRadius: 12, border: 'none', background: r.pickup_preferred ? S.sage : S.border, cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+<div style={{ width: 18, height: 18, borderRadius: '50%', background: S.white, position: 'absolute', top: 3, left: r.pickup_preferred ? 23 : 3, transition: 'left 0.2s' }} />
+</button>
+</div>
 <p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 6px' }}>Favorite meals</p>
 <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 12px', lineHeight: 1.6 }}>
 Exact dish names + prices. Tag adult or kids so your village sees them in the right section.
