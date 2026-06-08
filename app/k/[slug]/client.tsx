@@ -363,6 +363,7 @@ const [tipInitialized, setTipInitialized] = useState(false)
 const [showTipAdjust, setShowTipAdjust] = useState(false)
 const [deliveryPreference, setDeliveryPreference] = useState<'leave_at_door'|'hand_to_recipient'>('leave_at_door')
 const [deliveryNote, setDeliveryNote] = useState('')
+const [isPickup, setIsPickup] = useState(false)
 const [loading, setLoading] = useState(false)
 const [errorMsg, setErrorMsg] = useState('')
 
@@ -507,11 +508,11 @@ if (!fav || !kitchen.latitude || !kitchen.longitude || !fav.lat || !fav.lng) ret
 return haversineDistance(kitchen.latitude, kitchen.longitude, fav.lat, fav.lng)
 })()
 const activeTipTier = activeMiles !== null ? getTipTier(activeMiles) : null
-const deliveryFee = getDeliveryFee(activeMiles)
+const deliveryFee = isPickup ? 0 : getDeliveryFee(activeMiles)
 
 // Price estimate — sum of cart × qty × dates per group
 const mealSubtotal = groups.reduce((sum,g)=> sum + cartTotal(g.cart) * g.slots.length, 0)
-const tipDollars = tipAmount / 100
+const tipDollars = isPickup ? 0 : tipAmount / 100
 // Service fee mirrors the server (5% + $0.99 on meal + courier + tip) — covers
 // Stripe processing and platform margin. Must stay in sync with /api/proposal.
 const preFee = mealSubtotal + deliveryFee + tipDollars
@@ -534,7 +535,7 @@ meal_type: slot.meal_type,
 try {
 const res=await fetch('/api/proposal',{
 method:'POST', headers:{'Content-Type':'application/json'},
-body:JSON.stringify({ name,email,phone,note,proposals,kitchen_slug:kitchen.slug,tip_amount:tipAmount,delivery_preference:deliveryPreference,delivery_note:deliveryNote.trim()||null,use_places:true }),
+body:JSON.stringify({ name,email,phone,note,proposals,kitchen_slug:kitchen.slug,tip_amount:tipAmount,delivery_preference:deliveryPreference,delivery_note:deliveryNote.trim()||null,is_pickup:isPickup,use_places:true }),
 })
 const data=await res.json()
 if(!res.ok){ setErrorMsg(data.error||'Something went wrong.');setLoading(false);return }
@@ -861,6 +862,23 @@ I agree to receive recurring SMS from YourKitchen — meal proposals, confirmati
 <label style={lbl}>Personal note (optional)</label>
 <textarea value={note} onChange={e=>setNote(e.target.value)} placeholder={getNotePlaceholder()} style={{ ...inp,minHeight:90,resize:'none' as const }}/>
 
+<label style={lbl}>How should this arrive?</label>
+<div style={{ display:'flex',gap:10,marginBottom:16 }}>
+<button onClick={()=>setIsPickup(false)} style={{ flex:1,padding:'13px 12px',borderRadius:12,border:`2px solid ${!isPickup?S.amber:S.amberBorder}`,background:!isPickup?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'center',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
+<div style={{ fontSize:13,fontWeight:600,color:!isPickup?S.amber:S.mahogany }}>🚗 Delivered</div>
+<div style={{ fontSize:11,color:S.stone,fontWeight:300,marginTop:2 }}>Courier brings it to the door</div>
+</button>
+<button onClick={()=>setIsPickup(true)} style={{ flex:1,padding:'13px 12px',borderRadius:12,border:`2px solid ${isPickup?S.amber:S.amberBorder}`,background:isPickup?S.amberLight:S.warmWhite,cursor:'pointer',textAlign:'center',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
+<div style={{ fontSize:13,fontWeight:600,color:isPickup?S.amber:S.mahogany }}>🥡 Pickup</div>
+<div style={{ fontSize:11,color:S.stone,fontWeight:300,marginTop:2 }}>You grab it — no fees</div>
+</button>
+</div>
+
+{isPickup ? (
+<div style={{ background:S.sageLight,border:`1.5px solid ${S.sage}`,borderRadius:14,padding:'14px 16px',marginBottom:20 }}>
+<p style={{ fontSize:13,color:S.forest,margin:0,fontWeight:500,lineHeight:1.5 }}>You'll pick this up from the restaurant yourself — so there's no courier fee or tip. We'll text you when it's ready to grab.</p>
+</div>
+) : (<>
 <label style={lbl}>Delivery preference</label>
 <p style={{ fontSize:12,color:S.stone,fontWeight:300,marginTop:-4,marginBottom:10,lineHeight:1.5 }}>For families with a sleeping newborn, "leave at door" is the kinder choice.</p>
 <div style={{ display:'flex',gap:10,marginBottom:20 }}>
@@ -908,6 +926,7 @@ style={{ flex:1,padding:'11px 4px',borderRadius:10,border:'none',background:tipA
 </div>
 )}
 
+</>)}
 {/* Price breakdown */}
 {mealSubtotal > 0 && (
 <div style={{ background:S.warmWhite,border:`1px solid ${S.border}`,borderRadius:14,padding:'14px 16px',marginBottom:20 }}>
@@ -922,6 +941,7 @@ return (
 </div>
 )
 })}
+{!isPickup ? (<>
 <div style={{ display:'flex',justifyContent:'space-between',marginBottom:4 }}>
 <span style={{ fontSize:13,color:S.stone }}>Courier delivery fee</span>
 <span style={{ fontSize:13,color:S.forest }}>${deliveryFee.toFixed(2)}</span>
@@ -930,6 +950,12 @@ return (
 <span style={{ fontSize:13,color:S.stone }}>Dasher tip</span>
 <span style={{ fontSize:13,color:S.forest }}>${tipDollars.toFixed(2)}</span>
 </div>
+</>) : (
+<div style={{ display:'flex',justifyContent:'space-between',marginBottom:4 }}>
+<span style={{ fontSize:13,color:S.stone }}>Pickup</span>
+<span style={{ fontSize:13,color:S.sage,fontWeight:600 }}>No delivery fee</span>
+</div>
+)}
 <div style={{ display:'flex',justifyContent:'space-between',marginBottom:4 }}>
 <span style={{ fontSize:13,color:S.stone }}>Service fee</span>
 <span style={{ fontSize:13,color:S.forest }}>${serviceFee.toFixed(2)}</span>
