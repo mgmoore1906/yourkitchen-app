@@ -63,6 +63,41 @@ async function notifyFounder(title: string, body: string, url: string) {
   }
 }
 
+// Recipient meal-confirm email — the SMS hedge. Carries a link to the public
+// /c/[id] confirm page (review + tap, never auto-acts on open). Fires even when
+// Twilio is carrier-filtered, so a recipient can always say yes/no. Best-effort.
+async function sendConfirmEmail(to: string, m: { coordinatorName: string; mealLabel: string; mealName: string; restName: string; whenStr: string; proposalId: string }) {
+  const rKey = process.env.RESEND_API_KEY
+  if (!rKey) return
+  const link = `https://app.yourkitchen.app/c/${m.proposalId}`
+  const html = `
+  <div style="font-family:'DM Sans',Arial,sans-serif;background:#FAFAF5;padding:28px 16px">
+    <div style="max-width:440px;margin:0 auto;background:#fff;border:1px solid #DDE8E0;border-radius:18px;padding:30px 26px">
+      <p style="font-size:11px;font-weight:700;color:#6B9E7E;letter-spacing:2px;text-transform:uppercase;margin:0 0 12px">A meal for you</p>
+      <h1 style="font-family:Georgia,serif;font-size:22px;color:#1E2620;font-weight:500;line-height:1.3;margin:0 0 16px">${m.coordinatorName} wants to send you ${m.mealLabel}.</h1>
+      <div style="background:#EAF2ED;border-radius:12px;padding:16px 18px;margin:0 0 20px">
+        <p style="font-size:16px;color:#1E2620;font-weight:600;margin:0 0 4px;font-family:Georgia,serif">${m.mealName}</p>
+        <p style="font-size:13px;color:#6B7066;margin:0">from ${m.restName} \u00b7 arriving around ${m.whenStr}</p>
+      </div>
+      <p style="font-size:13px;color:#6B7066;line-height:1.6;margin:0 0 22px">Nothing is charged unless you say yes. Take your time \u2014 there&rsquo;s no pressure either way.</p>
+      <a href="${link}" style="display:block;text-align:center;background:#3D6B4F;color:#fff;text-decoration:none;padding:15px;border-radius:12px;font-size:15px;font-weight:600">Review &amp; respond &rarr;</a>
+      <p style="font-size:11.5px;color:#6B7066;text-align:center;margin:18px 0 0;line-height:1.5">Or reply <b>Y</b> or <b>N</b> to the text we sent.</p>
+    </div>
+  </div>`
+  try {
+    await fetch('https://api.resend.com/emails', {
+      method: 'POST',
+      headers: { Authorization: `Bearer ${rKey}`, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        from: 'YourKitchen <marques@yourkitchen.app>',
+        to: [to],
+        subject: `${m.coordinatorName} wants to send you ${m.mealLabel}`,
+        html,
+      }),
+    })
+  } catch (err: any) { console.error('Confirm email error:', err.message) }
+}
+
 const DEFAULT_TIME: Record<string, string> = { breakfast: '08:00', lunch: '12:00', dinner: '18:30' }
 function prettyTime(t: string | null | undefined, mealType: string): string {
   const raw = (t && String(t).trim()) ? String(t).split('-')[0].trim() : DEFAULT_TIME[mealType] || '18:30'
@@ -121,8 +156,11 @@ export async function POST(request: Request) {
 
     // Proposal payment — save payment_intent_id + notify recipient
     if (type === 'proposal' && proposalIds.length > 0) {
+      const coordEmail = session.customer_details?.email || null
+      const proposalUpdate: Record<string, any> = { payment_intent_id: paymentIntentId }
+      if (coordEmail) proposalUpdate.coordinator_email = coordEmail
       await supabase.from('meal_proposals')
-        .update({ payment_intent_id: paymentIntentId })
+        .update(proposalUpdate)
         .in('id', proposalIds)
 
       const { data: proposals } = await supabase
@@ -149,24 +187,35 @@ export async function POST(request: Request) {
         const { data: profile } = await supabase
           .from('profiles').select('phone').eq('id', recipientId).single()
 
+        const mealLabel = p.meal_type === 'breakfast' ? 'breakfast'
+          : p.meal_type === 'lunch' ? 'lunch' : 'dinner'
+        const itemsArr = Array.isArray(p.meal_items) ? p.meal_items : []
+        const mealName = p.meal_name
+        || (itemsArr.length ? itemsArr.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : null)
+        || p.menu_items?.name
+        || 'a meal'
+        const restName = p.kitchen_restaurants?.name || 'a restaurant'
+        const whenStr = prettyTime(p.delivery_time, p.meal_type)
+
+        // SMS — frictionless reply path; fires when we have a number.
         if (profile?.phone) {
-          const mealLabel = p.meal_type === 'breakfast' ? 'breakfast'
-            : p.meal_type === 'lunch' ? 'lunch' : 'dinner'
-          // Resolve the meal name the same way the proposals page does:
-          // direct meal_name column → items list → menu_items join → generic fallback.
-          const itemsArr = Array.isArray(p.meal_items) ? p.meal_items : []
-          const mealName = p.meal_name
-            || (itemsArr.length ? itemsArr.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : null)
-            || p.menu_items?.name
-            || 'a meal'
           await sendSMS(
             profile.phone,
             `${coordinatorName} wants to send you ${mealLabel} — ` +
-            `${mealName} from ${p.kitchen_restaurants?.name}, arriving around ${prettyTime(p.delivery_time, p.meal_type)}.\n\n` +
+            `${mealName} from ${restName}, arriving around ${whenStr}.\n\n` +
             `Reply Y to confirm or N to decline.\n` +
             `Reply STOP to opt out.\n\n— YourKitchen`
           )
         }
+
+        // Email hedge — link to the confirm page; works even if SMS is filtered.
+        try {
+          const { data: u } = await supabase.auth.admin.getUserById(recipientId)
+          const email = u?.user?.email
+          if (email) {
+            await sendConfirmEmail(email, { coordinatorName, mealLabel, mealName, restName, whenStr, proposalId: p.id })
+          }
+        } catch (err: any) { console.error('Confirm email lookup failed:', err.message) }
       }
       console.log(`Payment authorized for ${proposalIds.length} proposal(s): ${paymentIntentId}`)
     }
