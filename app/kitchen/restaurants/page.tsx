@@ -37,7 +37,7 @@ if (miles === null) return null
 const color = miles < 7 ? S.sage : miles < 10 ? S.amber : S.red
 const bg = miles < 7 ? S.sageLight : miles < 10 ? S.amberLight : S.redLight
 return (
-<span style={{ fontSize: 10, fontWeight: 700, color, background: bg, borderRadius: 20, padding: '2px 8px', marginLeft: 6 }}>
+<span style={{ fontSize: 11, fontWeight: 700, color, background: bg, borderRadius: 20, padding: '2px 8px', marginLeft: 6 }}>
 {formatDistance(miles)}
 </span>
 )
@@ -297,7 +297,7 @@ style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, h
 </div>
 </div>
 )}
-<p style={{ fontSize: 10, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.sage, margin: '0 0 6px' }}>My Restaurants</p>
+<p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.sage, margin: '0 0 6px' }}>My Restaurants</p>
 <h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: S.forest, margin: '0 0 6px', letterSpacing: -0.5 }}>Favorite restaurants</h1>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 16px', fontWeight: 300, lineHeight: 1.6 }}>
 Add favorites and save your go-to meals with prices. Tag each as an adult or kids meal so your village always knows what to order.
@@ -362,8 +362,8 @@ return (
 <span style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: S.forest }}>{r.name}</span>
 {miles !== null && <DistanceBadge miles={miles} />}
 {r.favorite_meals?.length > 0
-? <span style={{ fontSize: 9, fontWeight: 700, background: S.amberLight, color: S.amber, borderRadius: 20, padding: '2px 8px' }}>{r.favorite_meals.length} meal{r.favorite_meals.length !== 1 ? 's' : ''}</span>
-: <span style={{ fontSize: 9, fontWeight: 700, background: S.redLight, color: S.red, borderRadius: 20, padding: '2px 8px' }}>no meals</span>}
+? <span style={{ fontSize: 11, fontWeight: 700, background: S.amberLight, color: S.amber, borderRadius: 20, padding: '2px 8px' }}>{r.favorite_meals.length} meal{r.favorite_meals.length !== 1 ? 's' : ''}</span>
+: <span style={{ fontSize: 11, fontWeight: 700, background: S.redLight, color: S.red, borderRadius: 20, padding: '2px 8px' }}>no meals</span>}
 </div>
 <div style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>
 {r.address || r.cuisine}
@@ -410,10 +410,10 @@ return (
 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 <span style={{ fontSize: 14 }}>{isKids ? '🧒' : '👤'}</span>
 <span style={{ flex: 1, fontSize: 13, color: S.forest, fontWeight: 500 }}>{meal}</span>
-<span style={{ fontSize: 9, fontWeight: 700, color: isKids ? S.amber : S.sage, background: S.white, borderRadius: 20, padding: '2px 7px' }}>{isKids ? 'KIDS' : 'ADULT'}</span>
+<span style={{ fontSize: 11, fontWeight: 700, color: isKids ? S.amber : S.sage, background: S.white, borderRadius: 20, padding: '2px 7px' }}>{isKids ? 'KIDS' : 'ADULT'}</span>
 <span style={{ fontSize: 13, fontWeight: 700, color: isKids ? S.amber : S.sage }}>${(r.favorite_meal_prices[i] || 15).toFixed(2)}</span>
 <button onClick={() => removeMeal(r.id, i)}
-style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 14, padding: 0 }}>✕</button>
+aria-label="Remove this meal" style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 14, padding: '2px 6px' }}>✕</button>
 </div>
 {(r.favorite_meal_notes?.[i] || '').trim() && (
 <div style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, marginTop: 5, paddingLeft: 22, lineHeight: 1.5, fontStyle: 'italic' }}>
@@ -496,7 +496,7 @@ style={{ padding: '12px 18px', borderRadius: 10, border: 'none', background: !se
 </div>
 {searchResults.length > 0 && (
 <div>
-<p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }}>Within 8 miles</p>
+<p style={{ fontSize: 11, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }}>Within 8 miles</p>
 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
 {searchResults.map(place => {
 const saved = alreadySaved(place)
@@ -512,7 +512,7 @@ return (
 <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 3 }}>
 <span style={{ fontSize: 14, fontWeight: 600, color: S.forest }}>{place.name}</span>
 {miles !== null && (
-<span style={{ fontSize: 10, fontWeight: 700, color: distColor, background: distBg, borderRadius: 20, padding: '2px 8px' }}>
+<span style={{ fontSize: 11, fontWeight: 700, color: distColor, background: distBg, borderRadius: 20, padding: '2px 8px' }}>
 {formatDistance(miles)}
 {miles >= 7 && miles < 10 && ' · larger tip recommended'}
 {miles >= 10 && ' · very long delivery'}
