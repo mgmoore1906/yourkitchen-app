@@ -20,6 +20,49 @@ async function sendSMS(to: string, body: string) {
   }
 }
 
+// Founder order alerts — a haptic wrist push (Pushover) plus an email backup (Resend).
+// Both are best-effort and OPTIONAL: if a channel's env vars aren't set it's skipped
+// silently, so the webhook never fails on a missing key. Tuned for a house with a
+// newborn — HIGH priority (1) + SILENT sound = a wrist tap on the Apple Watch, no
+// audible alarm. For wake-the-dead alerts later, set PUSHOVER_PRIORITY = 2, add
+// retry/expire, and enable Critical Alerts in the Pushover app.
+const PUSHOVER_PRIORITY = 1
+const PUSHOVER_SOUND = 'none'
+async function notifyFounder(title: string, body: string, url: string) {
+  const pToken = process.env.PUSHOVER_TOKEN
+  const pUser  = process.env.PUSHOVER_USER
+  if (pToken && pUser) {
+    try {
+      await fetch('https://api.pushover.net/1/messages.json', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: new URLSearchParams({
+          token: pToken, user: pUser, title, message: body,
+          priority: String(PUSHOVER_PRIORITY), sound: PUSHOVER_SOUND,
+          url, url_title: 'Open admin',
+        }),
+      })
+    } catch (err: any) { console.error('Pushover error:', err.message) }
+  }
+
+  const rKey = process.env.RESEND_API_KEY
+  if (rKey) {
+    try {
+      await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${rKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          from: 'YourKitchen <marques@yourkitchen.app>',
+          to: [process.env.ALERT_EMAIL || 'marques@yourkitchen.app'],
+          subject: title,
+          html: `<p style="font-family:sans-serif;font-size:15px;line-height:1.5">${body.replace(/\n/g, '<br>')}</p>` +
+                `<p><a href="${url}" style="font-family:sans-serif">Open admin →</a></p>`,
+        }),
+      })
+    } catch (err: any) { console.error('Resend email error:', err.message) }
+  }
+}
+
 const DEFAULT_TIME: Record<string, string> = { breakfast: '08:00', lunch: '12:00', dinner: '18:30' }
 function prettyTime(t: string | null | undefined, mealType: string): string {
   const raw = (t && String(t).trim()) ? String(t).split('-')[0].trim() : DEFAULT_TIME[mealType] || '18:30'
@@ -173,13 +216,13 @@ export async function POST(request: Request) {
     // Receipt total actually captured (cents → dollars) for the payer's confirmation SMS
     const receiptTotal = ((pi.amount_received ?? pi.amount ?? 0) / 100).toFixed(2)
 
-    // Alert Marques via SMS so he knows to place the food order
+    // Alert Marques so he knows to place the food order — SMS + wrist push + email.
+    const delivDate = (proposal as any).delivery_date
+      ? new Date((proposal as any).delivery_date + 'T12:00:00')
+          .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+      : 'today'
     const marquesPhone = process.env.MARQUES_PHONE
     if (marquesPhone) {
-      const delivDate = (proposal as any).delivery_date
-        ? new Date((proposal as any).delivery_date + 'T12:00:00')
-            .toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
-        : 'today'
       const marquesBody = isPickup
         ? `🥡 YK PICKUP ORDER\n` +
           `${mealName} from ${restName}\n` +
@@ -197,6 +240,15 @@ export async function POST(request: Request) {
           `app.yourkitchen.app/admin`
       await sendSMS(marquesPhone, marquesBody)
     }
+
+    // Wrist push (Pushover) + email backup (Resend) — fires on every confirmed order,
+    // independent of SMS, so an order is never missed when away from the computer.
+    const founderTitle = isPickup ? '🥡 New pickup order' : '🍽 New order to place'
+    const founderBody =
+      `${mealName} from ${restName}\n` +
+      `${mealType.charAt(0).toUpperCase() + mealType.slice(1)} · ${delivDate}\n` +
+      (isPickup ? 'Pickup — no courier, recipient grabs it' : `Deliver to: ${kitchen?.address || 'address on file'}`)
+    await notifyFounder(founderTitle, founderBody, 'https://app.yourkitchen.app/admin')
 
     // Notify coordinator — payment captured, meal is being arranged
     const coordPhone = (proposal as any).claims?.guest_coordinators?.phone
