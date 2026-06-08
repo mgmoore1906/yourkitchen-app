@@ -143,7 +143,7 @@ const totalDateCount = Object.keys(dateSlots).length
 const totalSlotCount = calendarDatesPayload.length
 
 const addressValid = form.street.trim().length > 3 && form.city.trim() && form.zip.trim().length >= 5
-const profileValid = form.full_name.trim() && form.phone.trim() && form.sms_consent
+const profileValid = form.full_name.trim() && form.phone.trim() && form.sms_consent && !!form.use_case
 
 const allSelectedWindowKeys = [...breakfastWindows, ...lunchWindows, ...dinnerWindows]
 const hasWindows = allSelectedWindowKeys.length > 0
