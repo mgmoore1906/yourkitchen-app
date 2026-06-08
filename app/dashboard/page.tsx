@@ -271,7 +271,7 @@ function FoundingRibbon() {
   )
 }
 
-function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, tier, router, userTier, onShare }: any) {
+function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, handleBulkAdd, tier, router, userTier, onShare }: any) {
 
   const today     = new Date()
   const todayStr  = today.toISOString().split('T')[0]
@@ -292,6 +292,59 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
   calDates.forEach((d:CalDate) => { if(!dateMap[d.date])dateMap[d.date]=[];dateMap[d.date].push(d) })
 
   const formatDate = (s:string) => new Date(s+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})
+
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkFrom, setBulkFrom] = useState('')
+  const [bulkTo, setBulkTo] = useState('')
+  const [bulkMeals, setBulkMeals] = useState<Set<string>>(new Set(['dinner']))
+  const [bulkDays, setBulkDays] = useState<'all'|'weekdays'|'weekends'>('all')
+  const [bulkBusy, setBulkBusy] = useState(false)
+  const [bulkMsg, setBulkMsg] = useState('')
+  const toggleBulkMeal = (mt:string) => setBulkMeals((prev:Set<string>)=>{ const n=new Set(prev); n.has(mt)?n.delete(mt):n.add(mt); return n })
+  const runBulkAdd = async () => {
+    if (!bulkFrom || !bulkTo || bulkMeals.size===0 || bulkBusy) return
+    setBulkBusy(true); setBulkMsg('')
+    const slots: {date:string;meal_type:string}[] = []
+    const start = new Date(bulkFrom+'T12:00:00'), end = new Date(bulkTo+'T12:00:00')
+    for (let dt = new Date(start); dt <= end; dt.setDate(dt.getDate()+1)) {
+      const dow = dt.getDay()
+      if (bulkDays==='weekdays' && (dow===0||dow===6)) continue
+      if (bulkDays==='weekends' && !(dow===0||dow===6)) continue
+      const ds = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+      bulkMeals.forEach((mt:string) => slots.push({ date: ds, meal_type: mt }))
+    }
+    const r = await handleBulkAdd(slots)
+    setBulkBusy(false)
+    setBulkMsg(`Opened ${r.added} slot${r.added!==1?'s':''}${r.skipped?` \u00b7 ${r.skipped} already open`:''}`)
+    setBulkFrom(''); setBulkTo('')
+    setTimeout(()=>setBulkMsg(''), 3000)
+  }
+
+  const [addRestOpen, setAddRestOpen] = useState(false)
+  const [restQuery, setRestQuery] = useState('')
+  const [restResults, setRestResults] = useState<any[]>([])
+  const [restSearching, setRestSearching] = useState(false)
+  const [restAdded, setRestAdded] = useState<Set<string>>(new Set())
+  const [restMsg, setRestMsg] = useState('')
+  const searchRest = async () => {
+    if (!restQuery.trim() || !kitchen?.latitude || !kitchen?.longitude) return
+    setRestSearching(true); setRestMsg('')
+    try {
+      const res = await fetch(`/api/restaurants/search?lat=${kitchen.latitude}&lng=${kitchen.longitude}&query=${encodeURIComponent(restQuery)}`)
+      const data = await res.json()
+      setRestResults(data.restaurants || [])
+    } catch { setRestResults([]) }
+    setRestSearching(false)
+  }
+  const addRest = async (place:any) => {
+    if (!kitchen) return
+    const res = await fetch('/api/restaurants/favorites', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ kitchen_id: kitchen.id, place_id: place.place_id, name: place.name, address: place.address, lat: place.lat, lng: place.lng }),
+    })
+    if (res.ok) { setRestAdded((prev:Set<string>)=>new Set(prev).add(place.place_id)); setRestMsg(`${place.name} added 🎉`) }
+    else { setRestMsg('Could not add — please try again') }
+  }
 
   return (
     <div style={{ padding:'16px 20px 16px',maxWidth:500,margin:'0 auto' }}>
@@ -340,6 +393,61 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           ))}
         </div>
       </div>
+
+      {/* Bulk open — pick a range + meals, open many days at once */}
+      <div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:16,padding:'14px 16px',marginBottom:14 }}>
+        <button onClick={()=>setBulkOpen((v:boolean)=>!v)} style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif" }}>
+          <span style={{ display:'flex',alignItems:'center',gap:8 }}>
+            <span style={{ fontSize:16 }}>🗓️</span>
+            <span style={{ fontSize:14,fontWeight:600,color:S.forest }}>Open multiple days</span>
+          </span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ transform:bulkOpen?'rotate(180deg)':'none',transition:'transform 0.2s' }}><path d="M6 9l6 6 6-6" stroke={S.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+        </button>
+        {bulkOpen && (
+          <div style={{ marginTop:14 }}>
+            <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 12px',lineHeight:1.5 }}>Pick a range and which meals — we&rsquo;ll open every matching day in one tap.</p>
+            <div style={{ display:'flex',gap:8,marginBottom:12 }}>
+              <div style={{ flex:1 }}>
+                <label style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',display:'block',marginBottom:4 }}>From</label>
+                <input type="date" value={bulkFrom} min={todayStr} onChange={e=>setBulkFrom(e.target.value)} style={{ width:'100%',padding:'9px 10px',borderRadius:9,border:`1px solid ${S.border}`,fontSize:13,color:S.forest,fontFamily:"'DM Sans',sans-serif",boxSizing:'border-box' }}/>
+              </div>
+              <div style={{ flex:1 }}>
+                <label style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',display:'block',marginBottom:4 }}>To</label>
+                <input type="date" value={bulkTo} min={bulkFrom||todayStr} onChange={e=>setBulkTo(e.target.value)} style={{ width:'100%',padding:'9px 10px',borderRadius:9,border:`1px solid ${S.border}`,fontSize:13,color:S.forest,fontFamily:"'DM Sans',sans-serif",boxSizing:'border-box' }}/>
+              </div>
+            </div>
+            <label style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',display:'block',marginBottom:6 }}>Meals</label>
+            <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:12 }}>
+              {Object.entries(MEAL_COLORS).map(([type,mc]:any)=>{
+                const on=bulkMeals.has(type)
+                return (
+                  <button key={type} onClick={()=>toggleBulkMeal(type)} style={{ background:on?mc.bg:S.white,border:`1.5px solid ${on?mc.color:S.border}`,borderRadius:9,padding:'9px 6px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
+                    <div style={{ fontSize:15,marginBottom:2 }}>{mc.emoji}</div>
+                    <div style={{ fontSize:11,fontWeight:600,color:on?mc.color:S.stone }}>{on?`✓ ${mc.label}`:mc.label}</div>
+                  </button>
+                )
+              })}
+            </div>
+            <label style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',display:'block',marginBottom:6 }}>Which days</label>
+            <div style={{ display:'flex',gap:6,marginBottom:14 }}>
+              {([['all','Every day'],['weekdays','Weekdays'],['weekends','Weekends']] as [string,string][]).map(([k,lbl])=>(
+                <button key={k} onClick={()=>setBulkDays(k as any)} style={{ flex:1,padding:'8px 4px',borderRadius:9,border:`1.5px solid ${bulkDays===k?S.sage:S.border}`,background:bulkDays===k?S.sageLight:S.white,fontSize:11.5,fontWeight:600,color:bulkDays===k?S.sage:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>{lbl}</button>
+              ))}
+            </div>
+            <button onClick={runBulkAdd} disabled={!bulkFrom||!bulkTo||bulkMeals.size===0||bulkBusy}
+              style={{ width:'100%',padding:'12px',borderRadius:10,border:'none',background:(!bulkFrom||!bulkTo||bulkMeals.size===0)?S.border:S.sage,color:S.white,fontSize:14,fontWeight:600,cursor:(!bulkFrom||!bulkTo||bulkMeals.size===0||bulkBusy)?'default':'pointer',fontFamily:"'DM Sans',sans-serif",opacity:bulkBusy?0.7:1 }}>
+              {bulkBusy?'Opening…':'Open these days'}
+            </button>
+            {bulkMsg&&<p style={{ fontSize:12,color:S.sage,fontWeight:600,textAlign:'center',margin:'10px 0 0' }}>{bulkMsg}</p>}
+          </div>
+        )}
+      </div>
+
+      {/* Quick add-a-restaurant — opens an in-app modal, no navigation */}
+      <button onClick={()=>{ setAddRestOpen(true); setRestResults([]); setRestQuery(''); setRestMsg('') }}
+        style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:S.sageLight,border:`1px dashed ${S.sageMid}`,borderRadius:14,padding:'13px',marginBottom:14,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",color:S.sage,fontSize:14,fontWeight:600 }}>
+        ＋ Add a restaurant
+      </button>
 
       {selectedDate && (
         <div style={{ background:S.white,border:`2px solid ${S.sage}`,borderRadius:16,padding:'16px',marginBottom:14 }}>
@@ -407,6 +515,41 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           <span style={{ fontSize:11,fontWeight:700,color:tier.color }}>Become a Founder ›</span>
         )}
       </button>
+
+      {addRestOpen && (
+        <div onClick={()=>setAddRestOpen(false)} style={{ position:'fixed',inset:0,background:'rgba(30,38,32,0.45)',zIndex:1000,display:'flex',alignItems:'flex-end',justifyContent:'center' }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:'#FAFAF5',width:'100%',maxWidth:500,maxHeight:'85vh',borderTopLeftRadius:22,borderTopRightRadius:22,overflowY:'auto',padding:'20px 18px 28px' }}>
+            <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6 }}>
+              <p style={{ fontFamily:"'Lora',serif",fontSize:18,fontWeight:500,color:S.forest,margin:0 }}>Add a restaurant</p>
+              <button onClick={()=>setAddRestOpen(false)} style={{ background:'none',border:'none',fontSize:20,color:S.stone,cursor:'pointer',padding:4 }}>✕</button>
+            </div>
+            <p style={{ fontSize:12.5,color:S.stone,fontWeight:300,margin:'0 0 14px',lineHeight:1.5 }}>Search near your address and add a spot — you won&rsquo;t leave this page.</p>
+            <div style={{ display:'flex',gap:8,marginBottom:14 }}>
+              <input value={restQuery} onChange={e=>setRestQuery(e.target.value)} onKeyDown={e=>{ if(e.key==='Enter') searchRest() }} placeholder="e.g. Thai, First Watch, tacos…" style={{ flex:1,padding:'11px 12px',borderRadius:10,border:`1px solid ${S.border}`,fontSize:14,color:S.forest,fontFamily:"'DM Sans',sans-serif",boxSizing:'border-box' }}/>
+              <button onClick={searchRest} disabled={restSearching||!restQuery.trim()} style={{ padding:'11px 16px',borderRadius:10,border:'none',background:S.sage,color:S.white,fontSize:14,fontWeight:600,cursor:restSearching?'default':'pointer',fontFamily:"'DM Sans',sans-serif",opacity:(restSearching||!restQuery.trim())?0.6:1 }}>{restSearching?'…':'Search'}</button>
+            </div>
+            {restMsg&&<p style={{ fontSize:12.5,color:S.sage,fontWeight:600,margin:'0 0 12px' }}>{restMsg}</p>}
+            <div style={{ display:'flex',flexDirection:'column',gap:8 }}>
+              {restResults.map((p:any)=>{
+                const added=restAdded.has(p.place_id)
+                return (
+                  <div key={p.place_id} style={{ display:'flex',alignItems:'center',gap:10,background:S.white,border:`1px solid ${added?S.sage:S.border}`,borderRadius:12,padding:'11px 13px' }}>
+                    <div style={{ flex:1,overflow:'hidden' }}>
+                      <div style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:600,color:S.forest,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{p.name}</div>
+                      <div style={{ fontSize:11.5,color:S.stone,fontWeight:300,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{p.address}{p.rating?` · ★ ${p.rating}`:''}</div>
+                    </div>
+                    <button onClick={()=>addRest(p)} disabled={added} style={{ flexShrink:0,padding:'8px 14px',borderRadius:9,border:'none',background:added?S.sageLight:S.forest,color:added?S.sage:S.white,fontSize:12.5,fontWeight:700,cursor:added?'default':'pointer',fontFamily:"'DM Sans',sans-serif" }}>{added?'✓ Added':'Add'}</button>
+                  </div>
+                )
+              })}
+              {!restSearching&&restQuery&&restResults.length===0&&<p style={{ fontSize:12.5,color:S.stone,fontWeight:300,textAlign:'center',padding:'8px 0' }}>No matches yet — try a different search.</p>}
+            </div>
+            {restAdded.size>0&&(
+              <button onClick={()=>{ setAddRestOpen(false); router.push('/kitchen/restaurants') }} style={{ width:'100%',marginTop:16,padding:'12px',borderRadius:10,border:`1px solid ${S.sage}`,background:S.white,color:S.sage,fontSize:13.5,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Set their favorite meals &amp; prices →</button>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -1171,6 +1314,17 @@ export default function DashboardPage() {
     await loadCalDates(kitchen.id); setAdding(false)
   }
 
+  const handleBulkAdd = async (slots: {date:string; meal_type:string}[]) => {
+    if (!kitchen || slots.length===0) return { added:0, skipped:0 }
+    const res = await fetch('/api/calendar', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ kitchen_id: kitchen.id, slots }),
+    })
+    const data = await res.json().catch(()=>({}))
+    await loadCalDates(kitchen.id)
+    return { added: data.added || 0, skipped: data.skipped || 0 }
+  }
+
   const handleRemoveSlot = async (dateId: string) => {
     await fetch('/api/calendar', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ date_id: dateId }) })
     if (kitchen) await loadCalDates(kitchen.id)
@@ -1283,7 +1437,7 @@ export default function DashboardPage() {
                 </span>
               </div>
             )}
-            {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier} onShare={handleShare}/>}
+            {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier} handleBulkAdd={handleBulkAdd} onShare={handleShare}/>}
             {activeTab==='activity' && <ActivityTab proposals={allProposals} router={router}/>}
             {activeTab==='insights' && <InsightsTab proposals={allProposals} kitchenName={kitchen.name}/>}
             {activeTab==='share'    && <ShareTab kitchenUrl={kitchenUrl} kitchen={kitchen} restaurantCount={restaurantCount} router={router} proposals={allProposals}/>}
