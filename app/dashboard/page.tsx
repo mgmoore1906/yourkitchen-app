@@ -1234,7 +1234,7 @@ export default function DashboardPage() {
       setUserTier(profile?.tier || 'free')
 
       const { data: kitchens } = await supabase.from('kitchens')
-        .select('id, name, slug, address, household_size')
+        .select('id, name, slug, address, household_size, latitude, longitude')
         .eq('organizer_id', user.id)
         .order('created_at', { ascending: false }).limit(1)
       const k = kitchens?.[0] || null
