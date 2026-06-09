@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 
@@ -93,6 +93,35 @@ const nextMonth = () => { if (viewMonth === 11) { setViewYear(y => y + 1); setVi
 const cells: (number | null)[] = []
 for (let i = 0; i < firstDay; i++) cells.push(null)
 for (let d = 1; d <= daysInMonth; d++) cells.push(d)
+
+// Tap-and-slide multi-date selection (mirrors the dashboard calendar)
+const paintingRef = useRef(false)
+const dragMovedRef = useRef(false)
+const [paintSet, setPaintSet] = useState<Set<string>>(new Set())
+const [rangeMeals, setRangeMeals] = useState<Set<string>>(new Set(['dinner']))
+const toggleRangeMeal = (mt: string) => setRangeMeals(prev => { const n = new Set(prev); n.has(mt) ? n.delete(mt) : n.add(mt); return n })
+const dateAtPoint = (x: number, y: number): string | null => {
+const el = document.elementFromPoint(x, y) as HTMLElement | null
+const cell = el?.closest?.('[data-cal-date]') as HTMLElement | null
+if (!cell || cell.getAttribute('data-cal-past') === '1') return null
+return cell.getAttribute('data-cal-date')
+}
+const beginPaint = (dt: string | null) => { if (!dt) return; paintingRef.current = true; dragMovedRef.current = false; setPaintSet(new Set([dt])) }
+const extendPaint = (x: number, y: number) => {
+if (!paintingRef.current) return
+const dt = dateAtPoint(x, y); if (!dt) return
+setPaintSet(prev => { if (prev.has(dt)) return prev; const n = new Set(prev); n.add(dt); if (n.size > 1) dragMovedRef.current = true; return n })
+}
+const finishPaint = () => { if (!paintingRef.current) return; paintingRef.current = false; if (!dragMovedRef.current) setPaintSet(new Set()) }
+const applyRangeMeals = () => {
+if (paintSet.size === 0 || rangeMeals.size === 0) return
+setDateSlots(prev => { const next = { ...prev }; paintSet.forEach(dt => { next[dt] = [...new Set([...(next[dt] || []), ...rangeMeals])] }); return next })
+setPaintSet(new Set()); dragMovedRef.current = false
+}
+const clearPaintedDays = () => {
+setDateSlots(prev => { const next = { ...prev }; paintSet.forEach(dt => { delete next[dt] }); return next })
+setPaintSet(new Set()); dragMovedRef.current = false
+}
 
 useEffect(() => {
 setMounted(true)
@@ -370,7 +399,7 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 <div>
 <p style={eyebrow}>Step 3 of 6</p>
 <h1 style={title}>Which days do you<br />need meals?</h1>
-<p style={sub}>Tap a date, then choose which meals you need. Your village sees these as open.</p>
+<p style={sub}>Tap a date — or drag across several — then pick which meals. Your village sees these as open.</p>
 
 <div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 16, padding: 18, marginBottom: 16 }}>
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
@@ -381,25 +410,30 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3, marginBottom: 4 }}>
 {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d => <div key={d} style={{ textAlign: 'center', fontSize: 11, fontWeight: 600, color: S.stone, padding: '2px 0' }}>{d}</div>)}
 </div>
-<div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3 }}>
+<div
+onPointerDown={(e: any) => { const dt = dateAtPoint(e.clientX, e.clientY); if (dt) beginPaint(dt) }}
+onPointerMove={(e: any) => { if (paintingRef.current) { e.preventDefault(); extendPaint(e.clientX, e.clientY) } }}
+onPointerUp={finishPaint} onPointerCancel={finishPaint}
+style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 3, touchAction: 'none', userSelect: 'none', WebkitUserSelect: 'none' }}>
 {cells.map((day, i) => {
 if (!day) return <div key={i} />
 const dateStr = `${viewYear}-${String(viewMonth + 1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
 const isPast = dateStr <= todayStr
 const isToday = dateStr === todayStr
 const isPicker = pickerDate === dateStr
+const isPaint = paintSet.has(dateStr)
 const slots = dateSlots[dateStr] || []
 const hasSlots = slots.length > 0
 return (
-<button key={i} onClick={() => { if (!isPast) setPickerDate(isPicker ? null : dateStr) }} disabled={isPast}
+<button key={i} data-cal-date={dateStr} data-cal-past={isPast ? '1' : '0'} onClick={() => { if (dragMovedRef.current) { dragMovedRef.current = false; return } if (!isPast) setPickerDate(isPicker ? null : dateStr) }} disabled={isPast}
 style={{
-background: isPicker ? S.sageLight : hasSlots ? '#F8FAF8' : S.white,
-border: isPicker ? `2px solid ${S.sage}` : isToday ? `2px solid ${S.sageMid}` : hasSlots ? `1px solid #C8DDD0` : '1px solid transparent',
+background: (isPicker || isPaint) ? S.sageLight : hasSlots ? '#F8FAF8' : S.white,
+border: (isPicker || isPaint) ? `2px solid ${S.sage}` : isToday ? `2px solid ${S.sageMid}` : hasSlots ? `1px solid #C8DDD0` : '1px solid transparent',
 borderRadius: 10, padding: '8px 2px', minHeight: 'clamp(44px,12vw,56px)', cursor: isPast ? 'default' : 'pointer',
 display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3,
 fontFamily: "'DM Sans', sans-serif", opacity: isPast ? 0.3 : 1,
 }}>
-<span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: isPicker ? S.sage : S.forest, lineHeight: 1 }}>{day}</span>
+<span style={{ fontSize: 13, fontWeight: isToday ? 700 : 500, color: (isPicker || isPaint) ? S.sage : S.forest, lineHeight: 1 }}>{day}</span>
 {hasSlots ? (
 <div style={{ display: 'flex', gap: 2, flexWrap: 'wrap', justifyContent: 'center' }}>
 {slots.map((m, mi) => <div key={mi} style={{ width: 6, height: 6, borderRadius: '50%', background: MEAL_BADGE[m]?.color || S.sage }} />)}
@@ -418,6 +452,37 @@ fontFamily: "'DM Sans', sans-serif", opacity: isPast ? 0.3 : 1,
 ))}
 </div>
 </div>
+
+{paintSet.size > 1 && (
+<div style={{ background: S.white, border: `2px solid ${S.sage}`, borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
+<div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+<p style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 500, color: S.forest, margin: 0 }}>{paintSet.size} days selected</p>
+<button onClick={() => { setPaintSet(new Set()); dragMovedRef.current = false }} aria-label="Cancel selection" style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 16, color: S.stone, padding: '4px 6px' }}>✕</button>
+</div>
+<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 12px' }}>Which meals do you need on these days?</p>
+<div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: 12 }}>
+{(['breakfast', 'lunch', 'dinner'] as const).map(mealType => {
+const mb = MEAL_BADGE[mealType]
+const isOn = rangeMeals.has(mealType)
+return (
+<button key={mealType} onClick={() => toggleRangeMeal(mealType)}
+style={{ background: isOn ? mb.bg : S.white, border: `2px solid ${isOn ? mb.color : S.border}`, borderRadius: 10, padding: '12px 8px', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif", textAlign: 'center' }}>
+<div style={{ fontSize: 18, marginBottom: 4 }}>{mb.label.split(' ')[0]}</div>
+<div style={{ fontSize: 11, fontWeight: 600, color: isOn ? mb.color : S.stone }}>{isOn ? '✓ ' + mb.label.split(' ')[1] : mb.label.split(' ')[1]}</div>
+</button>
+)
+})}
+</div>
+<button onClick={applyRangeMeals} disabled={rangeMeals.size === 0}
+style={{ width: '100%', padding: '13px', borderRadius: 10, border: 'none', background: rangeMeals.size === 0 ? S.border : S.sage, color: S.white, fontSize: 14, fontWeight: 600, cursor: rangeMeals.size === 0 ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+Open these {paintSet.size} days
+</button>
+<button onClick={clearPaintedDays}
+style={{ width: '100%', padding: '10px', marginTop: 8, borderRadius: 10, border: `1.5px solid ${S.border}`, background: S.white, color: S.stone, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+Clear all meals on these days
+</button>
+</div>
+)}
 
 {pickerDate && (
 <div style={{ background: S.white, border: `2px solid ${S.sage}`, borderRadius: 14, padding: '16px 18px', marginBottom: 16 }}>
@@ -439,6 +504,12 @@ style={{ background: isOn ? mb.bg : S.white, border: `2px solid ${isOn ? mb.colo
 )
 })}
 </div>
+{(dateSlots[pickerDate] || []).length > 0 && (
+<button onClick={() => { setDateSlots(prev => { const next = { ...prev }; delete next[pickerDate as string]; return next }); setPickerDate(null) }}
+style={{ width: '100%', marginTop: 12, padding: '10px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: S.white, color: S.stone, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+Clear this day
+</button>
+)}
 </div>
 )}
 
