@@ -139,6 +139,7 @@ lat: place.lat, lng: place.lng,
 const data = await res.json()
 if (data.success) {
 const updated = await loadRestaurants(kitchenId)
+setListOpen(true)
 setSaveMsg(`${place.name} added!`)
 setTimeout(() => setSaveMsg(''), 3000)
 setSearchResults(prev => prev.filter(r => r.place_id !== place.place_id))
@@ -254,7 +255,7 @@ setRestaurants(prev => prev.map(r => r.id === restaurantId
 }
 
 const alreadySaved = (place: PlaceResult) =>
-restaurants.some(r => r.place_id === place.place_id || r.name.toLowerCase() === place.name.toLowerCase())
+restaurants.some(r => !!place.place_id && r.place_id === place.place_id)
 
 if (loading) return (
 <div style={{ minHeight: '100vh', background: S.cream, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 16, fontFamily: "'DM Sans', sans-serif" }}>
