@@ -158,12 +158,12 @@ function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onS
   const initial = (name || '?').charAt(0).toUpperCase()
   const items = [
     { label: 'My Restaurants',   action: () => router.push('/kitchen/restaurants') },
-    { label: 'Order History',    action: () => router.push('/kitchen/orders') },
-    { label: 'Settings',         action: () => router.push('/settings') },
     { label: 'Delivery Times',   action: () => router.push('/kitchen/delivery') },
+    { label: 'Order History',    action: () => router.push('/kitchen/orders') },
     { label: 'Plans & Pricing',  action: () => router.push('/tiers') },
     { label: 'Share Your Kitchen', action: onShare },
     { label: 'Refresh',          action: onRefresh },
+    { label: 'Settings',         action: () => router.push('/settings') },
     { label: 'About & Help',     action: () => router.push('/help') },
   ]
   return (
