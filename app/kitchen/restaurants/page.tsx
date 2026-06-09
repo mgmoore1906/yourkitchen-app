@@ -62,6 +62,7 @@ const [newMealName, setNewMealName] = useState<Record<string, string>>({})
 const [newMealPrice, setNewMealPrice] = useState<Record<string, string>>({})
 const [newMealCategory, setNewMealCategory] = useState<Record<string, 'adult'|'kids'>>({})
 const [newMealNote, setNewMealNote] = useState<Record<string, string>>({})
+const [editMeal, setEditMeal] = useState<{ rId: string; idx: number; name: string; price: string; category: 'adult'|'kids'; note: string } | null>(null)
 const [savingMeals, setSavingMeals] = useState<string | null>(null)
 const [deleting, setDeleting] = useState<string | null>(null)
 const [shakingLimit, setShakingLimit] = useState(false)
@@ -254,6 +255,26 @@ setRestaurants(prev => prev.map(r => r.id === restaurantId
 ? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes } : r))
 }
 
+const startEditMeal = (r: any, i: number) => {
+setEditMeal({ rId: r.id, idx: i, name: r.favorite_meals?.[i] || '', price: String(r.favorite_meal_prices?.[i] ?? ''), category: (r.favorite_meal_categories?.[i] === 'kids' ? 'kids' : 'adult'), note: r.favorite_meal_notes?.[i] || '' })
+}
+const saveEditMeal = async (restaurantId: string) => {
+if (!editMeal) return
+const name = editMeal.name.trim()
+if (!name) return
+const rest = restaurants.find(r => r.id === restaurantId)!
+const i = editMeal.idx
+const price = parseFloat(editMeal.price || '0') || 15
+const meals = [...(rest.favorite_meals || [])]; meals[i] = name
+const prices = [...(rest.favorite_meal_prices || [])]; prices[i] = price
+const cats = [...(rest.favorite_meal_categories || [])]; cats[i] = editMeal.category
+const notes = [...(rest.favorite_meal_notes || [])]; notes[i] = editMeal.note.trim()
+setSavingMeals(restaurantId)
+await fetch('/api/restaurants/favorites', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: meals, favorite_meal_prices: prices, favorite_meal_categories: cats, favorite_meal_notes: notes }) })
+setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, favorite_meals: meals, favorite_meal_prices: prices, favorite_meal_categories: cats, favorite_meal_notes: notes } : r))
+setSavingMeals(null)
+setEditMeal(null)
+}
 const alreadySaved = (place: PlaceResult) =>
 restaurants.some(r => !!place.place_id && r.place_id === place.place_id)
 
@@ -406,21 +427,57 @@ Exact dish names + prices. Tag adult or kids so your village sees them in the ri
 {r.favorite_meals.map((meal, i) => {
 const cat = (r.favorite_meal_categories?.[i] || 'adult')
 const isKids = cat === 'kids'
+const isEditing = !!editMeal && editMeal.rId === r.id && editMeal.idx === i
 return (
 <div key={i} style={{ background: isKids ? S.amberLight : S.sageLight, border: `1px solid ${isKids ? S.amber : S.sage}`, borderRadius: 10, padding: '8px 12px' }}>
+{isEditing ? (
+<div>
+<div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+{(['adult','kids'] as const).map(c2 => (
+<button key={c2} onClick={() => setEditMeal(m => m ? { ...m, category: c2 } : m)}
+style={{ flex: 1, padding: '8px', borderRadius: 9, border: `1.5px solid ${editMeal!.category===c2?(c2==='adult'?S.sage:S.amber):S.border}`, background: editMeal!.category===c2?(c2==='adult'?S.sageLight:S.amberLight):S.white, color: editMeal!.category===c2?(c2==='adult'?S.sage:S.amber):S.stone, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{c2==='adult'?'👤 Adult':'🧒 Kids'}
+</button>
+))}
+</div>
+<div style={{ display: 'flex', gap: 8 }}>
+<input value={editMeal!.name} onChange={e => setEditMeal(m => m ? { ...m, name: e.target.value } : m)} onKeyDown={e => e.key==='Enter'&&saveEditMeal(r.id)} autoFocus
+style={{ flex: 1, padding: '9px 11px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+<div style={{ position: 'relative', flexShrink: 0 }}>
+<span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: S.stone }}>$</span>
+<input type="number" value={editMeal!.price} onChange={e => setEditMeal(m => m ? { ...m, price: e.target.value } : m)} onKeyDown={e => e.key==='Enter'&&saveEditMeal(r.id)}
+style={{ width: 76, padding: '9px 10px 9px 22px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+</div>
+</div>
+<input value={editMeal!.note} onChange={e => setEditMeal(m => m ? { ...m, note: e.target.value } : m)} onKeyDown={e => e.key==='Enter'&&saveEditMeal(r.id)}
+placeholder="How they like it — e.g. no onions, sub wheat toast"
+style={{ width: '100%', boxSizing: 'border-box', marginTop: 8, padding: '9px 11px', borderRadius: 9, border: `1.5px dashed ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+<div style={{ display: 'flex', gap: 8, marginTop: 8 }}>
+<button onClick={() => saveEditMeal(r.id)} disabled={!editMeal!.name.trim()||savingMeals===r.id}
+style={{ flex: 1, padding: '9px', borderRadius: 9, border: 'none', background: !editMeal!.name.trim()?S.border:S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !editMeal!.name.trim()?'default':'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{savingMeals===r.id?'Saving…':'Save changes'}
+</button>
+<button onClick={() => setEditMeal(null)}
+style={{ padding: '9px 16px', borderRadius: 9, border: `1.5px solid ${S.border}`, background: S.white, color: S.stone, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+Cancel
+</button>
+</div>
+</div>
+) : (<>
 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 <span style={{ fontSize: 14 }}>{isKids ? '🧒' : '👤'}</span>
-<span style={{ flex: 1, fontSize: 13, color: S.forest, fontWeight: 500 }}>{meal}</span>
+<button onClick={() => startEditMeal(r, i)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, color: S.forest, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>{meal}</button>
 <span style={{ fontSize: 11, fontWeight: 700, color: isKids ? S.amber : S.sage, background: S.white, borderRadius: 20, padding: '2px 7px' }}>{isKids ? 'KIDS' : 'ADULT'}</span>
 <span style={{ fontSize: 13, fontWeight: 700, color: isKids ? S.amber : S.sage }}>${(r.favorite_meal_prices[i] || 15).toFixed(2)}</span>
-<button onClick={() => removeMeal(r.id, i)}
-aria-label="Remove this meal" style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 14, padding: '2px 6px' }}>✕</button>
+<button onClick={() => startEditMeal(r, i)} aria-label="Edit this meal" style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 13, padding: '2px 5px' }}>✎</button>
+<button onClick={() => removeMeal(r.id, i)} aria-label="Remove this meal" style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 14, padding: '2px 6px' }}>✕</button>
 </div>
 {(r.favorite_meal_notes?.[i] || '').trim() && (
-<div style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, marginTop: 5, paddingLeft: 22, lineHeight: 1.5, fontStyle: 'italic' }}>
+<div onClick={() => startEditMeal(r, i)} style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, marginTop: 5, paddingLeft: 22, lineHeight: 1.5, fontStyle: 'italic', cursor: 'pointer' }}>
 &ldquo;{r.favorite_meal_notes[i]}&rdquo;
 </div>
 )}
+</>)}
 </div>
 )
 })}
