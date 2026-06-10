@@ -912,6 +912,29 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
     else { copyLink() }
   }
 
+  // ── Share card image (the graphic that unfurls / gets posted to feeds) ──
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const cardPreview  = `${origin}/k/${kitchen.slug}/opengraph-image`
+  const cardDownload = `${origin}/api/card/${kitchen.slug}`
+  const [savingCard, setSavingCard] = useState(false)
+  const shareCard = async () => {
+    setSavingCard(true)
+    try {
+      const res = await fetch(cardDownload)
+      const blob = await res.blob()
+      const file = new File([blob], `${kitchen.slug}-yourkitchen.png`, { type:'image/png' })
+      const nav: any = navigator
+      if (nav.canShare && nav.canShare({ files:[file] })) {
+        await nav.share({ files:[file], title:kitchen.name, text:'Send my family a meal 🧡' })
+      } else {
+        const u = URL.createObjectURL(blob)
+        const a = document.createElement('a'); a.href=u; a.download=file.name
+        document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(u)
+      }
+    } catch { window.open(cardDownload,'_blank') }
+    setSavingCard(false)
+  }
+
   // Monochrome social SVGs — same stroke weight as rest of app
   const sv = { strokeWidth:'1.7', strokeLinecap:'round' as const, strokeLinejoin:'round' as const, fill:'none' }
   const SvgWA = () => <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z" stroke={S.stone} {...sv}/></svg>
@@ -957,6 +980,18 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
           </button>
           <button onClick={shareNative} style={{ padding:'12px 20px',background:S.sageLight,color:S.sage,border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:44 }}>Share</button>
         </div>
+      </div>
+
+      {/* ── Share card (the graphic that unfurls / gets posted) ── */}
+      <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px 18px',marginBottom:12 }}>
+        <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 12px' }}>Your share card</p>
+        <div style={{ borderRadius:12,overflow:'hidden',border:`0.5px solid ${S.border}`,marginBottom:12,aspectRatio:'1200 / 630',background:S.sageLight }}>
+          <img src={cardPreview} alt="Your kitchen share card" width={1200} height={630} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }}/>
+        </div>
+        <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 12px',lineHeight:1.5 }}>This is what unfurls when you share your link — and you can post it straight to Instagram or Facebook.</p>
+        <button onClick={shareCard} disabled={savingCard} style={{ width:'100%',padding:'12px',background:savingCard?S.sageLight:S.forest,color:savingCard?S.sage:S.white,border:'none',borderRadius:10,fontSize:14,fontWeight:600,cursor:savingCard?'default':'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:44 }}>
+          {savingCard?'Preparing…':'Save / share card 🧡'}
+        </button>
       </div>
 
       {/* ── Social share ── */}
@@ -1499,7 +1534,7 @@ export default function DashboardPage() {
     <div style={{ display:'flex',flexDirection:'column',height:'100vh',background:S.cream,fontFamily:"'DM Sans',sans-serif",overflow:'hidden' }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
 
-      {drawerOpen && <Drawer name={fullName} tier={tier} kitchenUrl={kitchenUrl} recipientName={firstName} onClose={()=>setDrawerOpen(false)} onSignOut={signOut} onShare={handleShare} onRefresh={handleRefresh} router={router}/>}
+      {drawerOpen && <Drawer name={fullName} tier={tier} kitchenUrl={kitchenUrl} recipientName={firstName} onClose={()=>setDrawerOpen(false)} onSignOut={signOut} onShare={()=>setActiveTab('share')} onRefresh={handleRefresh} router={router}/>}
       {notifOpen  && <NotifPanel proposals={allProposals} onClose={()=>setNotifOpen(false)} router={router}/>}
 
       {/* Top Bar */}
