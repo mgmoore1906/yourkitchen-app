@@ -491,42 +491,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           </button>
           {rangeMsg&&<p style={{ fontSize:12,color:S.sage,fontWeight:600,textAlign:'center',margin:'10px 0 0' }}>{rangeMsg}</p>}
         </div>
-      )}
-
-      {/* Bulk open — pick a range + meals, open many days at once */}
-      <div style={{ background:S.white,border:`1px solid ${S.border}`,borderRadius:16,padding:'14px 16px',marginBottom:14 }}>
-        <button onClick={()=>setBulkOpen((v:boolean)=>!v)} style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif" }}>
-          <span style={{ display:'flex',alignItems:'center',gap:8 }}>
-            <span style={{ fontSize:16 }}>🗓️</span>
-            <span style={{ fontSize:14,fontWeight:600,color:S.forest }}>Open multiple days</span>
-          </span>
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" style={{ transform:bulkOpen?'rotate(180deg)':'none',transition:'transform 0.2s' }}><path d="M6 9l6 6 6-6" stroke={S.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-        </button>
-        {bulkOpen && (
-          <div style={{ marginTop:14 }}>
-            <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'0 0 12px',lineHeight:1.5 }}>Pick a range and which meals — we&rsquo;ll open every matching day in one tap.</p>
-            <div style={{ display:'flex',gap:8,marginBottom:12 }}>
-              <div style={{ flex:1 }}>
-                <label style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',display:'block',marginBottom:4 }}>From</label>
-                <input type="date" value={bulkFrom} min={todayStr} onChange={e=>setBulkFrom(e.target.value)} style={{ width:'100%',padding:'9px 10px',borderRadius:9,border:`1px solid ${S.border}`,fontSize:13,color:S.forest,fontFamily:"'DM Sans',sans-serif",boxSizing:'border-box' }}/>
-              </div>
-              <div style={{ flex:1 }}>
-                <label style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',display:'block',marginBottom:4 }}>To</label>
-                <input type="date" value={bulkTo} min={bulkFrom||todayStr} onChange={e=>setBulkTo(e.target.value)} style={{ width:'100%',padding:'9px 10px',borderRadius:9,border:`1px solid ${S.border}`,fontSize:13,color:S.forest,fontFamily:"'DM Sans',sans-serif",boxSizing:'border-box' }}/>
-              </div>
-            </div>
-            <label style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',display:'block',marginBottom:6 }}>Meals</label>
-            <div style={{ display:'grid',gridTemplateColumns:'repeat(3,1fr)',gap:6,marginBottom:12 }}>
-              {Object.entries(MEAL_COLORS).map(([type,mc]:any)=>{
-                const on=bulkMeals.has(type)
-                return (
-                  <button key={type} onClick={()=>toggleBulkMeal(type)} style={{ background:on?mc.bg:S.white,border:`1.5px solid ${on?mc.color:S.border}`,borderRadius:9,padding:'9px 6px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
-                    <div style={{ fontSize:15,marginBottom:2 }}>{mc.emoji}</div>
-                    <div style={{ fontSize:11,fontWeight:600,color:on?mc.color:S.stone }}>{on?`✓ ${mc.label}`:mc.label}</div>
-                  </button>
-                )
-              })}
-            </div>
+           </div>
             <label style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',display:'block',marginBottom:6 }}>Which days</label>
             <div style={{ display:'flex',gap:6,marginBottom:14 }}>
               {([['all','Every day'],['weekdays','Weekdays'],['weekends','Weekends']] as [string,string][]).map(([k,lbl])=>(
@@ -541,14 +506,8 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           </div>
         )}
       </div>
-
-      {/* Quick add-a-restaurant — opens an in-app modal, no navigation */}
-      <button onClick={()=>{ setAddRestOpen(true); setRestResults([]); setRestQuery(''); setRestMsg('') }}
-        style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'center',gap:8,background:S.sageLight,border:`1px dashed ${S.sageMid}`,borderRadius:14,padding:'13px',marginBottom:14,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",color:S.sage,fontSize:14,fontWeight:600 }}>
-        ＋ Add a restaurant
-      </button>
-
-      {selectedDate && (
+     
+        {selectedDate && (
         <div style={{ background:S.white,border:`2px solid ${S.sage}`,borderRadius:16,padding:'16px',marginBottom:14 }}>
           <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12 }}>
             <div>
