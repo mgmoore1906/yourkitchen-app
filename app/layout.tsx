@@ -14,6 +14,7 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL("https://app.yourkitchen.app"),
   title: "YourKitchen — Meals from your village",
   description: "Coordinate meals for someone you love. Family and friends pick the date. Recipient picks the food. YourKitchen handles the rest.",
 };
