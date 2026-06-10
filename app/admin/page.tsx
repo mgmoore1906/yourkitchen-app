@@ -316,7 +316,7 @@ function AnalyticsTab() {
 
 // ── Dispatch tab ──────────────────────────────────────────────────────────────
 function DispatchTab(props: any) {
-  const { orders, loading, filter, setFilter, dispatching, cancelling, msgs, cancelReasons, setCancelReasons, handleDispatch, handleCancel } = props
+  const { orders, loading, filter, setFilter, dispatching, cancelling, msgs, cancelReasons, setCancelReasons, cancelType, setCancelType, cancelListed, setCancelListed, cancelCorrect, setCancelCorrect, handleDispatch, handleCancel } = props
   const needsDispatch = (o: Order) => (!o.delivery_status || o.delivery_status === 'awaiting_dispatch') && !o.is_pickup
 
   const todayOrders = orders.filter((o: Order) => o.delivery_date === TODAY).sort(sortByMealType)
@@ -478,15 +478,31 @@ function DispatchTab(props: any) {
                     {(isAwaiting || isPickupOrder) && (
                         <div style={{ borderTop: `0.5px solid ${S.border}`, paddingTop: 12 }}>
                           <p style={{ fontSize: 11, fontWeight: 700, color: S.stone, letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 8px' }}>Cancel order</p>
-                          <div style={{ display: 'flex', gap: 8 }}>
-                            <input value={cancelReasons[order.id] || ''} onChange={(e: any) => setCancelReasons((r: any) => ({ ...r, [order.id]: e.target.value }))} placeholder="Reason (e.g. restaurant closed)"
-                              style={{ flex: 1, padding: '9px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans',sans-serif", color: S.forest, outline: 'none' }} />
-                            <button onClick={() => handleCancel(order.id)} disabled={isDispatching_ || isCancelling_}
-                              style={{ padding: '9px 16px', borderRadius: 9, border: `1.5px solid ${S.red}`, background: isCancelling_ ? S.border : S.redLight, color: isCancelling_ ? S.stone : S.red, fontSize: 13, fontWeight: 600, cursor: isCancelling_ ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif", flexShrink: 0 }}>
-                              {isCancelling_ ? '⏳' : '✕ Cancel'}
-                            </button>
+                          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}>
+                            {([['price_mismatch','Price mismatch'],['item_unavailable','Item unavailable'],['restaurant_unavailable','Restaurant closed'],['other','Other']] as any).map(([code, label]: any) => {
+                              const on = (cancelType[order.id] || 'other') === code
+                              return (
+                                <button key={code} onClick={() => setCancelType((t: any) => ({ ...t, [order.id]: code }))}
+                                  style={{ padding: '6px 11px', borderRadius: 20, border: `1.5px solid ${on ? S.red : S.border}`, background: on ? S.redLight : S.white, color: on ? S.red : S.stone, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>{label}</button>
+                              )
+                            })}
                           </div>
-                          <p style={{ fontSize: 11, color: S.stone, margin: '6px 0 0', fontWeight: 300 }}>Voids charge · re-opens calendar date · SMS both parties</p>
+                          {(cancelType[order.id] || 'other') === 'price_mismatch' ? (
+                            <div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+                              <input value={cancelListed[order.id] || ''} onChange={(e: any) => setCancelListed((r: any) => ({ ...r, [order.id]: e.target.value }))} placeholder="Listed $ (opt)" inputMode="decimal"
+                                style={{ flex: 1, minWidth: 0, padding: '9px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans',sans-serif", color: S.forest, outline: 'none' }} />
+                              <input value={cancelCorrect[order.id] || ''} onChange={(e: any) => setCancelCorrect((r: any) => ({ ...r, [order.id]: e.target.value }))} placeholder="Correct $ *" inputMode="decimal"
+                                style={{ flex: 1, minWidth: 0, padding: '9px 12px', borderRadius: 9, border: `1.5px solid ${S.red}`, fontSize: 13, fontFamily: "'DM Sans',sans-serif", color: S.forest, outline: 'none' }} />
+                            </div>
+                          ) : (
+                            <input value={cancelReasons[order.id] || ''} onChange={(e: any) => setCancelReasons((r: any) => ({ ...r, [order.id]: e.target.value }))} placeholder="Note (optional)"
+                              style={{ width: '100%', boxSizing: 'border-box', padding: '9px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans',sans-serif", color: S.forest, outline: 'none', marginBottom: 8 }} />
+                          )}
+                          <button onClick={() => handleCancel(order.id)} disabled={isDispatching_ || isCancelling_}
+                            style={{ width: '100%', padding: '10px 16px', borderRadius: 9, border: `1.5px solid ${S.red}`, background: isCancelling_ ? S.border : S.redLight, color: isCancelling_ ? S.stone : S.red, fontSize: 13, fontWeight: 600, cursor: isCancelling_ ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                            {isCancelling_ ? '⏳ Cancelling…' : '✕ Cancel order'}
+                          </button>
+                          <p style={{ fontSize: 11, color: S.stone, margin: '6px 0 0', fontWeight: 300 }}>{(cancelType[order.id] || 'other') === 'price_mismatch' ? 'Corrects the saved price · re-opens date · emails the coordinator to resend' : 'Voids charge · re-opens date · SMS both parties'}</p>
                         </div>
                     )}
 
@@ -515,6 +531,9 @@ export default function AdminPage() {
   const [authErr, setAuthErr] = useState('')
   const [filter, setFilter] = useState<Filter>('today')
   const [cancelReasons, setCancelReasons] = useState<Record<string, string>>({})
+  const [cancelType, setCancelType] = useState<Record<string, string>>({})
+  const [cancelListed, setCancelListed] = useState<Record<string, string>>({})
+  const [cancelCorrect, setCancelCorrect] = useState<Record<string, string>>({})
   const [view, setView] = useState<AdminView>('dispatch')
   const [refreshTick, setRefreshTick] = useState(0)
   const [backfilling, setBackfilling] = useState(false)
@@ -570,15 +589,20 @@ export default function AdminPage() {
   }
 
   const handleCancel = async (orderId: string) => {
-    const reason = cancelReasons[orderId]?.trim() || 'Order cancelled'
-    if (!confirm(`Cancel this order?\n\nReason: ${reason}\n\nThis will void the charge and SMS both parties.`)) return
+    const code = cancelType[orderId] || 'other'
+    const REASON_TEXT: Record<string, string> = { price_mismatch: 'Menu price was out of date', item_unavailable: 'Item was unavailable', restaurant_unavailable: 'Restaurant was unavailable', other: cancelReasons[orderId]?.trim() || 'Order cancelled' }
+    const reason = REASON_TEXT[code]
+    if (code === 'price_mismatch' && !(cancelCorrect[orderId] || '').trim()) { setMsgs(m => ({ ...m, [orderId]: '❌ Enter the correct price first' })); return }
+    const emailNote = code === 'price_mismatch' ? '\n\nWe will correct the saved menu price and email the coordinator to resend.' : ''
+    if (!confirm(`Cancel this order?\n\nReason: ${reason}${emailNote}\n\nThis voids the charge and notifies both parties.`)) return
     setCancelling(orderId); setMsgs(m => ({ ...m, [orderId]: '' }))
     try {
-      const res = await fetch('/api/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret }, body: JSON.stringify({ proposal_id: orderId, reason }) })
+      const res = await fetch('/api/cancel', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret }, body: JSON.stringify({ proposal_id: orderId, reason, reason_code: code, listed_price: cancelListed[orderId] || null, correct_price: cancelCorrect[orderId] || null }) })
       const data = await res.json()
       if (res.ok) {
         const note = data.stripeResult === 'refunded' ? ' · Refund issued' : data.stripeResult === 'authorization_cancelled' ? ' · Card not charged' : ''
-        setMsgs(m => ({ ...m, [orderId]: `✅ Cancelled${note}` })); await loadOrders()
+        const mailed = code === 'price_mismatch' ? ' · Emails sent' : ''
+        setMsgs(m => ({ ...m, [orderId]: `✅ Cancelled${note}${mailed}` })); setOrders(prev => prev.filter(o => o.id !== orderId)); await loadOrders()
       } else { setMsgs(m => ({ ...m, [orderId]: `❌ ${data.error}` })) }
     } catch (err: any) { setMsgs(m => ({ ...m, [orderId]: `❌ ${err.message}` })) }
     setCancelling(null)
@@ -666,7 +690,7 @@ export default function AdminPage() {
       )}
 
       {view === 'dispatch' && (
-        <DispatchTab orders={orders} loading={loading} filter={filter} setFilter={setFilter} dispatching={dispatching} cancelling={cancelling} msgs={msgs} cancelReasons={cancelReasons} setCancelReasons={setCancelReasons} handleDispatch={handleDispatch} handleCancel={handleCancel} />
+        <DispatchTab orders={orders} loading={loading} filter={filter} setFilter={setFilter} dispatching={dispatching} cancelling={cancelling} msgs={msgs} cancelReasons={cancelReasons} setCancelReasons={setCancelReasons} cancelType={cancelType} setCancelType={setCancelType} cancelListed={cancelListed} setCancelListed={setCancelListed} cancelCorrect={cancelCorrect} setCancelCorrect={setCancelCorrect} handleDispatch={handleDispatch} handleCancel={handleCancel} />
       )}
       {view === 'analytics' && <AnalyticsTab key={refreshTick} />}
     </div>
