@@ -75,37 +75,37 @@ const CARDS: Record<string, CardSpec> = {
   new_baby: {
     theme: 'cream', glyph: '🤱', eyebrow: 'A new baby',
     line1: 'The baby’s here.', line2: 'Let’s cover dinner.', cta: 'Send dinner',
-    sub: (f) => `${f}’s village is sending meals while they settle in with the newest one. Claim a night that works for you — and dinner shows up at the door.`,
+    sub: (f) => `Claim a night — dinner shows up at the door.`,
   },
   illness: {
     theme: 'sageLight', glyph: '🎗️', eyebrow: 'During treatment',
     line1: 'Hard weeks ahead.', line2: 'Let dinner be easy.', cta: 'Send dinner',
-    sub: (f) => `While ${f} is in treatment, the village is keeping the kitchen covered. Pick a night and send a meal — one less thing to carry.`,
+    sub: (f) => `Pick a night — one less thing to carry.`,
   },
   bereavement: {
     theme: 'grief', glyph: '🕊️', eyebrow: 'With love',
     line1: 'When words run short,', line2: 'a meal still shows up.', cta: 'Bring a meal',
-    sub: (f) => `${f}’s family is grieving. Send dinner one evening — there’s nothing you need to say. It arrives quietly, with care.`,
+    sub: (f) => `No words needed — just dinner, with care.`,
   },
   deployment: {
     theme: 'forest', glyph: '✈️', eyebrow: 'While they’re away',
     line1: 'Miles between you.', line2: 'Still at the table.', cta: 'Send dinner',
-    sub: (f) => `With someone deployed, dinner at home is one more thing to carry. Send a meal and lighten a night for ${f}’s family.`,
+    sub: (f) => `Send a meal, lighten a night at home.`,
   },
   caregiving: {
     theme: 'sageLight', glyph: '🤍', eyebrow: 'Caring for family',
     line1: 'The days are full.', line2: 'Let dinner be handled.', cta: 'Send dinner',
-    sub: (f) => `${f} is caring for someone they love. The village is covering meals so the evenings land a little lighter. Claim a night and send dinner.`,
+    sub: (f) => `Claim a night — let the evening be lighter.`,
   },
   celebration: {
     theme: 'sage', glyph: '🎉', eyebrow: 'A milestone',
     line1: 'Something to celebrate.', line2: 'Dinner’s on the village.', cta: 'Send dinner',
-    sub: (f) => `${f} has something worth celebrating. Send a meal to mark the moment — claim a night and let dinner be the gift.`,
+    sub: (f) => `Send a meal and mark the moment.`,
   },
   other: {
     theme: 'sage', glyph: '🧡', eyebrow: 'Your village',
     line1: 'Life got heavy.', line2: 'Your kitchen’s covered.', cta: 'Send dinner',
-    sub: (f) => `${f}’s village is sending meals through a hard stretch. Claim a night and show up — dinner handled, by the people who care.`,
+    sub: (f) => `Claim a night — dinner, handled.`,
   },
 }
 
@@ -120,26 +120,25 @@ export function CardElement({
   const c = getCard(useCase)
   const T = THEMES[c.theme]
   const name = `${firstName}’s Kitchen`
-  const url = `yourkitchen.app/k/${slug}`
 
   return (
     <div
       style={{
         width: '100%', height: '100%', background: T.bg,
         fontFamily: 'DM Sans', display: 'flex', flexDirection: 'column',
-        padding: '60px 72px 56px',
+        padding: '52px 64px 48px',
       }}
     >
       {/* TOP — glyph chip + eyebrow + recipient name */}
       <div style={{ display: 'flex', alignItems: 'center' }}>
         <div
           style={{
-            width: 56, height: 56, borderRadius: 14, flexShrink: 0, marginRight: 18,
+            width: 60, height: 60, borderRadius: 15, flexShrink: 0, marginRight: 18,
             background: T.chipBg,
             ...(T.chipRing !== 'transparent'
               ? { boxShadow: `inset 0 0 0 1px ${T.chipRing}` }
               : {}),
-            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32,
           }}
         >
           {c.glyph}
@@ -147,13 +146,13 @@ export function CardElement({
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <div
             style={{
-              fontSize: 13, fontWeight: 600, letterSpacing: 3.5,
-              textTransform: 'uppercase', color: T.accent, marginBottom: 5,
+              fontSize: 16, fontWeight: 600, letterSpacing: 3,
+              textTransform: 'uppercase', color: T.accent, marginBottom: 6,
             }}
           >
             {c.eyebrow}
           </div>
-          <div style={{ display: 'flex', fontFamily: 'Lora', fontSize: 21, fontWeight: 500, color: T.ink }}>
+          <div style={{ display: 'flex', fontFamily: 'Lora', fontSize: 27, fontWeight: 500, color: T.ink }}>
             {name}
           </div>
         </div>
@@ -163,13 +162,13 @@ export function CardElement({
       <div
         style={{
           flex: 1, display: 'flex', flexDirection: 'column',
-          justifyContent: 'center', paddingRight: 40,
+          justifyContent: 'center',
         }}
       >
         <div
           style={{
             display: 'flex', flexDirection: 'column', fontFamily: 'Lora',
-            fontWeight: 500, fontSize: 62, lineHeight: 1.04, letterSpacing: -1.4, color: T.ink,
+            fontWeight: 500, fontSize: 82, lineHeight: 1.0, letterSpacing: -2, color: T.ink,
           }}
         >
           <div style={{ display: 'flex' }}>{c.line1}</div>
@@ -179,8 +178,8 @@ export function CardElement({
         </div>
         <div
           style={{
-            display: 'flex', marginTop: 26, fontSize: 22, lineHeight: 1.55,
-            color: T.sub, maxWidth: 720,
+            display: 'flex', marginTop: 24, fontSize: 28, lineHeight: 1.4,
+            color: T.sub,
           }}
         >
           {c.sub(firstName)}
@@ -197,11 +196,11 @@ export function CardElement({
         <div
           style={{
             display: 'flex', alignItems: 'center', background: T.ctaBg, color: T.ctaInk,
-            borderRadius: 999, padding: '15px 30px', fontSize: 18, fontWeight: 600,
+            borderRadius: 999, padding: '17px 36px', fontSize: 23, fontWeight: 600,
           }}
         >
           <div style={{ display: 'flex' }}>{c.cta}</div>
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" style={{ marginLeft: 12 }}>
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" style={{ marginLeft: 13 }}>
             <path
               d="M5 12h14M13 6l6 6-6 6"
               stroke={T.ctaInk} strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round"
@@ -210,23 +209,10 @@ export function CardElement({
         </div>
 
         <div style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <div
-            style={{
-              display: 'flex', alignItems: 'center', fontSize: 14,
-              color: T.sub, fontWeight: 500, marginRight: 20,
-            }}
-          >
-            {url}
-          </div>
-          <div
-            style={{
-              display: 'flex', flexDirection: 'column',
-              paddingLeft: 20, borderLeft: `1px solid ${T.hairline}`,
-            }}
-          >
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
             <div
               style={{
-                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 10, letterSpacing: 4,
+                fontFamily: 'DM Sans', fontWeight: 600, fontSize: 12, letterSpacing: 4,
                 textTransform: 'uppercase', color: YK.sageMid, marginBottom: 3,
               }}
             >
@@ -234,7 +220,7 @@ export function CardElement({
             </div>
             <div
               style={{
-                display: 'flex', fontFamily: 'Lora', fontWeight: 500, fontSize: 22,
+                display: 'flex', fontFamily: 'Lora', fontWeight: 500, fontSize: 30,
                 lineHeight: 0.9, color: T.light ? YK.cream : YK.forest,
               }}
             >
