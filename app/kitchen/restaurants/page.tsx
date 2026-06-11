@@ -424,7 +424,7 @@ Add favorites and save your go-to meals with prices. Tag each as an adult or kid
 </p>
 <div style={{ background: S.sageLight, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
 <p style={{ fontSize: 13, color: S.sage, margin: 0, lineHeight: 1.6, fontWeight: 400 }}>
-📋 <strong>A quick note:</strong> while we're in pilot, you'll enter your favorite dishes and their current menu prices manually. Yes, slightly inconvenient — open the restaurant's menu on your phone and add the dishes your family loves most.
+📋 <strong>A quick note:</strong> while we're in pilot, you'll enter your favorite dishes and their current menu prices. There are three different ways: After searching then adding your favorite restaurants you can 1. Copy/paste the MENU URL (weblink) 2. Download the menu, then upload. 3. Enter each menu item and price manually  Yes, slightly inconvenient but not forever — open the restaurant's menu on your phone and add the dishes your family loves most.
 </p>
 </div>
 
