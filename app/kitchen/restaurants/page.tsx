@@ -118,7 +118,7 @@ setRestaurants(mapped)
 return mapped
 }
 
-const limit = 5 // pilot cap on restaurants (overrides TIER_LIMITS during pilot)
+const limit: number = 5 // pilot cap on restaurants (overrides TIER_LIMITS during pilot)
 const activeCount = restaurants.filter(r => r.is_active).length
 const atLimit = activeCount >= limit
 const shakeLimit = () => { setShakingLimit(true); setTimeout(() => setShakingLimit(false), 600) }
