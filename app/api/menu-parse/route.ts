@@ -181,11 +181,26 @@ function menuScore(text: string): number {
   return dollars * 2 + jsonPrices
 }
 
+// Extract text from a PDF menu (text-based PDFs only; scanned/image PDFs yield nothing).
+async function extractPdfText(buf: ArrayBuffer): Promise<string> {
+  try {
+    const { extractText, getDocumentProxy } = await import('unpdf')
+    const pdf = await getDocumentProxy(new Uint8Array(buf))
+    const { text } = await extractText(pdf, { mergePages: true })
+    const joined = typeof text === 'string' ? text : Array.isArray(text) ? text.join('\n') : ''
+    return joined.trim()
+  } catch {
+    return ''
+  }
+}
+
 async function fetchRich(url: string): Promise<string> {
   try {
     const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (YourKitchen menu importer)' } })
     const ct = r.headers.get('content-type') || ''
-    if (ct.includes('application/pdf')) return ''
+    if (ct.includes('application/pdf') || /\.pdf(\?|$)/i.test(url)) {
+      return await extractPdfText(await r.arrayBuffer())
+    }
     const html = await r.text()
     const json = extractMenuJson(html)
     const visible = stripHtml(html)
@@ -218,11 +233,23 @@ export async function POST(request: Request) {
         return NextResponse.json({ error: "Couldn't reach that link." }, { status: 422 })
       }
       const ct = mainResp.headers.get('content-type') || ''
-      if (ct.includes('application/pdf')) {
-        return NextResponse.json(
-          { error: 'PDF menus aren\u2019t supported yet \u2014 upload a photo of the menu instead.' },
-          { status: 422 },
-        )
+      // A PDF menu pasted (or linked) directly: extract its text and parse it.
+      if (ct.includes('application/pdf') || /\.pdf(\?|$)/i.test(url)) {
+        const pdfText = await extractPdfText(await mainResp.arrayBuffer())
+        if (pdfText.replace(/\s/g, '').length < 40) {
+          return NextResponse.json(
+            { error: 'That PDF looks like scanned images with no readable text \u2014 upload a photo of the menu instead.' },
+            { status: 422 },
+          )
+        }
+        const items = await extractMenu({ text: pdfText.slice(0, 30000), restaurantName })
+        if (items.length === 0) {
+          return NextResponse.json(
+            { error: 'Couldn\u2019t find menu items in that PDF \u2014 try a photo of the menu instead.' },
+            { status: 422 },
+          )
+        }
+        return NextResponse.json({ success: true, items })
       }
 
       const mainHtml = await mainResp.text()
