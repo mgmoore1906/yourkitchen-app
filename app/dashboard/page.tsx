@@ -308,7 +308,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
   const paintingRef = useRef(false)
   const dragMovedRef = useRef(false)
   const [paintSet, setPaintSet] = useState<Set<string>>(new Set())
-  const [rangeMeals, setRangeMeals] = useState<Set<string>>(new Set(['dinner']))
+  const [rangeMeals, setRangeMeals] = useState<Set<string>>(new Set())
   const [rangeBusy, setRangeBusy] = useState(false)
   const [rangeMsg, setRangeMsg] = useState('')
   const [showCalHint, setShowCalHint] = useState(false)
