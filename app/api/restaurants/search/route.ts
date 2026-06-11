@@ -8,9 +8,8 @@ export async function GET(request: Request) {
     const lat    = searchParams.get('lat')
     const lng    = searchParams.get('lng')
     const query  = searchParams.get('query') || 'restaurant'
-    // ~10 miles default (16093m). Caller can pass ?radius=XXXX to override.
-    // Widened from 13000 (~8mi) so restaurants out to 10 miles populate.
-    const radius = searchParams.get('radius') || '16093'
+    // No radius cap: rank by distance so the nearest results come first at any distance.
+    // (Some recipients pick up, so they may want a spot farther out than a delivery radius.)
 
     if (!lat || !lng) {
       return NextResponse.json({ error: 'lat and lng required' }, { status: 400 })
@@ -18,7 +17,7 @@ export async function GET(request: Request) {
 
     const url = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json')
     url.searchParams.set('location', `${lat},${lng}`)
-    url.searchParams.set('radius',   radius)
+    url.searchParams.set('rankby',   'distance')
     url.searchParams.set('type',     'restaurant')
     url.searchParams.set('keyword',  query)
     url.searchParams.set('key',      PLACES_API_KEY)
