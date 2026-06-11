@@ -98,7 +98,7 @@ for (let d = 1; d <= daysInMonth; d++) cells.push(d)
 const paintingRef = useRef(false)
 const dragMovedRef = useRef(false)
 const [paintSet, setPaintSet] = useState<Set<string>>(new Set())
-const [rangeMeals, setRangeMeals] = useState<Set<string>>(new Set(['dinner']))
+const [rangeMeals, setRangeMeals] = useState<Set<string>>(new Set())
 const toggleRangeMeal = (mt: string) => setRangeMeals(prev => { const n = new Set(prev); n.has(mt) ? n.delete(mt) : n.add(mt); return n })
 const dateAtPoint = (x: number, y: number): string | null => {
 const el = document.elementFromPoint(x, y) as HTMLElement | null
