@@ -21,9 +21,11 @@ Rules:
 - If the source contains no actual menu with dishes, return {"items":[]}.`
 
 // Online-ordering platforms whose pages usually expose the full priced menu in source/JSON.
+// NOTE: order.online is deliberately excluded — it's DoorDash's Storefront product, i.e. the
+// platform we're courting for partnership. Don't scrape it; steer users to a screenshot instead.
 const ORDER_HOSTS = [
-  'toasttab.com', 'chownow.com', 'order.online', 'square.site', 'squareup.com',
-  'popmenu.com', 'menufy.com', 'slicelife.com', 'clover.com', 'spoton.com', 'bentobox', 'olo.com',
+  'toasttab.com', 'chownow.com', 'square.site', 'squareup.com',
+  'popmenu.com', 'menufy.com', 'slicelife.com', 'clover.com', 'spoton.com', 'bentobox',
 ]
 
 // ── The LLM call. Swap this one function for OpenAI/Gemini if that's your key. ──
@@ -96,6 +98,11 @@ function stripHtml(html: string): string {
     .replace(/&#?\w+;/g, ' ')
     .replace(/\s+/g, ' ')
     .trim()
+}
+
+// Detect bot-protection interstitials (Cloudflare etc.) so we can steer the user to a screenshot.
+function looksBotBlocked(html: string): boolean {
+  return /Checking if the site connection is secured|Just a moment|cf-browser-verification|Attention Required|_cf_chl|Enable JavaScript and cookies to continue/i.test(html)
 }
 
 // Pull embedded JSON that ordering platforms (Toast/ChowNow) and Next.js apps use to render the menu.
@@ -219,6 +226,7 @@ export async function POST(request: Request) {
       }
 
       const mainHtml = await mainResp.text()
+      const blocked = looksBotBlocked(mainHtml)
       const mainJson = extractMenuJson(mainHtml)
       const mainText = `${mainJson ? mainJson + '\n\n' : ''}${stripHtml(mainHtml)}`.slice(0, 30000)
 
@@ -242,6 +250,15 @@ export async function POST(request: Request) {
       }
 
       if (items.length === 0) {
+        if (blocked) {
+          return NextResponse.json(
+            {
+              error:
+                'That page blocks automated access (it\u2019s bot-protected). Open it in your browser and upload a screenshot of the menu instead \u2014 we\u2019ll read the prices from the image.',
+            },
+            { status: 422 },
+          )
+        }
         return NextResponse.json(
           {
             error:
