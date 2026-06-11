@@ -186,8 +186,9 @@ async function extractPdfText(buf: ArrayBuffer): Promise<string> {
   try {
     const { extractText, getDocumentProxy } = await import('unpdf')
     const pdf = await getDocumentProxy(new Uint8Array(buf))
-    const { text } = await extractText(pdf, { mergePages: true })
-    const joined = typeof text === 'string' ? text : Array.isArray(text) ? text.join('\n') : ''
+    const result = await extractText(pdf, { mergePages: true })
+    const raw: unknown = result.text
+    const joined = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw.join('\n') : ''
     return joined.trim()
   } catch {
     return ''
