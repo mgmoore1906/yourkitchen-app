@@ -52,7 +52,7 @@ async function extractMenu(args: {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6', // swap to claude-haiku-4-5 to cut cost
+      model: 'claude-haiku-4-5', // ~1/3 the cost of Sonnet, strong at extraction; if accuracy dips, swap back to claude-sonnet-4-6
       max_tokens: 3000,
       system: SYSTEM,
       messages: [{ role: 'user', content }],
