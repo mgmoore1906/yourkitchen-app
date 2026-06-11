@@ -19,7 +19,8 @@
     "react-dom": "19.2.4",
     "stripe": "^22.0.2",
     "twilio": "^6.0.0",
-    "posthog-js": "^1.257.0"
+    "posthog-js": "^1.257.0",
+    "unpdf": "^1.6.2"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4",
