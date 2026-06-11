@@ -1,24 +1,30 @@
 import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
-export const maxDuration = 45
+export const maxDuration = 60
 
-// Output shape maps 1:1 onto kitchen_restaurants' parallel meal arrays:
-//   favorite_meals[]  favorite_meal_prices[]  favorite_meal_categories[]  favorite_meal_notes[]
+// Output shape maps 1:1 onto kitchen_restaurants' parallel meal arrays.
 type ParsedItem = { name: string; price: number; category: 'adult' | 'kids'; note: string }
 
-const SYSTEM = `You extract orderable food items from a restaurant menu (given as text or an image).
+const SYSTEM = `You extract orderable food items from a restaurant menu (given as text, raw JSON from an ordering system, or an image).
 
 Return ONLY valid JSON, no prose and no markdown fences:
 {"items":[{"name": string, "price": number, "category": "adult"|"kids", "note": string}]}
 
 Rules:
 - price: dollars as a number (e.g. 12.99). If no price is shown, use 0.
+- If the source is JSON from an ordering platform, prices may be in CENTS (e.g. 1299). Convert those to dollars (12.99).
 - category: "kids" only for kids'/children's-menu items; otherwise "adult".
 - FLATTEN configurable items into finished, single-price items. If "Fried Rice" is 9 and a "+$1 chicken" option exists, output {"name":"Chicken Fried Rice","price":10}. Put any key choice in "note".
 - note: a short clarifier, or "" (empty string). Never null.
-- Skip section headers, drink-only lists, and anything not orderable as a meal. Cap at 40 items.
-- If the text contains no actual menu (e.g. it's a homepage with no dishes), return {"items":[]}.`
+- Skip section headers, pure drink lists, and anything not orderable as a meal. Cap at 40 items.
+- If the source contains no actual menu with dishes, return {"items":[]}.`
+
+// Online-ordering platforms whose pages usually expose the full priced menu in source/JSON.
+const ORDER_HOSTS = [
+  'toasttab.com', 'chownow.com', 'order.online', 'square.site', 'squareup.com',
+  'popmenu.com', 'menufy.com', 'slicelife.com', 'clover.com', 'spoton.com', 'bentobox', 'olo.com',
+]
 
 // ── The LLM call. Swap this one function for OpenAI/Gemini if that's your key. ──
 async function extractMenu(args: {
@@ -44,11 +50,7 @@ async function extractMenu(args: {
 
   const res = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
-    headers: {
-      'content-type': 'application/json',
-      'x-api-key': key,
-      'anthropic-version': '2023-06-01',
-    },
+    headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model: 'claude-sonnet-4-6', // swap to claude-haiku-4-5 to cut cost
       max_tokens: 3000,
@@ -96,13 +98,35 @@ function stripHtml(html: string): string {
     .trim()
 }
 
-// Count price-like signals ("$12", "$ 9") to judge which page is the real menu.
-function priceSignals(text: string): number {
-  const m = text.match(/\$\s?\d/g)
-  return m ? m.length : 0
+// Pull embedded JSON that ordering platforms (Toast/ChowNow) and Next.js apps use to render the menu.
+function extractMenuJson(html: string): string {
+  const blocks: string[] = []
+  let m: RegExpExecArray | null
+
+  const typed = /<script\b[^>]*type\s*=\s*["']application\/(?:ld\+)?json["'][^>]*>([\s\S]*?)<\/script>/gi
+  while ((m = typed.exec(html)) !== null) {
+    const b = m[1] || ''
+    if (/price|menu|item|name/i.test(b)) blocks.push(b)
+  }
+  const next = /<script\b[^>]*id\s*=\s*["']__NEXT_DATA__["'][^>]*>([\s\S]*?)<\/script>/i.exec(html)
+  if (next && next[1]) blocks.push(next[1])
+
+  if (blocks.join('').length < 500) {
+    const any = /<script\b(?![^>]*\bsrc=)[^>]*>([\s\S]*?)<\/script>/gi
+    while ((m = any.exec(html)) !== null) {
+      const b = m[1] || ''
+      if (/"price"/i.test(b) && /[:=]\s*[\[{]/.test(b) && !/webpackJsonp|function\s*\(/.test(b)) blocks.push(b)
+      if (blocks.join('').length > 40000) break
+    }
+  }
+  return blocks.join('\n').slice(0, 40000)
 }
 
-// On a homepage, find same-site "menu"/"order" links so the user can paste the homepage.
+function isOrderHost(host: string): boolean {
+  return ORDER_HOSTS.some((h) => host === h || host.endsWith('.' + h) || host.includes(h))
+}
+
+// Find menu/order links: same-site menu pages, plus off-site links to known ordering platforms.
 function findMenuLinks(html: string, baseUrl: string): string[] {
   let base: URL
   try {
@@ -119,34 +143,46 @@ function findMenuLinks(html: string, baseUrl: string): string[] {
     const label = m[2].replace(/<[^>]+>/g, ' ')
     const hay = `${href} ${label}`.toLowerCase()
     let score = 0
-    if (/\bmenu\b/.test(hay)) score += 3
-    if (/order/.test(hay)) score += 2
-    if (/food|dishes|eat\b/.test(hay)) score += 1
-    if (score === 0) continue
+    if (/\bmenu\b/.test(hay)) score += 2
+    if (/order/.test(hay)) score += 3
+    if (/food|dishes/.test(hay)) score += 1
     let abs: URL
     try {
       abs = new URL(href, base)
     } catch {
       continue
     }
-    if (abs.host !== base.host) continue // same-origin only: skips 3rd-party order apps
+    const sameHost = abs.host === base.host
+    const orderHost = isOrderHost(abs.host)
+    if (orderHost) score += 6 // off-site Toast/ChowNow/Square = the priced source
+    else if (!sameHost) continue // ignore other off-site links
+    if (score === 0) continue
     const key = abs.href.split('#')[0]
-    if (key === base.href.split('#')[0]) continue // skip self
+    if (key === base.href.split('#')[0]) continue
     if (seen.has(key)) continue
     seen.add(key)
     scored.push({ url: key, score })
   }
   scored.sort((a, b) => b.score - a.score)
-  return scored.slice(0, 2).map((s) => s.url)
+  return scored.slice(0, 3).map((s) => s.url)
 }
 
-async function fetchPageText(url: string): Promise<string> {
+// Rank text sources by how "menu-like" they are (visible $ prices + JSON price keys).
+function menuScore(text: string): number {
+  const dollars = (text.match(/\$\s?\d/g) || []).length
+  const jsonPrices = (text.match(/"price"/gi) || []).length
+  return dollars * 2 + jsonPrices
+}
+
+async function fetchRich(url: string): Promise<string> {
   try {
     const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (YourKitchen menu importer)' } })
     const ct = r.headers.get('content-type') || ''
     if (ct.includes('application/pdf')) return ''
     const html = await r.text()
-    return stripHtml(html).slice(0, 20000)
+    const json = extractMenuJson(html)
+    const visible = stripHtml(html)
+    return `${json ? json + '\n\n' : ''}${visible}`.slice(0, 30000)
   } catch {
     return ''
   }
@@ -166,7 +202,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: true, items })
     }
 
-    // ── Link path: read the page, and if it's a homepage, follow its menu/order link. ──
+    // ── Link path: read the page, follow menu/order links (incl. Toast/ChowNow), parse the best source. ──
     if (url) {
       let mainResp: Response
       try {
@@ -183,17 +219,17 @@ export async function POST(request: Request) {
       }
 
       const mainHtml = await mainResp.text()
-      const mainText = stripHtml(mainHtml).slice(0, 20000)
+      const mainJson = extractMenuJson(mainHtml)
+      const mainText = `${mainJson ? mainJson + '\n\n' : ''}${stripHtml(mainHtml)}`.slice(0, 30000)
 
-      // Build candidate text sources: the page itself + any same-site menu/order pages.
       const sources: string[] = [mainText]
       for (const link of findMenuLinks(mainHtml, url)) {
-        const t = await fetchPageText(link)
+        const t = await fetchRich(link)
         if (t) sources.push(t)
       }
 
-      // Try the most menu-like page first (most price signals, then longest).
-      sources.sort((a, b) => priceSignals(b) - priceSignals(a) || b.length - a.length)
+      // Try the most menu-like source first; cap LLM calls at 2 for cost.
+      sources.sort((a, b) => menuScore(b) - menuScore(a) || b.length - a.length)
 
       let items: ParsedItem[] = []
       let llmCalls = 0
@@ -209,7 +245,7 @@ export async function POST(request: Request) {
         return NextResponse.json(
           {
             error:
-              'Couldn\u2019t find a menu on that page (it may load its menu dynamically). Try the menu/order page directly, or upload a photo.',
+              'Couldn\u2019t find a priced menu on that site (chains often hide prices behind a location picker). Try the order page directly, or upload a photo / screenshot of the order screen.',
           },
           { status: 422 },
         )
