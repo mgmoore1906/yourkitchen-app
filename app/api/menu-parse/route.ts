@@ -182,10 +182,10 @@ function menuScore(text: string): number {
 }
 
 // Extract text from a PDF menu (text-based PDFs only; scanned/image PDFs yield nothing).
-async function extractPdfText(buf: ArrayBuffer): Promise<string> {
+async function extractPdfText(bytes: Uint8Array): Promise<string> {
   try {
     const { extractText, getDocumentProxy } = await import('unpdf')
-    const pdf = await getDocumentProxy(new Uint8Array(buf))
+    const pdf = await getDocumentProxy(bytes)
     const result = await extractText(pdf, { mergePages: true })
     const raw: unknown = result.text
     const joined = typeof raw === 'string' ? raw : Array.isArray(raw) ? raw.join('\n') : ''
@@ -200,7 +200,7 @@ async function fetchRich(url: string): Promise<string> {
     const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (YourKitchen menu importer)' } })
     const ct = r.headers.get('content-type') || ''
     if (ct.includes('application/pdf') || /\.pdf(\?|$)/i.test(url)) {
-      return await extractPdfText(await r.arrayBuffer())
+      return await extractPdfText(new Uint8Array(await r.arrayBuffer()))
     }
     const html = await r.text()
     const json = extractMenuJson(html)
@@ -221,6 +221,24 @@ export async function POST(request: Request) {
 
     // ── Photo path: the universal fallback (works for any menu, even paper). ──
     if (imageBase64) {
+      // An uploaded PDF arrives here too; the vision API rejects application/pdf, so extract its text.
+      if (imageMediaType === 'application/pdf') {
+        const pdfText = await extractPdfText(new Uint8Array(Buffer.from(imageBase64, 'base64')))
+        if (pdfText.replace(/\s/g, '').length < 40) {
+          return NextResponse.json(
+            { error: 'That PDF looks like scanned images with no readable text \u2014 upload a clear photo of the menu instead.' },
+            { status: 422 },
+          )
+        }
+        const pdfItems = await extractMenu({ text: pdfText.slice(0, 30000), restaurantName })
+        if (pdfItems.length === 0) {
+          return NextResponse.json(
+            { error: 'Couldn\u2019t find menu items in that PDF \u2014 try a photo instead.' },
+            { status: 422 },
+          )
+        }
+        return NextResponse.json({ success: true, items: pdfItems })
+      }
       const items = await extractMenu({ text: '', imageBase64, imageMediaType, restaurantName })
       return NextResponse.json({ success: true, items })
     }
@@ -236,7 +254,7 @@ export async function POST(request: Request) {
       const ct = mainResp.headers.get('content-type') || ''
       // A PDF menu pasted (or linked) directly: extract its text and parse it.
       if (ct.includes('application/pdf') || /\.pdf(\?|$)/i.test(url)) {
-        const pdfText = await extractPdfText(await mainResp.arrayBuffer())
+        const pdfText = await extractPdfText(new Uint8Array(await mainResp.arrayBuffer()))
         if (pdfText.replace(/\s/g, '').length < 40) {
           return NextResponse.json(
             { error: 'That PDF looks like scanned images with no readable text \u2014 upload a photo of the menu instead.' },
