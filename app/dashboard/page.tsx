@@ -897,7 +897,7 @@ function ShareTab({ kitchenUrl, kitchen, restaurantCount, router, proposals }: {
   // No restaurants yet
   if (restaurantCount === 0) {
     return (
-      <div style={{ padding:'16px 20px' }}>
+      <div style={{ padding:'16px 20px', maxWidth:500, margin:'0 auto' }}>
         <p style={{ fontFamily:"'Lora',serif",fontSize:20,fontWeight:500,color:S.forest,margin:'0 0 4px',letterSpacing:-0.5 }}>Share Your Kitchen</p>
         <p style={{ fontSize:13,color:S.stone,fontWeight:300,margin:'0 0 20px',lineHeight:1.6 }}>One quick step before your link is ready.</p>
         <div style={{ background:S.white,border:`1.5px solid ${S.amber}`,borderRadius:16,padding:'22px 20px',textAlign:'center' }}>
