@@ -118,7 +118,7 @@ setRestaurants(mapped)
 return mapped
 }
 
-const limit = TIER_LIMITS[userTier] || 3
+const limit = 5 // pilot cap on restaurants (overrides TIER_LIMITS during pilot)
 const activeCount = restaurants.filter(r => r.is_active).length
 const atLimit = activeCount >= limit
 const shakeLimit = () => { setShakingLimit(true); setTimeout(() => setShakingLimit(false), 600) }
@@ -289,7 +289,7 @@ const reader = new FileReader()
 reader.onload = () => {
 const result = String(reader.result || '')
 const comma = result.indexOf(',')
-resolve({ data: comma >= 0 ? result.slice(comma + 1) : result, type: file.type || 'image/jpeg' })
+resolve({ data: comma >= 0 ? result.slice(comma + 1) : result, type: file.type || (file.name.toLowerCase().endsWith('.pdf') ? 'application/pdf' : 'image/jpeg') })
 }
 reader.onerror = () => reject(new Error('Could not read that file'))
 reader.readAsDataURL(file)
@@ -543,8 +543,8 @@ style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(au
 </button>
 </div>
 <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12.5, fontWeight: 600, color: S.sage, cursor: autofillBusy === r.id ? 'default' : 'pointer' }}>
-📷 Or upload a photo of the menu
-<input type="file" accept="image/*" disabled={autofillBusy === r.id} onChange={e => { const f = e.target.files?.[0]; if (f) parseMenu(r.id, { file: f }); e.target.value = '' }} style={{ display: 'none' }} />
+📷 Or upload a photo or PDF of the menu
+<input type="file" accept="image/*,application/pdf,.pdf" disabled={autofillBusy === r.id} onChange={e => { const f = e.target.files?.[0]; if (f) parseMenu(r.id, { file: f }); e.target.value = '' }} style={{ display: 'none' }} />
 </label>
 {autofillBusy === r.id && <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '8px 0 0' }}>Reading the menu…</p>}
 {autofillError[r.id] && <p style={{ fontSize: 12, color: S.red, fontWeight: 400, margin: '8px 0 0', lineHeight: 1.5 }}>{autofillError[r.id]}</p>}
@@ -723,7 +723,11 @@ style={{ padding: '12px 18px', borderRadius: 10, border: 'none', background: !se
 <div>
 <p style={{ fontSize: 11, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }}>Within 8 miles</p>
 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-{searchResults.map(place => {
+{[...searchResults].sort((a, b) => {
+const da = kitchenLat && kitchenLng && a.lat && a.lng ? haversineDistance(kitchenLat, kitchenLng, a.lat, a.lng) : Infinity
+const db = kitchenLat && kitchenLng && b.lat && b.lng ? haversineDistance(kitchenLat, kitchenLng, b.lat, b.lng) : Infinity
+return da - db
+}).map(place => {
 const saved = alreadySaved(place)
 const isAdding = adding === place.place_id
 const miles = kitchenLat && kitchenLng && place.lat && place.lng
