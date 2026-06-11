@@ -491,23 +491,9 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           </button>
           {rangeMsg&&<p style={{ fontSize:12,color:S.sage,fontWeight:600,textAlign:'center',margin:'10px 0 0' }}>{rangeMsg}</p>}
         </div>
-           </div>
-            <label style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',display:'block',marginBottom:6 }}>Which days</label>
-            <div style={{ display:'flex',gap:6,marginBottom:14 }}>
-              {([['all','Every day'],['weekdays','Weekdays'],['weekends','Weekends']] as [string,string][]).map(([k,lbl])=>(
-                <button key={k} onClick={()=>setBulkDays(k as any)} style={{ flex:1,padding:'8px 4px',borderRadius:9,border:`1.5px solid ${bulkDays===k?S.sage:S.border}`,background:bulkDays===k?S.sageLight:S.white,fontSize:11.5,fontWeight:600,color:bulkDays===k?S.sage:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>{lbl}</button>
-              ))}
-            </div>
-            <button onClick={runBulkAdd} disabled={!bulkFrom||!bulkTo||bulkMeals.size===0||bulkBusy}
-              style={{ width:'100%',padding:'12px',borderRadius:10,border:'none',background:(!bulkFrom||!bulkTo||bulkMeals.size===0)?S.border:S.sage,color:S.white,fontSize:14,fontWeight:600,cursor:(!bulkFrom||!bulkTo||bulkMeals.size===0||bulkBusy)?'default':'pointer',fontFamily:"'DM Sans',sans-serif",opacity:bulkBusy?0.7:1 }}>
-              {bulkBusy?'Opening…':'Open these days'}
-            </button>
-            {bulkMsg&&<p style={{ fontSize:12,color:S.sage,fontWeight:600,textAlign:'center',margin:'10px 0 0' }}>{bulkMsg}</p>}
-          </div>
-        )}
-      </div>
-     
-        {selectedDate && (
+      )}
+
+      {selectedDate && (
         <div style={{ background:S.white,border:`2px solid ${S.sage}`,borderRadius:16,padding:'16px',marginBottom:14 }}>
           <div style={{ display:'flex',justifyContent:'space-between',alignItems:'center',marginBottom:12 }}>
             <div>
