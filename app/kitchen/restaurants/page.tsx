@@ -27,6 +27,8 @@ lat: number | null; lng: number | null
 rating: number | null; is_open: boolean | null
 }
 
+type ParsedItem = { name: string; price: number; category: 'adult' | 'kids'; note: string }
+
 function distanceFromKitchen(r: { lat: number | null; lng: number | null }, kitLat: number, kitLng: number): number | null {
 if (!r.lat || !r.lng) return null
 return haversineDistance(kitLat, kitLng, r.lat, r.lng)
@@ -72,6 +74,12 @@ const [searching, setSearching] = useState(false)
 const [adding, setAdding] = useState<string | null>(null)
 const [listOpen, setListOpen] = useState(false)
 const [searchOpen, setSearchOpen] = useState(false)
+const [autofillOpen, setAutofillOpen] = useState<Record<string, boolean>>({})
+const [autofillUrl, setAutofillUrl] = useState<Record<string, string>>({})
+const [autofillBusy, setAutofillBusy] = useState<string | null>(null)
+const [autofillError, setAutofillError] = useState<Record<string, string>>({})
+const [reviewItems, setReviewItems] = useState<Record<string, ParsedItem[]>>({})
+const [addingAll, setAddingAll] = useState<string | null>(null)
 
 useEffect(() => {
 const load = async () => {
@@ -275,6 +283,96 @@ setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, favorite_me
 setSavingMeals(null)
 setEditMeal(null)
 }
+
+const fileToBase64 = (file: File) => new Promise<{ data: string; type: string }>((resolve, reject) => {
+const reader = new FileReader()
+reader.onload = () => {
+const result = String(reader.result || '')
+const comma = result.indexOf(',')
+resolve({ data: comma >= 0 ? result.slice(comma + 1) : result, type: file.type || 'image/jpeg' })
+}
+reader.onerror = () => reject(new Error('Could not read that file'))
+reader.readAsDataURL(file)
+})
+
+const parseMenu = async (restaurantId: string, opts: { url?: string; file?: File }) => {
+const rest = restaurants.find(r => r.id === restaurantId)
+if (!rest) return
+if (!opts.url && !opts.file) return
+setAutofillBusy(restaurantId)
+setAutofillError(p => ({ ...p, [restaurantId]: '' }))
+try {
+let body: Record<string, unknown> = { restaurantName: rest.name }
+if (opts.file) {
+const { data, type } = await fileToBase64(opts.file)
+body = { ...body, imageBase64: data, imageMediaType: type }
+} else {
+body = { ...body, url: opts.url }
+}
+const res = await fetch('/api/menu-parse', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) })
+const data = await res.json()
+if (!res.ok || !data.success) {
+setAutofillError(p => ({ ...p, [restaurantId]: data.error || 'Could not read that menu \u2014 try a photo instead.' }))
+} else if (!Array.isArray(data.items) || data.items.length === 0) {
+setAutofillError(p => ({ ...p, [restaurantId]: 'No menu items found there. Try a clearer photo or a different link.' }))
+} else {
+setReviewItems(p => ({ ...p, [restaurantId]: data.items }))
+setAutofillOpen(p => ({ ...p, [restaurantId]: false }))
+}
+} catch {
+setAutofillError(p => ({ ...p, [restaurantId]: 'Something went wrong reading that menu.' }))
+}
+setAutofillBusy(null)
+}
+
+const updateReviewItem = (restaurantId: string, idx: number, patch: Partial<ParsedItem>) => {
+setReviewItems(p => ({ ...p, [restaurantId]: (p[restaurantId] || []).map((it, i) => i === idx ? { ...it, ...patch } : it) }))
+}
+const removeReviewItem = (restaurantId: string, idx: number) => {
+setReviewItems(p => {
+const next = (p[restaurantId] || []).filter((_, i) => i !== idx)
+const n = { ...p }
+if (next.length === 0) { delete n[restaurantId] } else { n[restaurantId] = next }
+return n
+})
+}
+
+const addAllReviewed = async (restaurantId: string) => {
+const rest = restaurants.find(r => r.id === restaurantId)
+const items = reviewItems[restaurantId] || []
+if (!rest || items.length === 0) return
+const mealLimit = MEAL_LIMITS[userTier] || 4
+const current = rest.favorite_meals?.length || 0
+const available = Math.max(0, mealLimit - current)
+let toAdd = items.filter(it => it.name.trim())
+let trimmedNote = ''
+if (toAdd.length > available) {
+toAdd = toAdd.slice(0, available)
+trimmedNote = ' (capped to your plan limit \u2014 upgrade to Care+ for more)'
+}
+if (toAdd.length === 0) {
+alert(`You're at your meal limit for ${rest.name}. Upgrade to Care+ to add more.`)
+return
+}
+setAddingAll(restaurantId)
+const updatedMeals = [...(rest.favorite_meals || []), ...toAdd.map(i => i.name.trim())]
+const updatedPrices = [...(rest.favorite_meal_prices || []), ...toAdd.map(i => Math.max(0, Number(i.price) || 0))]
+const updatedCategories = [...(rest.favorite_meal_categories || []), ...toAdd.map(i => i.category === 'kids' ? 'kids' : 'adult')]
+const updatedNotes = [...(rest.favorite_meal_notes || []), ...toAdd.map(i => (i.note || '').trim())]
+const res = await fetch('/api/restaurants/favorites', {
+method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes }),
+})
+const data = await res.json()
+if (data.success) {
+setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes } : r))
+setReviewItems(p => { const n = { ...p }; delete n[restaurantId]; return n })
+setSaveMsg(`Added ${toAdd.length} meal${toAdd.length !== 1 ? 's' : ''}${trimmedNote}`)
+setTimeout(() => setSaveMsg(''), 4000)
+}
+setAddingAll(null)
+}
+
 const alreadySaved = (place: PlaceResult) =>
 restaurants.some(r => !!place.place_id && r.place_id === place.place_id)
 
@@ -422,6 +520,75 @@ style={{ width: 44, height: 24, borderRadius: 12, border: 'none', background: r.
 <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 12px', lineHeight: 1.6 }}>
 Exact dish names + prices. Tag adult or kids so your village sees them in the right section.
 </p>
+
+{/* ✨ Auto-fill menu — link or photo → AI → review → add */}
+<div style={{ marginBottom: 14, border: `1.5px dashed ${S.sage}`, borderRadius: 12, padding: '12px 14px', background: S.sageLight }}>
+{!reviewItems[r.id] ? (
+<>
+<button onClick={() => setAutofillOpen(p => ({ ...p, [r.id]: !p[r.id] }))}
+style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
+<span style={{ fontSize: 13, fontWeight: 600, color: S.sage }}>✨ Auto-fill from a menu link or photo</span>
+<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ transform: autofillOpen[r.id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6" stroke={S.sage} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
+</button>
+{autofillOpen[r.id] && (
+<div style={{ marginTop: 10 }}>
+<p style={{ fontSize: 11.5, color: S.sage, fontWeight: 300, margin: '0 0 8px', lineHeight: 1.5 }}>Paste a link to {r.name}&rsquo;s menu, or snap a photo of it — we&rsquo;ll pull the dishes and prices for you to check.</p>
+<div style={{ display: 'flex', gap: 8 }}>
+<input value={autofillUrl[r.id] || ''} onChange={e => setAutofillUrl(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && parseMenu(r.id, { url: (autofillUrl[r.id] || '').trim() })}
+placeholder="Paste menu link…"
+style={{ flex: 1, minWidth: 0, padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none', background: S.white }} />
+<button onClick={() => parseMenu(r.id, { url: (autofillUrl[r.id] || '').trim() })} disabled={!(autofillUrl[r.id] || '').trim() || autofillBusy === r.id}
+style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(autofillUrl[r.id] || '').trim() ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !(autofillUrl[r.id] || '').trim() ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+{autofillBusy === r.id ? '…' : 'Import'}
+</button>
+</div>
+<label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12.5, fontWeight: 600, color: S.sage, cursor: autofillBusy === r.id ? 'default' : 'pointer' }}>
+📷 Or upload a photo of the menu
+<input type="file" accept="image/*" disabled={autofillBusy === r.id} onChange={e => { const f = e.target.files?.[0]; if (f) parseMenu(r.id, { file: f }); e.target.value = '' }} style={{ display: 'none' }} />
+</label>
+{autofillBusy === r.id && <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '8px 0 0' }}>Reading the menu…</p>}
+{autofillError[r.id] && <p style={{ fontSize: 12, color: S.red, fontWeight: 400, margin: '8px 0 0', lineHeight: 1.5 }}>{autofillError[r.id]}</p>}
+</div>
+)}
+</>
+) : (
+<div>
+<p style={{ fontSize: 12.5, fontWeight: 600, color: S.sage, margin: '0 0 4px' }}>We pulled {reviewItems[r.id].length} item{reviewItems[r.id].length !== 1 ? 's' : ''} — check names &amp; prices</p>
+<p style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, margin: '0 0 10px', lineHeight: 1.5 }}>Menus aren&rsquo;t always up to date. Edit anything that looks off, drop what you don&rsquo;t want, then add them all.</p>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+{reviewItems[r.id].map((it, idx) => {
+const k = it.category === 'kids'
+return (
+<div key={idx} style={{ background: S.white, border: `1px solid ${k ? S.amber : S.sage}`, borderRadius: 9, padding: '7px 9px', display: 'flex', alignItems: 'center', gap: 6 }}>
+<button onClick={() => updateReviewItem(r.id, idx, { category: k ? 'adult' : 'kids' })} title="Toggle adult / kids"
+style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0 }}>{k ? '🧒' : '👤'}</button>
+<input value={it.name} onChange={e => updateReviewItem(r.id, idx, { name: e.target.value })}
+style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+<div style={{ position: 'relative', flexShrink: 0 }}>
+<span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: S.stone }}>$</span>
+<input type="number" value={String(it.price)} onChange={e => updateReviewItem(r.id, idx, { price: parseFloat(e.target.value) || 0 })}
+style={{ width: 62, padding: '6px 6px 6px 17px', borderRadius: 7, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+</div>
+<button onClick={() => removeReviewItem(r.id, idx)} aria-label="Drop this item"
+style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, fontSize: 14, padding: '2px 4px', flexShrink: 0 }}>✕</button>
+</div>
+)
+})}
+</div>
+<div style={{ display: 'flex', gap: 8 }}>
+<button onClick={() => addAllReviewed(r.id)} disabled={reviewItems[r.id].length === 0 || addingAll === r.id}
+style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', background: reviewItems[r.id].length === 0 ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: reviewItems[r.id].length === 0 ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{addingAll === r.id ? 'Adding…' : `Looks good — add ${reviewItems[r.id].length}`}
+</button>
+<button onClick={() => { setReviewItems(p => { const n = { ...p }; delete n[r.id]; return n }); setAutofillError(p => ({ ...p, [r.id]: '' })) }}
+style={{ padding: '10px 14px', borderRadius: 9, border: `1.5px solid ${S.border}`, background: S.white, color: S.stone, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+Discard
+</button>
+</div>
+</div>
+)}
+</div>
+
 {r.favorite_meals?.length > 0 ? (
 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
 {r.favorite_meals.map((meal, i) => {
