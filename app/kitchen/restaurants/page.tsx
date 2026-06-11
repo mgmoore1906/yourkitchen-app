@@ -527,15 +527,15 @@ Exact dish names + prices. Tag adult or kids so your village sees them in the ri
 <>
 <button onClick={() => setAutofillOpen(p => ({ ...p, [r.id]: !p[r.id] }))}
 style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
-<span style={{ fontSize: 13, fontWeight: 600, color: S.sage }}>✨ Auto-fill from a menu link or photo</span>
+<span style={{ fontSize: 13, fontWeight: 600, color: S.sage }}>✨ Auto-fill from an ordering link or photo</span>
 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ transform: autofillOpen[r.id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6" stroke={S.sage} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
 </button>
 {autofillOpen[r.id] && (
 <div style={{ marginTop: 10 }}>
-<p style={{ fontSize: 11.5, color: S.sage, fontWeight: 300, margin: '0 0 8px', lineHeight: 1.5 }}>Paste a link to {r.name}&rsquo;s menu, or snap a photo of it — we&rsquo;ll pull the dishes and prices for you to check.</p>
+<p style={{ fontSize: 11.5, color: S.sage, fontWeight: 300, margin: '0 0 8px', lineHeight: 1.5 }}>Best with an online-ordering link (Toast, ChowNow, Square) or a photo of the menu — those have the prices. A plain website page often won&rsquo;t.</p>
 <div style={{ display: 'flex', gap: 8 }}>
 <input value={autofillUrl[r.id] || ''} onChange={e => setAutofillUrl(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && parseMenu(r.id, { url: (autofillUrl[r.id] || '').trim() })}
-placeholder="Paste menu link…"
+placeholder="Paste ordering or menu link…"
 style={{ flex: 1, minWidth: 0, padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none', background: S.white }} />
 <button onClick={() => parseMenu(r.id, { url: (autofillUrl[r.id] || '').trim() })} disabled={!(autofillUrl[r.id] || '').trim() || autofillBusy === r.id}
 style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(autofillUrl[r.id] || '').trim() ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !(autofillUrl[r.id] || '').trim() ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
