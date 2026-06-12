@@ -212,7 +212,7 @@ function isUberHost(u: string): boolean {
   }
 }
 
-async function renderWithScrapingBee(url: string, scroll: boolean): Promise<string> {
+async function renderWithScrapingBee(url: string, scroll: boolean, timeoutMs = 40000): Promise<string> {
   const key = process.env.SCRAPINGBEE_API_KEY
   if (!key) return ''
   try {
@@ -237,7 +237,7 @@ async function renderWithScrapingBee(url: string, scroll: boolean): Promise<stri
       api.searchParams.set('wait', '4500')
     }
     const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), 40000) // never let a slow render hang the function
+    const timer = setTimeout(() => ctrl.abort(), timeoutMs) // never let a slow render hang the function
     try {
       const r = await fetch(api.toString(), { signal: ctrl.signal })
       if (!r.ok) return ''
@@ -353,12 +353,26 @@ export async function POST(request: Request) {
       // Render fallback for JS sites. Scroll for open lazy-loaded pages; plain render for bot-walled
       // SPAs (DoorDash Storefront). Skip Uber Eats \u2014 our partner; those go through the Uber API.
       if (items.length === 0 && !isUberHost(url)) {
-        const rendered = await renderWithScrapingBee(url, !blocked)
+        const parseRendered = (html: string) => {
+          const j = extractMenuJson(html)
+          const t = `${j ? j + '\n\n' : ''}${stripHtml(html)}`.slice(0, 50000)
+          return t.replace(/\s/g, '').length >= 40 ? t : ''
+        }
+        const rendered = await renderWithScrapingBee(url, !blocked, 24000)
         if (rendered) {
-          const rjson = extractMenuJson(rendered)
-          const rtext = `${rjson ? rjson + '\n\n' : ''}${stripHtml(rendered)}`.slice(0, 50000)
-          if (rtext.replace(/\s/g, '').length >= 40) {
-            items = await extractMenu({ text: rtext, restaurantName })
+          const rtext = parseRendered(rendered)
+          if (rtext) items = await extractMenu({ text: rtext, restaurantName })
+
+          // Google hands us the homepage, but on JS sites (Popmenu/Wix) the real menu lives on a
+          // sub-page the homepage links to via JavaScript. If the homepage had no menu, find that
+          // link in the RENDERED nav and render the sub-page itself -- the page a manual paste hits.
+          if (items.length === 0) {
+            const sub = findMenuLinks(rendered, url).find((l) => !isUberHost(l))
+            if (sub) {
+              const subRendered = await renderWithScrapingBee(sub, true, 30000)
+              const stext = subRendered ? parseRendered(subRendered) : ''
+              if (stext) items = await extractMenu({ text: stext, restaurantName })
+            }
           }
         }
       }
