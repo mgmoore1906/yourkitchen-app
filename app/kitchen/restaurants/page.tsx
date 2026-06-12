@@ -514,119 +514,114 @@ const isExpanded = expandedId === r.id
 const miles = kitchenLat && kitchenLng ? distanceFromKitchen(r, kitchenLat, kitchenLng) : null
 const mealCat = newMealCategory[r.id] || 'adult'
 return (
-<div key={r.id} id={`restaurant-${r.id}`} style={{ background: S.white, border: `1.5px solid ${r.is_active ? S.sage : S.border}`, borderRadius: 14, overflow: 'hidden' }}>
-<div style={{ padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 12 }}>
-<div style={{ flex: 1, cursor: 'pointer' }} onClick={() => setExpandedId(isExpanded ? null : r.id)}>
-<div style={{ display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap', marginBottom: 3 }}>
-<span style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: S.forest }}>{r.name}</span>
+<div key={r.id} id={`restaurant-${r.id}`} style={{ background: S.white, border: `1px solid ${r.is_active ? '#CFE0D4' : S.border}`, borderRadius: 20, overflow: 'hidden', boxShadow: '0 1px 2px rgba(30,38,32,0.04), 0 10px 30px rgba(30,38,32,0.05)' }}>
+<div style={{ padding: '16px 18px', display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+<div style={{ flex: 1, cursor: 'pointer', minWidth: 0 }} onClick={() => setExpandedId(isExpanded ? null : r.id)}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 7, flexWrap: 'wrap', marginBottom: 4 }}>
+<span style={{ fontFamily: "'Lora', serif", fontSize: 17, fontWeight: 600, color: S.forest, letterSpacing: '-0.01em' }}>{r.name}</span>
 {miles !== null && <DistanceBadge miles={miles} />}
 {r.favorite_meals?.length > 0
-? <span style={{ fontSize: 11, fontWeight: 700, background: S.amberLight, color: S.amber, borderRadius: 20, padding: '2px 8px' }}>{r.favorite_meals.length} meal{r.favorite_meals.length !== 1 ? 's' : ''}</span>
-: <span style={{ fontSize: 11, fontWeight: 700, background: S.redLight, color: S.red, borderRadius: 20, padding: '2px 8px' }}>no meals</span>}
+? <span style={{ fontSize: 10.5, fontWeight: 600, background: S.amberLight, color: S.amber, borderRadius: 999, padding: '2.5px 9px' }}>{r.favorite_meals.length} meal{r.favorite_meals.length !== 1 ? 's' : ''}</span>
+: <span style={{ fontSize: 10.5, fontWeight: 600, background: S.redLight, color: S.red, borderRadius: 999, padding: '2.5px 9px' }}>No meals yet</span>}
 </div>
-<div style={{ fontSize: 12, color: S.stone, fontWeight: 300 }}>
+<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>
 {r.address || r.cuisine}
-{r.is_active && <span style={{ color: S.sageMid, marginLeft: 6 }}>· visible to your village ✓</span>}
+{r.is_active && <span style={{ color: S.sageMid, marginLeft: 6 }}>· Visible to your village ✓</span>}
 </div>
 </div>
-<div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
+<div style={{ display: 'flex', alignItems: 'center', gap: 9, flexShrink: 0 }}>
 <button onClick={() => setExpandedId(isExpanded ? null : r.id)}
-style={{ background: isExpanded ? S.sageLight : 'none', border: `1px solid ${isExpanded ? S.sage : S.border}`, borderRadius: 8, padding: '5px 10px', fontSize: 11, fontWeight: 600, color: isExpanded ? S.sage : S.stone, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+style={{ background: isExpanded ? S.sageLight : 'none', border: `1px solid ${isExpanded ? '#D5E5DA' : S.border}`, borderRadius: 9, padding: '6px 13px', fontSize: 12, fontWeight: 600, color: isExpanded ? S.sage : S.stone, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
 {isExpanded ? 'Done' : '✏️ Meals'}
 </button>
 <button onClick={() => (r.is_active || !atLimit) ? toggleActive(r.id, r.is_active) : shakeLimit()}
-style={{ width: 44, height: 24, borderRadius: 12, border: 'none', background: r.is_active ? S.sage : S.border, cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
-<div style={{ width: 18, height: 18, borderRadius: '50%', background: S.white, position: 'absolute', top: 3, left: r.is_active ? 23 : 3, transition: 'left 0.2s' }} />
+style={{ width: 44, height: 25, borderRadius: 999, border: 'none', background: r.is_active ? S.sage : S.border, cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+<div style={{ width: 19, height: 19, borderRadius: '50%', background: S.white, position: 'absolute', top: 3, left: r.is_active ? 22 : 3, transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }} />
 </button>
 <button onClick={() => deleteRestaurant(r.id, r.name)} disabled={deleting === r.id}
-style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, fontSize: 16, padding: '4px', opacity: deleting === r.id ? 0.4 : 1 }}>🗑</button>
+style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A7ADA3', fontSize: 16, padding: '3px', opacity: deleting === r.id ? 0.4 : 1 }}>🗑</button>
 </div>
 </div>
 
 {isExpanded && (
-<div style={{ borderTop: `0.5px solid ${S.border}`, padding: '16px', background: '#FAFDF9' }}>
-<div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 12px', background: r.pickup_preferred ? S.sageLight : S.white, border: `1px solid ${r.pickup_preferred ? S.sage : S.border}`, borderRadius: 10, marginBottom: 14 }}>
-<div style={{ flex: 1 }}>
-<div style={{ fontSize: 13, fontWeight: 600, color: S.forest }}>🥡 Prefer pickup here</div>
-<div style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, lineHeight: 1.5, marginTop: 2 }}>When your village sends from this spot, it defaults to pickup — no courier fee, you grab it yourself.</div>
-</div>
-<button onClick={() => togglePickup(r.id, !!r.pickup_preferred)}
-style={{ width: 44, height: 24, borderRadius: 12, border: 'none', background: r.pickup_preferred ? S.sage : S.border, cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
-<div style={{ width: 18, height: 18, borderRadius: '50%', background: S.white, position: 'absolute', top: 3, left: r.pickup_preferred ? 23 : 3, transition: 'left 0.2s' }} />
-</button>
-</div>
-<p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 6px' }}>Favorite meals</p>
-<p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '0 0 12px', lineHeight: 1.6 }}>
-Exact dish names + prices. Tag adult or kids so your village sees them in the right section.
-</p>
+<div style={{ borderTop: '1px solid #EEF1EC', padding: '18px', background: '#F4F9F5' }}>
+<p style={{ fontSize: 11, fontWeight: 600, color: S.sage, letterSpacing: '0.07em', textTransform: 'uppercase', margin: '0 0 11px' }}>Their favorite meals</p>
 
-{/* ✨ Auto-fill menu — link or photo → AI → review → add */}
-<div style={{ marginBottom: 14, border: `1.5px dashed ${S.sage}`, borderRadius: 12, padding: '12px 14px', background: S.sageLight }}>
-{!reviewItems[r.id] ? (
-<>
-<button onClick={() => setAutofillOpen(p => ({ ...p, [r.id]: !p[r.id] }))}
-style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', cursor: 'pointer', padding: 0, fontFamily: "'DM Sans', sans-serif" }}>
-<span style={{ fontSize: 13, fontWeight: 600, color: S.sage }}>✨ Auto-fill from an ordering link or photo</span>
-<svg width="15" height="15" viewBox="0 0 24 24" fill="none" style={{ transform: autofillOpen[r.id] ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6" stroke={S.sage} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
-</button>
-{autofillOpen[r.id] && (
-<div style={{ marginTop: 10 }}>
-<p style={{ fontSize: 11.5, color: S.sage, fontWeight: 300, margin: '0 0 8px', lineHeight: 1.5 }}>Best with an online-ordering link (Toast, ChowNow, Square) or a photo of the menu — those have the prices. A plain website page often won&rsquo;t.</p>
-<div style={{ display: 'flex', gap: 8 }}>
-<input value={autofillUrl[r.id] || ''} onChange={e => setAutofillUrl(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && parseMenu(r.id, { url: (autofillUrl[r.id] || '').trim() })}
-placeholder="Paste ordering or menu link…"
-style={{ flex: 1, minWidth: 0, padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none', background: S.white }} />
-<button onClick={() => parseMenu(r.id, { url: (autofillUrl[r.id] || '').trim() })} disabled={!(autofillUrl[r.id] || '').trim() || autofillBusy === r.id}
-style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(autofillUrl[r.id] || '').trim() ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !(autofillUrl[r.id] || '').trim() ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
-{autofillBusy === r.id ? '…' : 'Import'}
-</button>
+{reviewItems[r.id] ? (
+<div style={{ marginBottom: 14 }}>
+<p style={{ fontSize: 14, fontWeight: 600, color: S.forest, margin: 0 }}>We found {reviewItems[r.id].length} dish{reviewItems[r.id].length !== 1 ? 'es' : ''} — keep your favorites</p>
+{reviewItems[r.id].length > 0 && reviewItems[r.id].every(it => (parseFloat(it.price) || 0) === 0) ? (
+<div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', margin: '9px 0 13px', padding: '9px 11px', background: S.amberLight, borderRadius: 10, fontSize: 11.5, color: '#8A5A2E', lineHeight: 1.5 }}>
+<span>💡</span><span><b style={{ fontWeight: 600 }}>This spot didn’t share prices.</b> Type them in, or snap a photo of the order screen. Keep 10 or fewer.</span>
 </div>
-<label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 12.5, fontWeight: 600, color: S.sage, cursor: autofillBusy === r.id ? 'default' : 'pointer' }}>
-📷 Or upload a photo or PDF of the menu
-<input type="file" accept="image/*,application/pdf,.pdf" disabled={autofillBusy === r.id} onChange={e => { const f = e.target.files?.[0]; if (f) parseMenu(r.id, { file: f }); e.target.value = '' }} style={{ display: 'none' }} />
-</label>
-{autofillBusy === r.id && <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '8px 0 0' }}>Reading the menu…</p>}
-{autofillError[r.id] && <p style={{ fontSize: 12, color: S.red, fontWeight: 400, margin: '8px 0 0', lineHeight: 1.5 }}>{autofillError[r.id]}</p>}
-</div>
-)}
-</>
 ) : (
-<div>
-<p style={{ fontSize: 12.5, fontWeight: 600, color: S.sage, margin: '0 0 4px' }}>We pulled {reviewItems[r.id].length} item{reviewItems[r.id].length !== 1 ? 's' : ''} — check names &amp; prices</p>
-<p style={{ fontSize: 11.5, color: reviewItems[r.id].length > 10 ? S.amber : S.stone, fontWeight: 400, margin: '0 0 10px', lineHeight: 1.5 }}>{reviewItems[r.id].length > 10 ? `Pick your family’s favorites — keep 10 or fewer. Remove ${reviewItems[r.id].length - 10} more, then add them.` : 'Edit anything that looks off, drop what you don’t want, then add them.'}</p>
-<div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
+<p style={{ fontSize: 11.5, color: reviewItems[r.id].length > 10 ? S.amber : S.stone, fontWeight: 400, margin: '6px 0 12px', lineHeight: 1.5 }}>{reviewItems[r.id].length > 10 ? `Pick your family’s favorites — keep 10 or fewer. Remove ${reviewItems[r.id].length - 10} more.` : 'Edit anything that looks off, drop what you don’t want, then add them.'}</p>
+)}
+<div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '11px 0' }}>
 {reviewItems[r.id].map((it, idx) => {
 const k = it.category === 'kids'
 return (
-<div key={idx} style={{ background: S.white, border: `1px solid ${k ? S.amber : S.sage}`, borderRadius: 9, padding: '7px 9px', display: 'flex', alignItems: 'center', gap: 6 }}>
+<div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: S.white, border: `1px solid ${S.border}`, borderRadius: 11, padding: '8px 10px' }}>
 <button onClick={() => updateReviewItem(r.id, idx, { category: k ? 'adult' : 'kids' })} title="Toggle adult / kids"
-style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0 }}>{k ? '🧒' : '👤'}</button>
+style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0, width: 18, textAlign: 'center' }}>{k ? '🧒' : '👤'}</button>
 <input value={it.name} onChange={e => updateReviewItem(r.id, idx, { name: e.target.value })}
-style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+style={{ flex: 1, minWidth: 0, padding: '7px 9px', borderRadius: 8, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 <div style={{ position: 'relative', flexShrink: 0 }}>
-<span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: S.stone }}>$</span>
+<span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: S.stone }}>$</span>
 <input type="text" inputMode="decimal" value={it.price} onChange={e => updateReviewItem(r.id, idx, { price: e.target.value })} onBlur={e => updateReviewItem(r.id, idx, { price: (parseFloat(e.target.value) || 0).toFixed(2) })}
-style={{ width: 96, padding: '6px 6px 6px 17px', borderRadius: 7, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+style={{ width: 84, padding: '7px 6px 7px 18px', borderRadius: 8, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 </div>
 <button onClick={() => removeReviewItem(r.id, idx)} aria-label="Drop this item"
-style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, fontSize: 14, padding: '2px 4px', flexShrink: 0 }}>✕</button>
+style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A7ADA3', fontSize: 13, padding: '2px 3px', flexShrink: 0 }}>✕</button>
 </div>
 )
 })}
 </div>
 <div style={{ display: 'flex', gap: 8 }}>
 <button onClick={() => addAllReviewed(r.id)} disabled={reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10 || addingAll === r.id}
-style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', background: (reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10) ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: (reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10) ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-{addingAll === r.id ? 'Adding…' : reviewItems[r.id].length > 10 ? `Remove ${reviewItems[r.id].length - 10} to add` : `Looks good — add ${reviewItems[r.id].length}`}
+style={{ flex: 1, padding: 11, borderRadius: 11, border: 'none', background: (reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10) ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: (reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10) ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{addingAll === r.id ? 'Adding…' : reviewItems[r.id].length > 10 ? `Remove ${reviewItems[r.id].length - 10} to add` : `Add these ${reviewItems[r.id].length}`}
 </button>
 <button onClick={() => { setReviewItems(p => { const n = { ...p }; delete n[r.id]; return n }); setAutofillError(p => ({ ...p, [r.id]: '' })) }}
-style={{ padding: '10px 14px', borderRadius: 9, border: `1.5px solid ${S.border}`, background: S.white, color: S.stone, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+style={{ padding: '11px 15px', borderRadius: 11, border: `1px solid ${S.border}`, background: S.white, color: S.stone, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
 Discard
 </button>
 </div>
 </div>
-)}
+) : autofillBusy === r.id ? (
+<div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 14, padding: '30px 18px', marginBottom: 14, display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+<svg width="32" height="32" viewBox="0 0 50 50" aria-hidden="true">
+<circle cx="25" cy="25" r="20" fill="none" stroke={S.sageLight} strokeWidth="5" />
+<circle cx="25" cy="25" r="20" fill="none" stroke={S.sage} strokeWidth="5" strokeLinecap="round" strokeDasharray="70 130">
+<animateTransform attributeName="transform" attributeType="XML" type="rotate" from="0 25 25" to="360 25 25" dur="0.9s" repeatCount="indefinite" />
+</circle>
+</svg>
+<p style={{ fontSize: 15, fontWeight: 600, color: S.forest, margin: '16px 0 0' }}>Reading the menu…</p>
+<p style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, margin: '3px 0 0' }}>Finding their favorites — about 10 seconds.</p>
 </div>
+) : (
+<div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
+<h4 style={{ fontSize: 13.5, fontWeight: 600, color: S.forest, margin: 0 }}>Pull the menu for me</h4>
+<p style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, lineHeight: 1.55, margin: '6px 0 11px' }}>Paste an ordering link or a menu photo and we’ll read the dishes and prices.</p>
+<div style={{ display: 'flex', gap: 8 }}>
+<input value={autofillUrl[r.id] || ''} onChange={e => setAutofillUrl(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key === 'Enter' && parseMenu(r.id, { url: (autofillUrl[r.id] || '').trim() })}
+placeholder="Paste ordering or menu link…"
+style={{ flex: 1, minWidth: 0, padding: '11px 13px', borderRadius: 11, border: `1px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none', background: S.white }} />
+<button onClick={() => parseMenu(r.id, { url: (autofillUrl[r.id] || '').trim() })} disabled={!(autofillUrl[r.id] || '').trim()}
+style={{ padding: '11px 15px', borderRadius: 11, border: 'none', background: !(autofillUrl[r.id] || '').trim() ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: !(autofillUrl[r.id] || '').trim() ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+Import
+</button>
+</div>
+<label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, marginTop: 11, fontSize: 12.5, fontWeight: 600, color: S.sage, cursor: 'pointer' }}>
+📷 Upload a photo or PDF of the menu
+<input type="file" accept="image/*,application/pdf,.pdf" onChange={e => { const f = e.target.files?.[0]; if (f) parseMenu(r.id, { file: f }); e.target.value = '' }} style={{ display: 'none' }} />
+</label>
+<div style={{ display: 'flex', gap: 8, alignItems: 'flex-start', marginTop: 12, padding: '9px 11px', background: S.amberLight, borderRadius: 10, fontSize: 11.5, color: '#8A5A2E', lineHeight: 1.5 }}>
+<span>💡</span><span><b style={{ fontWeight: 600 }}>Big chains often won’t share prices</b> (Chick-fil-A, Jason’s Deli…). Add those by hand below, or snap a photo of the order screen.</span>
+</div>
+{autofillError[r.id] && <p style={{ fontSize: 12, color: S.red, fontWeight: 400, margin: '10px 0 0', lineHeight: 1.5 }}>{autofillError[r.id]}</p>}
+</div>
+)}
 
 {r.favorite_meals?.length > 0 ? (
 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
@@ -691,10 +686,10 @@ Cancel
 ) : null}
 
 {/* Adult / Kids toggle */}
-<div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
+<div style={{ display: 'flex', gap: 7, margin: '14px 0 9px' }}>
 {(['adult','kids'] as const).map(cat => (
 <button key={cat} onClick={() => setNewMealCategory(p => ({ ...p, [r.id]: cat }))}
-style={{ flex: 1, padding: '9px', borderRadius: 9, border: `1.5px solid ${mealCat===cat?(cat==='adult'?S.sage:S.amber):S.border}`, background: mealCat===cat?(cat==='adult'?S.sageLight:S.amberLight):S.white, color: mealCat===cat?(cat==='adult'?S.sage:S.amber):S.stone, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+style={{ flex: 1, padding: 10, borderRadius: 11, border: `1px solid ${mealCat===cat?(cat==='adult'?S.sage:S.amber):S.border}`, background: mealCat===cat?(cat==='adult'?S.sageLight:S.amberLight):S.white, color: mealCat===cat?(cat==='adult'?S.sage:S.amber):S.stone, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
 {cat==='adult'?'👤 Adult meal':'🧒 Kids meal'}
 </button>
 ))}
@@ -703,24 +698,35 @@ style={{ flex: 1, padding: '9px', borderRadius: 9, border: `1.5px solid ${mealCa
 <div style={{ display: 'flex', gap: 8 }}>
 <input value={newMealName[r.id] || ''} onChange={e => setNewMealName(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
 placeholder={mealCat==='kids'?'e.g. Kids mac & cheese':'e.g. Smash Burger with fries'}
-style={{ flex: 1, padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+style={{ flex: 1, minWidth: 0, padding: '11px 13px', borderRadius: 11, border: `1px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 <div style={{ position: 'relative', flexShrink: 0 }}>
-<span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: S.stone }}>$</span>
+<span style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: S.stone }}>$</span>
 <input type="text" inputMode="decimal" value={newMealPrice[r.id] || ''} onChange={e => setNewMealPrice(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
 placeholder="0.00"
-style={{ width: 96, padding: '10px 10px 10px 22px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+style={{ width: 92, padding: '11px 10px 11px 22px', borderRadius: 11, border: `1px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 </div>
 <button onClick={() => addMeal(r.id)} disabled={!(newMealName[r.id]||'').trim()||savingMeals===r.id}
-style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(newMealName[r.id]||'').trim()?S.border:(mealCat==='kids'?S.amber:S.sage), color: S.white, fontSize: 13, fontWeight: 600, cursor: !(newMealName[r.id]||'').trim()?'default':'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
-{savingMeals===r.id?'…':'+ Add'}
+style={{ padding: '11px 15px', borderRadius: 11, border: 'none', background: !(newMealName[r.id]||'').trim()?S.border:(mealCat==='kids'?S.amber:S.sage), color: S.white, fontSize: 13, fontWeight: 600, cursor: !(newMealName[r.id]||'').trim()?'default':'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
+{savingMeals===r.id?'…':'Add'}
 </button>
 </div>
 
-{/* Preparation notes — free text so the village (and our team) place the order exactly right */}
 <input value={newMealNote[r.id] || ''} onChange={e => setNewMealNote(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
-placeholder="How they like it — e.g. eggs over hard, sub wheat toast, no onions"
-style={{ width: '100%', boxSizing: 'border-box', marginTop: 8, padding: '10px 12px', borderRadius: 9, border: `1.5px dashed ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
-<p style={{ fontSize: 10.5, color: S.stone, fontWeight: 300, margin: '5px 0 0', lineHeight: 1.5 }}>Optional, but the more specific the better — this is exactly how the meal gets ordered.</p>
+placeholder="How they like it — no onions, sub wheat toast…"
+style={{ width: '100%', boxSizing: 'border-box', marginTop: 8, padding: '11px 13px', borderRadius: 11, border: `1px dashed ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+
+{/* Prefer pickup — moved to the bottom: what it is -> add meals -> how it is sent */}
+<div style={{ display: 'flex', alignItems: 'center', gap: 13, marginTop: 18, paddingTop: 16, borderTop: '1px solid #EEF1EC' }}>
+<div style={{ width: 34, height: 34, borderRadius: 10, background: r.pickup_preferred ? S.sageLight : '#EFF3ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 }}>🥡</div>
+<div style={{ flex: 1 }}>
+<div style={{ fontSize: 13, fontWeight: 600, color: S.forest }}>Prefer pickup here</div>
+<div style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, marginTop: 1 }}>No courier fee — you grab it yourself.</div>
+</div>
+<button onClick={() => togglePickup(r.id, !!r.pickup_preferred)}
+style={{ width: 44, height: 25, borderRadius: 999, border: 'none', background: r.pickup_preferred ? S.sage : S.border, cursor: 'pointer', position: 'relative', flexShrink: 0, transition: 'background 0.2s' }}>
+<div style={{ width: 19, height: 19, borderRadius: '50%', background: S.white, position: 'absolute', top: 3, left: r.pickup_preferred ? 22 : 3, transition: 'left 0.2s', boxShadow: '0 1px 2px rgba(0,0,0,0.15)' }} />
+</button>
+</div>
 </div>
 )}
 </div>
