@@ -621,8 +621,8 @@ style={{ flex: 1, padding: '8px', borderRadius: 9, border: `1.5px solid ${editMe
 style={{ flex: 1, padding: '9px 11px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 <div style={{ position: 'relative', flexShrink: 0 }}>
 <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: S.stone }}>$</span>
-<input type="number" value={editMeal!.price} onChange={e => setEditMeal(m => m ? { ...m, price: e.target.value } : m)} onKeyDown={e => e.key==='Enter'&&saveEditMeal(r.id)}
-style={{ width: 76, padding: '9px 10px 9px 22px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+<input type="text" inputMode="decimal" value={editMeal!.price} onChange={e => setEditMeal(m => m ? { ...m, price: e.target.value } : m)} onKeyDown={e => e.key==='Enter'&&saveEditMeal(r.id)}
+style={{ width: 96, padding: '9px 10px 9px 22px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 </div>
 </div>
 <input value={editMeal!.note} onChange={e => setEditMeal(m => m ? { ...m, note: e.target.value } : m)} onKeyDown={e => e.key==='Enter'&&saveEditMeal(r.id)}
@@ -676,9 +676,9 @@ placeholder={mealCat==='kids'?'e.g. Kids mac & cheese':'e.g. Smash Burger with f
 style={{ flex: 1, padding: '10px 12px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 <div style={{ position: 'relative', flexShrink: 0 }}>
 <span style={{ position: 'absolute', left: 10, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: S.stone }}>$</span>
-<input type="number" value={newMealPrice[r.id] || ''} onChange={e => setNewMealPrice(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
+<input type="text" inputMode="decimal" value={newMealPrice[r.id] || ''} onChange={e => setNewMealPrice(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
 placeholder="0.00"
-style={{ width: 76, padding: '10px 10px 10px 22px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+style={{ width: 96, padding: '10px 10px 10px 22px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 </div>
 <button onClick={() => addMeal(r.id)} disabled={!(newMealName[r.id]||'').trim()||savingMeals===r.id}
 style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(newMealName[r.id]||'').trim()?S.border:(mealCat==='kids'?S.amber:S.sage), color: S.white, fontSize: 13, fontWeight: 600, cursor: !(newMealName[r.id]||'').trim()?'default':'pointer', fontFamily: "'DM Sans', sans-serif", flexShrink: 0 }}>
