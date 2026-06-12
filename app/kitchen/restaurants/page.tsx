@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback, Suspense } from 'react'
+import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { haversineDistance, formatDistance } from '@/lib/distance'
@@ -368,6 +368,34 @@ return n
 })
 }
 
+const reviewPaintingRef = useRef(false)
+const reviewDragMovedRef = useRef(false)
+const reviewPaintRid = useRef<string | null>(null)
+const reviewPaintStart = useRef<number | null>(null)
+const rowAtPoint = (x: number, y: number): number | null => {
+const el = document.elementFromPoint(x, y) as HTMLElement | null
+const row = el?.closest('[data-review-idx]') as HTMLElement | null
+if (!row) return null
+const n = parseInt(row.getAttribute('data-review-idx') || '', 10)
+return Number.isNaN(n) ? null : n
+}
+const beginReviewPaint = (rid: string, idx: number) => {
+reviewPaintingRef.current = true
+reviewDragMovedRef.current = false
+reviewPaintRid.current = rid
+reviewPaintStart.current = idx
+}
+const extendReviewPaint = (x: number, y: number) => {
+if (!reviewPaintingRef.current) return
+const idx = rowAtPoint(x, y)
+const rid = reviewPaintRid.current
+const start = reviewPaintStart.current
+if (idx === null || rid === null || start === null) return
+if (idx !== start) reviewDragMovedRef.current = true
+const lo = Math.min(start, idx), hi = Math.max(start, idx)
+setReviewItems(p => ({ ...p, [rid]: (p[rid] || []).map((it, i) => (i >= lo && i <= hi) ? { ...it, sel: true } : it) }))
+}
+const finishReviewPaint = () => { reviewPaintingRef.current = false }
 const selectAllReview = (restaurantId: string, on: boolean) => {
 setReviewItems(p => ({ ...p, [restaurantId]: (p[restaurantId] || []).map(it => ({ ...it, sel: on })) }))
 }
@@ -583,13 +611,19 @@ Delete selected ({reviewItems[r.id].filter(it => it.sel).length})
 )}
 </div>
 )}
+{reviewItems[r.id].length > 1 && !reviewItems[r.id].some(it => it.sel) && (<p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '0 0 8px', lineHeight: 1.4 }}>Press a checkbox and drag to select several at once.</p>)}
 <div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '11px 0' }}>
 {reviewItems[r.id].map((it, idx) => {
 const k = it.category === 'kids'
 return (
-<div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: it.sel ? S.sageLight : S.white, border: `1px solid ${it.sel ? S.sageMid : S.border}`, borderRadius: 11, padding: '8px 10px' }}>
-<button onClick={() => updateReviewItem(r.id, idx, { sel: !it.sel })} aria-label={it.sel ? 'Deselect' : 'Select'}
-style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, border: `1.6px solid ${it.sel ? S.sage : '#C3CCC5'}`, background: it.sel ? S.sage : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white, fontSize: 12, fontWeight: 700, padding: 0, lineHeight: 1 }}>{it.sel ? '✓' : ''}</button>
+<div key={idx} data-review-idx={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: it.sel ? S.sageLight : S.white, border: `1px solid ${it.sel ? S.sageMid : S.border}`, borderRadius: 11, padding: '8px 10px' }}>
+<button
+onPointerDown={(e:any)=>{ try{ e.currentTarget.setPointerCapture(e.pointerId) }catch{}; beginReviewPaint(r.id, idx) }}
+onPointerMove={(e:any)=>{ if(reviewPaintingRef.current){ e.preventDefault(); extendReviewPaint(e.clientX, e.clientY) } }}
+onPointerUp={finishReviewPaint} onPointerCancel={finishReviewPaint}
+onClick={() => { if(reviewDragMovedRef.current){ reviewDragMovedRef.current=false; return } updateReviewItem(r.id, idx, { sel: !it.sel }) }}
+aria-label={it.sel ? 'Deselect' : 'Select'}
+style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, border: `1.6px solid ${it.sel ? S.sage : '#C3CCC5'}`, background: it.sel ? S.sage : 'transparent', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white, fontSize: 12, fontWeight: 700, padding: 0, lineHeight: 1, touchAction: 'none' }}>{it.sel ? '✓' : ''}</button>
 <button onClick={() => updateReviewItem(r.id, idx, { category: k ? 'adult' : 'kids' })} title="Toggle adult / kids"
 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0, width: 18, textAlign: 'center' }}>{k ? '🧒' : '👤'}</button>
 <input value={it.name} onChange={e => updateReviewItem(r.id, idx, { name: e.target.value })}
