@@ -202,7 +202,17 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
 
 // Render fallback: when a plain fetch can't read a JS-built site (Popmenu/Wix/Squarespace),
 // run it through ScrapingBee (executes JS, waits for lazy-loaded menus) and return rendered HTML.
-async function renderWithScrapingBee(url: string): Promise<string> {
+// Uber Eats is our primary partner — never scrape it; those menus go through the Uber API.
+function isUberHost(u: string): boolean {
+  try {
+    const h = new URL(u).hostname.toLowerCase()
+    return h.includes('ubereats.com') || h === 'uber.com' || h.endsWith('.uber.com')
+  } catch {
+    return false
+  }
+}
+
+async function renderWithScrapingBee(url: string, scroll: boolean): Promise<string> {
   const key = process.env.SCRAPINGBEE_API_KEY
   if (!key) return ''
   try {
@@ -210,20 +220,31 @@ async function renderWithScrapingBee(url: string): Promise<string> {
     api.searchParams.set('api_key', key)
     api.searchParams.set('url', url)
     api.searchParams.set('render_js', 'true')
-    // Scroll down in steps so lazy-loaded sections (Popmenu "Load More", Wix) render before capture.
-    api.searchParams.set('js_scenario', JSON.stringify({
-      instructions: [
-        { wait: 2500 },
-        { scroll_y: 3000 }, { wait: 1200 },
-        { scroll_y: 3000 }, { wait: 1200 },
-        { scroll_y: 3000 }, { wait: 1200 },
-        { scroll_y: 3000 }, { wait: 1200 },
-        { scroll_y: 3000 }, { wait: 1500 },
-      ],
-    }))
-    const r = await fetch(api.toString())
-    if (!r.ok) return ''
-    return await r.text()
+    if (scroll) {
+      // Open JS sites (Popmenu, Wix): scroll in steps so lazy-loaded sections render before capture.
+      api.searchParams.set('js_scenario', JSON.stringify({
+        instructions: [
+          { wait: 2500 },
+          { scroll_y: 3000 }, { wait: 1200 },
+          { scroll_y: 3000 }, { wait: 1200 },
+          { scroll_y: 3000 }, { wait: 1200 },
+          { scroll_y: 3000 }, { wait: 1200 },
+          { scroll_y: 3000 }, { wait: 1500 },
+        ],
+      }))
+    } else {
+      // Bot-walled SPAs (e.g. DoorDash Storefront): the scroll scenario stalls; a plain render works.
+      api.searchParams.set('wait', '4500')
+    }
+    const ctrl = new AbortController()
+    const timer = setTimeout(() => ctrl.abort(), 40000) // never let a slow render hang the function
+    try {
+      const r = await fetch(api.toString(), { signal: ctrl.signal })
+      if (!r.ok) return ''
+      return await r.text()
+    } finally {
+      clearTimeout(timer)
+    }
   } catch {
     return ''
   }
@@ -329,9 +350,10 @@ export async function POST(request: Request) {
         if (llmCalls >= 2) break
       }
 
-      // Render fallback for JS-built sites: the cheap path found nothing, so render once via ScrapingBee.
-      if (items.length === 0) {
-        const rendered = await renderWithScrapingBee(url)
+      // Render fallback for JS sites. Scroll for open lazy-loaded pages; plain render for bot-walled
+      // SPAs (DoorDash Storefront). Skip Uber Eats \u2014 our partner; those go through the Uber API.
+      if (items.length === 0 && !isUberHost(url)) {
+        const rendered = await renderWithScrapingBee(url, !blocked)
         if (rendered) {
           const rjson = extractMenuJson(rendered)
           const rtext = `${rjson ? rjson + '\n\n' : ''}${stripHtml(rendered)}`.slice(0, 50000)
@@ -342,6 +364,12 @@ export async function POST(request: Request) {
       }
 
       if (items.length === 0) {
+        if (isUberHost(url)) {
+          return NextResponse.json(
+            { error: 'For Uber Eats links, upload a screenshot of the menu for now \u2014 we read the prices from the image.' },
+            { status: 422 },
+          )
+        }
         if (blocked) {
           return NextResponse.json(
             {
