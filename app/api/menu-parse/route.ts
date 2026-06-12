@@ -16,7 +16,7 @@ Rules:
 - If the source is JSON from an ordering platform, prices may be in CENTS (e.g. 1299). Convert those to dollars (12.99).
 - category: "kids" only for kids'/children's-menu items; otherwise "adult".
 - FLATTEN configurable items into finished, single-price items. If "Fried Rice" is 9 and a "+$1 chicken" option exists, output {"name":"Chicken Fried Rice","price":10}. Put any key choice in "note".
-- NEVER skip an item just because it shows more than one price. If an item lists multiple prices (e.g. sizes 6"/12", Small/Large, half/full), use the FIRST price listed. (You may instead list each clearly-labeled size as its own entry, with the size in the name.)
+- If an item shows MORE THAN ONE price — two, three, four, ANY number (sizes, Small/Medium/Large, half/full, per-topping tiers, etc.) — output exactly ONE entry for it using the FIRST price listed. Always pick the first price; never skip the item, and never output 0 for an item that has any visible price.
 - note: a short clarifier, or "" (empty string). Never null.
 - Skip section headers, pure drink lists, and anything not orderable as a meal. Cap at 80 items.
 - If the source contains no actual menu with dishes, return {"items":[]}.`
