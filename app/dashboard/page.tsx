@@ -76,8 +76,8 @@ function BottomNav({ active, set, badge }: { active: Tab; set: (t: Tab) => void;
   const IcVillage = ({c,f}:{c:string,f:boolean}) => (
     <svg width="22" height="22" viewBox="0 0 24 24" fill="none">
       {f
-        ? <path d="M21 15C21 15.55 20.55 16 20 16H7L3 20V4C3 3.45 3.45 3 4 3H20C20.55 3 21 3.45 21 4V15Z" fill={c}/>
-        : <path d="M21 15C21 15.55 20.55 16 20 16H7L3 20V4C3 3.45 3.45 3 4 3H20C20.55 3 21 3.45 21 4V15Z" stroke={c} strokeWidth="1.75" strokeLinejoin="round" fill="none"/>}
+        ? (<g fill={c}><path d="M2 12 L6 8.5 L10 12 L10 21 L2 21 Z"/><path d="M11 13 L16 8 L21 13 L21 21 L11 21 Z"/></g>)
+        : (<g stroke={c} strokeWidth="1.7" strokeLinejoin="round" strokeLinecap="round" fill="none"><path d="M2 12 L6 8.5 L10 12 L10 21 L2 21 Z"/><path d="M11 13 L16 8 L21 13 L21 21 L11 21 Z"/></g>)}
     </svg>
   )
   const tabs: { key: Tab; label: string }[] = [
@@ -790,9 +790,22 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
   let streak=0; const now=new Date(); const cur=new Date(now); cur.setDate(now.getDate()-now.getDay())
   while(weekSet.has(cur.toISOString().split('T')[0])){ streak++; cur.setDate(cur.getDate()-7) }
 
+  const weekStartOf = (d:Date) => { const x=new Date(d); x.setHours(0,0,0,0); x.setDate(x.getDate()-x.getDay()); return x }
+  const thisWeekStart = weekStartOf(new Date())
+  const perWeek = Array.from({length:6}, (_,i) => {
+    const ws = new Date(thisWeekStart); ws.setDate(thisWeekStart.getDate()-(5-i)*7)
+    const we = new Date(ws); we.setDate(ws.getDate()+7)
+    const count = delivered.filter(p=>{ if(!p.delivery_date) return false; const d=new Date(p.delivery_date+'T12:00:00'); return d>=ws && d<we }).length
+    return { label: i===5 ? 'Now' : `${ws.getMonth()+1}/${ws.getDate()}`, count, cur: i===5 }
+  })
+  const maxWeek = Math.max(1, ...perWeek.map(w=>w.count))
+  const weeksCovered = weekSet.size
+  const topRests = Object.entries(restCounts).sort((a,b)=>b[1]-a[1]).slice(0,5)
+  const maxRest = (topRests[0]?.[1]) || 1
   const stats = [
     { icon:<IcHeart/>,   label:'Total meals received', val:totalMeals,                            sub:totalMeals===1?'meal':'meals' },
     { icon:<IcPeople/>,  label:'Village size',          val:villageSize,                            sub:'unique supporters' },
+    { icon:<svg width="24" height="24" viewBox="0 0 24 24" fill="none"><rect x="3" y="5" width="18" height="16" rx="2" {...sv}/><path d="M3 9h18M8 3v4M16 3v4" {...sv}/></svg>, label:'Weeks covered', val:weeksCovered, sub:weeksCovered===1?'week with meals':'weeks with meals' },
     { icon:<IcTrophy/>,  label:'Top supporter',         val:topCoord?.[0]||'—',                    sub:topCoord?`${topCoord[1]} meal${topCoord[1]!==1?'s':''}`:'' },
     { icon:<IcCutlery/>, label:'Favorite restaurant',   val:favRest?.[0]||'—',                     sub:favRest?`${favRest[1]} time${favRest[1]!==1?'s':''}`:'' },
     { icon:<IcBolt/>,    label:'Streak',                val:streak>0?`${streak} week${streak!==1?'s':''}` :'—', sub:streak>0?'consecutive weeks':'no streak yet' },
@@ -832,6 +845,37 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
           </div>
         ))}
       </div>
+      {totalMeals>0&&(
+        <>
+          <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:14,padding:'16px',marginTop:14 }}>
+            <p style={{ fontSize:11,fontWeight:600,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',margin:'0 0 14px' }}>Meals per week</p>
+            <div style={{ display:'flex',alignItems:'flex-end',gap:8,height:92 }}>
+              {perWeek.map((w,i)=>(
+                <div key={i} style={{ flex:1,display:'flex',flexDirection:'column',alignItems:'center',gap:6,height:'100%',justifyContent:'flex-end' }}>
+                  <div style={{ fontSize:10,fontWeight:700,color:w.cur?S.sage:S.stone }}>{w.count||''}</div>
+                  <div style={{ width:'100%',height:`${Math.round((w.count/maxWeek)*64)+4}px`,background:w.cur?S.sage:S.sageLight,borderRadius:'5px 5px 2px 2px' }}/>
+                  <div style={{ fontSize:9.5,color:S.stone,fontWeight:600 }}>{w.label}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+          {topRests.length>0&&(
+            <div style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:14,padding:'16px',marginTop:14 }}>
+              <p style={{ fontSize:11,fontWeight:600,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',margin:'0 0 14px' }}>Where your village orders</p>
+              <div style={{ display:'flex',flexDirection:'column',gap:11 }}>
+                {topRests.map(([name,ct])=>(
+                  <div key={name} style={{ display:'flex',alignItems:'center',gap:10 }}>
+                    <div style={{ fontSize:12.5,fontWeight:600,color:S.forest,width:120,flexShrink:0,whiteSpace:'nowrap',overflow:'hidden',textOverflow:'ellipsis' }}>{name}</div>
+                    <div style={{ flex:1,height:8,background:S.sageLight,borderRadius:6,overflow:'hidden' }}><div style={{ height:'100%',width:`${(ct/maxRest)*100}%`,background:S.sageMid,borderRadius:6 }}/></div>
+                    <div style={{ fontSize:11.5,fontWeight:700,color:S.stone,width:22,textAlign:'right' }}>{ct}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+          <p style={{ fontFamily:"'Lora',serif",fontSize:15,color:S.sage,textAlign:'center',lineHeight:1.5,padding:'22px 24px 6px',margin:0 }}>Your people have shown up {totalMeals} time{totalMeals!==1?'s':''}. 💚</p>
+        </>
+      )}
       {totalMeals===0&&(
         <div style={{ marginTop:20,background:S.sageLight,borderRadius:14,padding:'20px',textAlign:'center' }}>
           <p style={{ fontSize:14,color:S.sage,margin:0,lineHeight:1.7 }}>Once your village starts sending meals, your insights will appear here.</p>
