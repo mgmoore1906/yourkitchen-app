@@ -28,6 +28,7 @@ rating: number | null; is_open: boolean | null
 }
 
 type ParsedItem = { name: string; price: number; category: 'adult' | 'kids'; note: string }
+type ReviewItem = { name: string; price: string; category: 'adult' | 'kids'; note: string }
 
 function distanceFromKitchen(r: { lat: number | null; lng: number | null }, kitLat: number, kitLng: number): number | null {
 if (!r.lat || !r.lng) return null
@@ -78,7 +79,7 @@ const [autofillOpen, setAutofillOpen] = useState<Record<string, boolean>>({})
 const [autofillUrl, setAutofillUrl] = useState<Record<string, string>>({})
 const [autofillBusy, setAutofillBusy] = useState<string | null>(null)
 const [autofillError, setAutofillError] = useState<Record<string, string>>({})
-const [reviewItems, setReviewItems] = useState<Record<string, ParsedItem[]>>({})
+const [reviewItems, setReviewItems] = useState<Record<string, ReviewItem[]>>({})
 const [addingAll, setAddingAll] = useState<string | null>(null)
 
 useEffect(() => {
@@ -316,7 +317,7 @@ setAutofillError(p => ({ ...p, [restaurantId]: data.error || 'Could not read tha
 } else if (!Array.isArray(data.items) || data.items.length === 0) {
 setAutofillError(p => ({ ...p, [restaurantId]: 'No menu items found there. Try a clearer photo or a different link.' }))
 } else {
-setReviewItems(p => ({ ...p, [restaurantId]: data.items }))
+setReviewItems(p => ({ ...p, [restaurantId]: (data.items as ParsedItem[]).map((i) => ({ name: i.name, price: (Number(i.price) || 0).toFixed(2), category: i.category, note: i.note })) }))
 setAutofillOpen(p => ({ ...p, [restaurantId]: false }))
 }
 } catch {
@@ -325,7 +326,7 @@ setAutofillError(p => ({ ...p, [restaurantId]: 'Something went wrong reading tha
 setAutofillBusy(null)
 }
 
-const updateReviewItem = (restaurantId: string, idx: number, patch: Partial<ParsedItem>) => {
+const updateReviewItem = (restaurantId: string, idx: number, patch: Partial<ReviewItem>) => {
 setReviewItems(p => ({ ...p, [restaurantId]: (p[restaurantId] || []).map((it, i) => i === idx ? { ...it, ...patch } : it) }))
 }
 const removeReviewItem = (restaurantId: string, idx: number) => {
@@ -356,7 +357,7 @@ return
 }
 setAddingAll(restaurantId)
 const updatedMeals = [...(rest.favorite_meals || []), ...toAdd.map(i => i.name.trim())]
-const updatedPrices = [...(rest.favorite_meal_prices || []), ...toAdd.map(i => Math.max(0, Number(i.price) || 0))]
+const updatedPrices = [...(rest.favorite_meal_prices || []), ...toAdd.map(i => Math.max(0, parseFloat(i.price) || 0))]
 const updatedCategories = [...(rest.favorite_meal_categories || []), ...toAdd.map(i => i.category === 'kids' ? 'kids' : 'adult')]
 const updatedNotes = [...(rest.favorite_meal_notes || []), ...toAdd.map(i => (i.note || '').trim())]
 const res = await fetch('/api/restaurants/favorites', {
@@ -566,8 +567,8 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, pa
 style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 <div style={{ position: 'relative', flexShrink: 0 }}>
 <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: S.stone }}>$</span>
-<input type="number" value={String(it.price)} onChange={e => updateReviewItem(r.id, idx, { price: parseFloat(e.target.value) || 0 })}
-style={{ width: 62, padding: '6px 6px 6px 17px', borderRadius: 7, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+<input type="text" inputMode="decimal" value={it.price} onChange={e => updateReviewItem(r.id, idx, { price: e.target.value })} onBlur={e => updateReviewItem(r.id, idx, { price: (parseFloat(e.target.value) || 0).toFixed(2) })}
+style={{ width: 84, padding: '6px 6px 6px 17px', borderRadius: 7, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 </div>
 <button onClick={() => removeReviewItem(r.id, idx)} aria-label="Drop this item"
 style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, fontSize: 14, padding: '2px 4px', flexShrink: 0 }}>✕</button>
