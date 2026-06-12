@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import twilio from 'twilio'
 import Stripe from 'stripe'
+import { notifyCoordinatorDeclined } from '@/lib/coordinator-notify'
 export const dynamic = 'force-dynamic'
 function getSupabase() {
   return createClient(
@@ -63,8 +64,8 @@ export async function POST(request: Request) {
     return twiml("We couldn't find your Kitchen. Visit yourkitchen.app for help.")
   }
 
-  // Find most recent pending proposal for this kitchen
-  const { data: proposal } = await supabase
+  // Pending proposals for this kitchen, newest first.
+  const { data: pendings } = await supabase
     .from('meal_proposals')
     .select(`
       *,
@@ -75,12 +76,21 @@ export async function POST(request: Request) {
     .eq('status', 'pending')
     .eq('kitchen_id', kitchen.id)
     .order('proposed_at', { ascending: false })
-    .limit(1)
-    .single()
+    .limit(10)
 
-  if (!proposal) {
-    return twiml('No pending meal proposals found.')
+  const pendingList = (pendings || []) as any[]
+  if (pendingList.length === 0) {
+    return twiml('No pending meal proposals found. — YourKitchen')
   }
+
+  // With more than one meal waiting, a bare Y/N is ambiguous — it would always
+  // hit the newest and silently ignore the rest. Route them to the app so each
+  // meal gets its own answer instead of the wrong one being confirmed/declined.
+  if (pendingList.length > 1 && ['Y', 'YES', 'N', 'NO'].includes(body)) {
+    return twiml(`You have ${pendingList.length} meals waiting for a reply. Open app.yourkitchen.app/dashboard to confirm or decline each one. — YourKitchen`)
+  }
+
+  const proposal = pendingList[0]
 
   // ── Y / YES — confirm ────────────────────────────────────────────────────
   if (body === 'Y' || body === 'YES') {
@@ -136,6 +146,28 @@ export async function POST(request: Request) {
         .update({ status: 'available' })
         .eq('id', proposal.claims?.calendar_date_id),
     ])
+
+    // Notify the coordinator their offer was declined (parity with the app flow).
+    try {
+      const kc = proposal.claims?.calendar_dates?.kitchens
+      const items = Array.isArray(proposal.meal_items) ? proposal.meal_items : []
+      const mealName = proposal.meal_name
+        || (items.length ? items.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : null)
+        || proposal.menu_items?.name || 'the meal'
+      const dateLabel = proposal.delivery_date
+        ? new Date(proposal.delivery_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+        : null
+      await notifyCoordinatorDeclined({
+        coordinatorEmail: proposal.coordinator_email || null,
+        coordinatorName: proposal.coordinator_name || null,
+        recipientName: (kc?.name || '').split(/[\s']/)[0] || null,
+        mealName,
+        restName: proposal.kitchen_restaurants?.name || null,
+        dateLabel,
+        reason: null,
+        slug: kc?.slug || null,
+      })
+    } catch (err: any) { console.error('Coordinator decline notify (SMS) failed:', err?.message) }
 
     return twiml(
       "Got it — we'll let them know. The date is back open for your village to claim. — YourKitchen"
