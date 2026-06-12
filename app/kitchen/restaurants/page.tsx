@@ -455,15 +455,16 @@ Add favorites and save your go-to meals with prices. Tag each as an adult or kid
 </p>
 <div style={{ background: S.sageLight, borderRadius: 12, padding: '12px 16px', marginBottom: 12 }}>
 <p style={{ fontSize: 13, color: S.sage, margin: 0, lineHeight: 1.6, fontWeight: 400 }}>
-📋 <strong>A quick note:</strong> while we're in pilot, you'll add your favorite dishes and their prices yourself. Slightly inconvenient, but not forever — open the restaurant's menu on your phone and add the dishes your family loves most.
+📋 <strong>A quick note:</strong> while we're in pilot, you'll add your favorite dishes and their prices yourself. Slightly inconvenient, but not forever.
 </p>
 </div>
 <div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
-<p style={{ fontSize: 12, fontWeight: 700, color: S.forest, letterSpacing: '0.04em', textTransform: 'uppercase', margin: '0 0 8px' }}>Three ways to add a menu</p>
+<p style={{ fontSize: 12, fontWeight: 700, color: S.forest, letterSpacing: '0.04em', textTransform: 'uppercase', margin: '0 0 8px' }}>Four ways to add a menu</p>
 <div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
-<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>1.</strong> Paste the restaurant's menu or online-ordering link and we'll fill it in.</p>
-<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>2.</strong> Upload a photo or PDF of the menu.</p>
-<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>3.</strong> Or type the dishes and prices in by hand.</p>
+<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>1.</strong> Search and add your favorite restaurant, depending on their web layout, the menu may populate.</p>
+<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>2.</strong> Paste the restaurant's menu or online-ordering link and we'll fill it in.</p>
+<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>3.</strong> Upload a photo or PDF of the menu.</p>
+<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>4.</strong> Or type the dishes and prices in by hand.</p>
 </div>
 </div>
 
@@ -597,7 +598,7 @@ Discard
 </circle>
 </svg>
 <p style={{ fontSize: 15, fontWeight: 600, color: S.forest, margin: '16px 0 0' }}>Reading the menu…</p>
-<p style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, margin: '3px 0 0' }}>Finding their favorites — about 10 seconds.</p>
+<p style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, margin: '3px 0 0' }}>Finding your favorites — about 20 seconds.</p>
 </div>
 ) : (
 <div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
