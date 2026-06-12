@@ -693,7 +693,7 @@ style={{ width:'100%',padding:'14px 16px',display:'flex',alignItems:'center',gap
 </div>
 {fav.address&&<div style={{ fontSize:12,color:S.stone,fontWeight:300,marginBottom:4 }}>{fav.address}</div>}
 {hasMeals?(
-<div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{adultMeals.length} adult · {kidsMeals.length} kids meal{kidsMeals.length!==1?'s':''} saved</div>
+<div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{allMeals.length} meal{allMeals.length!==1?'s':''} saved</div>
 ):(
 <span style={{ fontSize:10,color:S.stone,fontWeight:300 }}>No meals saved — you'll enter the dish name</span>
 )}
