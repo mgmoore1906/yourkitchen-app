@@ -195,6 +195,25 @@ async function extractPdfText(bytes: Uint8Array): Promise<string> {
   }
 }
 
+// Render fallback: when a plain fetch can't read a JS-built site (Popmenu/Wix/Squarespace),
+// run it through ScrapingBee (executes JS, waits for lazy-loaded menus) and return rendered HTML.
+async function renderWithScrapingBee(url: string): Promise<string> {
+  const key = process.env.SCRAPINGBEE_API_KEY
+  if (!key) return ''
+  try {
+    const api = new URL('https://app.scrapingbee.com/api/v1/')
+    api.searchParams.set('api_key', key)
+    api.searchParams.set('url', url)
+    api.searchParams.set('render_js', 'true')
+    api.searchParams.set('wait', '4000') // let lazy-loaded menus populate before capture
+    const r = await fetch(api.toString())
+    if (!r.ok) return ''
+    return await r.text()
+  } catch {
+    return ''
+  }
+}
+
 async function fetchRich(url: string): Promise<string> {
   try {
     const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (YourKitchen menu importer)' } })
@@ -293,6 +312,18 @@ export async function POST(request: Request) {
         llmCalls++
         if (items.length > 0) break
         if (llmCalls >= 2) break
+      }
+
+      // Render fallback for JS-built sites: the cheap path found nothing, so render once via ScrapingBee.
+      if (items.length === 0) {
+        const rendered = await renderWithScrapingBee(url)
+        if (rendered) {
+          const rjson = extractMenuJson(rendered)
+          const rtext = `${rjson ? rjson + '\n\n' : ''}${stripHtml(rendered)}`.slice(0, 30000)
+          if (rtext.replace(/\s/g, '').length >= 40) {
+            items = await extractMenu({ text: rtext, restaurantName })
+          }
+        }
       }
 
       if (items.length === 0) {
