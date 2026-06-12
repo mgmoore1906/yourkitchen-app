@@ -17,7 +17,7 @@ Rules:
 - category: "kids" only for kids'/children's-menu items; otherwise "adult".
 - FLATTEN configurable items into finished, single-price items. If "Fried Rice" is 9 and a "+$1 chicken" option exists, output {"name":"Chicken Fried Rice","price":10}. Put any key choice in "note".
 - note: a short clarifier, or "" (empty string). Never null.
-- Skip section headers, pure drink lists, and anything not orderable as a meal. Cap at 40 items.
+- Skip section headers, pure drink lists, and anything not orderable as a meal. Cap at 80 items.
 - If the source contains no actual menu with dishes, return {"items":[]}.`
 
 // Online-ordering platforms whose pages usually expose the full priced menu in source/JSON.
@@ -89,7 +89,7 @@ async function extractMenu(args: {
       note: String(i?.note || '').slice(0, 140),
     }))
     .filter((i) => i.name.length > 0)
-    .slice(0, 40)
+    .slice(0, 80)
 }
 
 function stripHtml(html: string): string {
@@ -209,7 +209,17 @@ async function renderWithScrapingBee(url: string): Promise<string> {
     api.searchParams.set('api_key', key)
     api.searchParams.set('url', url)
     api.searchParams.set('render_js', 'true')
-    api.searchParams.set('wait', '4000') // let lazy-loaded menus populate before capture
+    // Scroll down in steps so lazy-loaded sections (Popmenu "Load More", Wix) render before capture.
+    api.searchParams.set('js_scenario', JSON.stringify({
+      instructions: [
+        { wait: 2500 },
+        { scroll_y: 3000 }, { wait: 1200 },
+        { scroll_y: 3000 }, { wait: 1200 },
+        { scroll_y: 3000 }, { wait: 1200 },
+        { scroll_y: 3000 }, { wait: 1200 },
+        { scroll_y: 3000 }, { wait: 1500 },
+      ],
+    }))
     const r = await fetch(api.toString())
     if (!r.ok) return ''
     return await r.text()
@@ -297,7 +307,7 @@ export async function POST(request: Request) {
       const mainHtml = await mainResp.text()
       const blocked = looksBotBlocked(mainHtml)
       const mainJson = extractMenuJson(mainHtml)
-      const mainText = `${mainJson ? mainJson + '\n\n' : ''}${stripHtml(mainHtml)}`.slice(0, 30000)
+      const mainText = `${mainJson ? mainJson + '\n\n' : ''}${stripHtml(mainHtml)}`.slice(0, 50000)
 
       const sources: string[] = [mainText]
       for (const link of findMenuLinks(mainHtml, url)) {
@@ -323,7 +333,7 @@ export async function POST(request: Request) {
         const rendered = await renderWithScrapingBee(url)
         if (rendered) {
           const rjson = extractMenuJson(rendered)
-          const rtext = `${rjson ? rjson + '\n\n' : ''}${stripHtml(rendered)}`.slice(0, 30000)
+          const rtext = `${rjson ? rjson + '\n\n' : ''}${stripHtml(rendered)}`.slice(0, 50000)
           if (rtext.replace(/\s/g, '').length >= 40) {
             items = await extractMenu({ text: rtext, restaurantName })
           }
