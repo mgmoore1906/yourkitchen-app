@@ -19,6 +19,8 @@ Rules:
 - If an item shows MORE THAN ONE price — two, three, four, ANY number (sizes, Small/Medium/Large, half/full, per-topping tiers, etc.) — output exactly ONE entry for it using the FIRST price listed. Always pick the first price; never skip the item, and never output 0 for an item that has any visible price.
 - note: a short clarifier, or "" (empty string). Never null.
 - Skip section headers, pure drink lists, and anything not orderable as a meal. Cap at 80 items.
+- Only include prepared food and drinks that are made to order and served for immediate pickup or delivery. EXCLUDE retail merchandise and packaged goods: bottled or jarred seasonings, spice blends, rubs, coatings, bottled sauces, pancake/waffle or other dry mixes, cooking kits, shippable grocery items, gift cards, cookbooks, and branded apparel or goods (shirts, hoodies, sweatshirts, hats, beanies, mugs, tumblers, totes, keychains). These are store products, not meals — never output them.
+- If the source is an online STORE or SHOP selling merchandise or packaged/shippable goods (apparel, mugs, bottled seasonings, mixes, product "bundles") rather than a food-ordering menu of prepared dishes, return {"items":[]}.
 - If the source contains no actual menu with dishes, return {"items":[]}.`
 
 // Online-ordering platforms whose pages usually expose the full priced menu in source/JSON.
@@ -154,6 +156,11 @@ function findMenuLinks(html: string, baseUrl: string): string[] {
     const href = m[1]
     const label = m[2].replace(/<[^>]+>/g, ' ')
     const hay = `${href} ${label}`.toLowerCase()
+    // Square/Shopify host both food ordering AND merch stores. Skip obvious gift-shop links
+    // (apparel, mugs, bottled goods) so the crawler reaches the food menu, not the store.
+    const foodSignal = /\bmenu\b|order|food|dishes|eat|dine/.test(hay)
+    const retailSignal = /\bshop\b|\bstore\b|\bmerch\b|apparel|sweatshirt|hoodie|t-?shirts?|\bhats?\b|beanie|\bmugs?\b|tumblers?|gift\s?cards?|cookbooks?|\bswag\b/.test(hay)
+    if (retailSignal && !foodSignal) continue
     let score = 0
     if (/\bmenu\b/.test(hay)) score += 2
     if (/order/.test(hay)) score += 3
