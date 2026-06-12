@@ -28,7 +28,7 @@ rating: number | null; is_open: boolean | null
 }
 
 type ParsedItem = { name: string; price: number; category: 'adult' | 'kids'; note: string }
-type ReviewItem = { name: string; price: string; category: 'adult' | 'kids'; note: string }
+type ReviewItem = { name: string; price: string; category: 'adult' | 'kids'; note: string; sel?: boolean }
 
 function distanceFromKitchen(r: { lat: number | null; lng: number | null }, kitLat: number, kitLng: number): number | null {
 if (!r.lat || !r.lng) return null
@@ -368,6 +368,17 @@ return n
 })
 }
 
+const selectAllReview = (restaurantId: string, on: boolean) => {
+setReviewItems(p => ({ ...p, [restaurantId]: (p[restaurantId] || []).map(it => ({ ...it, sel: on })) }))
+}
+const deleteSelectedReview = (restaurantId: string) => {
+setReviewItems(p => {
+const next = (p[restaurantId] || []).filter(it => !it.sel)
+const n = { ...p }
+if (next.length === 0) { delete n[restaurantId] } else { n[restaurantId] = next }
+return n
+})
+}
 const addAllReviewed = async (restaurantId: string) => {
 const rest = restaurants.find(r => r.id === restaurantId)
 const items = reviewItems[restaurantId] || []
@@ -558,11 +569,27 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A7ADA3'
 ) : (
 <p style={{ fontSize: 11.5, color: reviewItems[r.id].length > 10 ? S.amber : S.stone, fontWeight: 400, margin: '6px 0 12px', lineHeight: 1.5 }}>{reviewItems[r.id].length > 10 ? `Pick your family’s favorites — keep 10 or fewer. Remove ${reviewItems[r.id].length - 10} more.` : 'Edit anything that looks off, drop what you don’t want, then add them.'}</p>
 )}
+{reviewItems[r.id].length > 1 && (
+<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '2px 0 4px' }}>
+<button onClick={() => selectAllReview(r.id, reviewItems[r.id].some(it => !it.sel))}
+style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 600, color: S.sage, padding: '4px 2px', fontFamily: "'DM Sans', sans-serif" }}>
+{reviewItems[r.id].some(it => !it.sel) ? 'Select all' : 'Deselect all'}
+</button>
+{reviewItems[r.id].some(it => it.sel) && (
+<button onClick={() => deleteSelectedReview(r.id)}
+style={{ background: S.redLight, border: 'none', cursor: 'pointer', fontSize: 12, fontWeight: 700, color: S.red, padding: '6px 12px', borderRadius: 999, fontFamily: "'DM Sans', sans-serif" }}>
+Delete selected ({reviewItems[r.id].filter(it => it.sel).length})
+</button>
+)}
+</div>
+)}
 <div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '11px 0' }}>
 {reviewItems[r.id].map((it, idx) => {
 const k = it.category === 'kids'
 return (
-<div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: S.white, border: `1px solid ${S.border}`, borderRadius: 11, padding: '8px 10px' }}>
+<div key={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: it.sel ? S.sageLight : S.white, border: `1px solid ${it.sel ? S.sageMid : S.border}`, borderRadius: 11, padding: '8px 10px' }}>
+<button onClick={() => updateReviewItem(r.id, idx, { sel: !it.sel })} aria-label={it.sel ? 'Deselect' : 'Select'}
+style={{ flexShrink: 0, width: 20, height: 20, borderRadius: 6, border: `1.6px solid ${it.sel ? S.sage : '#C3CCC5'}`, background: it.sel ? S.sage : 'transparent', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white, fontSize: 12, fontWeight: 700, padding: 0, lineHeight: 1 }}>{it.sel ? '✓' : ''}</button>
 <button onClick={() => updateReviewItem(r.id, idx, { category: k ? 'adult' : 'kids' })} title="Toggle adult / kids"
 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0, width: 18, textAlign: 'center' }}>{k ? '🧒' : '👤'}</button>
 <input value={it.name} onChange={e => updateReviewItem(r.id, idx, { name: e.target.value })}
