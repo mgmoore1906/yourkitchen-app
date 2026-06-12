@@ -236,6 +236,36 @@ export async function POST(request: Request) {
     }
   }
 
+  // ── checkout.session.expired ─────────────────────────────────
+  // Coordinator started a proposal but never paid (the Checkout session lapses
+  // ~30 min after creation). Release the slot(s) back to the village and mark the
+  // proposal(s) expired so they don't linger as "pending" in Activity.
+  if (event.type === 'checkout.session.expired') {
+    const session = event.data.object as Stripe.Checkout.Session
+    let expiredIds: string[] = []
+    try { expiredIds = JSON.parse(session.metadata?.proposal_ids || '[]') } catch {}
+    if (expiredIds.length > 0) {
+      const { data: rows } = await supabase
+        .from('meal_proposals')
+        .select('id, status, claims(calendar_date_id)')
+        .in('id', expiredIds)
+      for (const r of (rows || []) as any[]) {
+        if (r.status !== 'pending') continue
+        if (r.claims?.calendar_date_id) {
+          await supabase.from('calendar_dates')
+            .update({ status: 'available' })
+            .eq('id', r.claims.calendar_date_id)
+            .eq('status', 'claimed')
+        }
+      }
+      await supabase.from('meal_proposals')
+        .update({ status: 'expired' })
+        .in('id', expiredIds)
+        .eq('status', 'pending')
+      console.log(`Checkout expired — released ${expiredIds.length} unpaid proposal slot(s)`)
+    }
+  }
+
   // ── payment_intent.succeeded ───────────────────────────────────────────────
   // Stripe captured payment after recipient confirmed Y.
   // MANUAL DISPATCH GATE: do NOT auto-dispatch Shipday.
