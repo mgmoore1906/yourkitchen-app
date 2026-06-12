@@ -171,10 +171,13 @@ function findMenuLinks(html: string, baseUrl: string): string[] {
     } catch {
       continue
     }
-    const sameHost = abs.host === base.host
+    const regRoot = (h: string) => h.split('.').slice(-2).join('.')
+    const sameSite = abs.host === base.host || regRoot(abs.host) === regRoot(base.host)
     const orderHost = isOrderHost(abs.host)
+    // White-labeled ordering subdomains (order./menu./app. — SpotOn/Olo/Toast) carry the priced menu.
+    if (/^(order|menu|ordering|app|online)\./.test(abs.host) && sameSite) score += 5
     if (orderHost) score += 6 // off-site Toast/ChowNow/Square = the priced source
-    else if (!sameHost) continue // ignore other off-site links
+    else if (!sameSite) continue // follow same-root-domain subdomains; ignore unrelated off-site links
     if (score === 0) continue
     const key = abs.href.split('#')[0]
     if (key === base.href.split('#')[0]) continue
