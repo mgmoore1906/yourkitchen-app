@@ -16,12 +16,19 @@ Rules:
 - If the source is JSON from an ordering platform, prices may be in CENTS (e.g. 1299). Convert those to dollars (12.99).
 - category: "kids" only for kids'/children's-menu items; otherwise "adult".
 - FLATTEN configurable items into finished, single-price items. If "Fried Rice" is 9 and a "+$1 chicken" option exists, output {"name":"Chicken Fried Rice","price":10}. Put any key choice in "note".
-- If an item shows MORE THAN ONE price — two, three, four, ANY number (sizes, Small/Medium/Large, half/full, per-topping tiers, etc.) — output exactly ONE entry for it using the FIRST price listed. Always pick the first price; never skip the item, and never output 0 for an item that has any visible price.
+- SIZE / PORTION variants: when an item lists several prices for sizes or portions (Small/Medium/Large, cup/bowl, half/full, 6pc/12pc/24pc, etc.), output exactly ONE entry for it, priced at the SMALLEST size / lowest portion — the base price to order it. Never split it into multiple entries and never skip the item.
+- "+$X" add-on or modifier prices (extra protein, toppings, sides, "add guac +2") are NOT the item's price. Flatten them into a named variant per the FLATTEN rule above, or ignore them — never price an item at a bare add-on amount.
+- CRITICAL, no false zeros: if a dollar amount appears anywhere on or beside an item, that item's price MUST be greater than 0 — use the smallest real price you can see for it. Only output 0 when the item genuinely shows no price at all.
 - note: a short clarifier, or "" (empty string). Never null.
 - Skip section headers, pure drink lists, and anything not orderable as a meal. Cap at 80 items.
 - Only include prepared food and drinks that are made to order and served for immediate pickup or delivery. EXCLUDE retail merchandise and packaged goods: bottled or jarred seasonings, spice blends, rubs, coatings, bottled sauces, pancake/waffle or other dry mixes, cooking kits, shippable grocery items, gift cards, cookbooks, and branded apparel or goods (shirts, hoodies, sweatshirts, hats, beanies, mugs, tumblers, totes, keychains). These are store products, not meals — never output them.
 - If the source is an online STORE or SHOP selling merchandise or packaged/shippable goods (apparel, mugs, bottled seasonings, mixes, product "bundles") rather than a food-ordering menu of prepared dishes, return {"items":[]}.
-- If the source contains no actual menu with dishes, return {"items":[]}.`
+- If the source contains no actual menu with dishes, return {"items":[]}.
+
+Worked examples (multi-price items):
+"Nachos  Small 9 / Loaded 13 / Family 18"  ->  {"name":"Nachos","price":9,"category":"adult","note":""}
+"Tortilla Soup  Cup 5  Bowl 8"  ->  {"name":"Tortilla Soup","price":5,"category":"adult","note":""}
+"Burrito 10 (+3 steak, +2 guac)"  ->  {"name":"Burrito","price":10,"category":"adult","note":""}`
 
 // Online-ordering platforms whose pages usually expose the full priced menu in source/JSON.
 // NOTE: order.online is deliberately excluded — it's DoorDash's Storefront product, i.e. the
