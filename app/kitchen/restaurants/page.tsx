@@ -162,6 +162,8 @@ setTimeout(() => {
 const el = document.getElementById(`restaurant-${newRest.id}`)
 if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }, 100)
+// Pull the menu automatically from the restaurant's website (fire-and-forget)
+autoImportMenu(newRest.id, place.place_id, place.name)
 }
 }
 setAdding(null)
@@ -295,6 +297,34 @@ resolve({ data: comma >= 0 ? result.slice(comma + 1) : result, type: file.type |
 reader.onerror = () => reject(new Error('Could not read that file'))
 reader.readAsDataURL(file)
 })
+
+// Auto-import: right after a restaurant is added, look up its website from Google and run it
+// through the menu importer. Populates the review list on success; silent if nothing is found
+// (the manual paste / photo / type options stay available).
+const autoImportMenu = async (restaurantId: string, placeId: string | null, name: string) => {
+  if (!placeId) return
+  setAutofillOpen(p => ({ ...p, [restaurantId]: true }))
+  setAutofillBusy(restaurantId)
+  try {
+    const wr = await fetch(`/api/restaurants/website?place_id=${encodeURIComponent(placeId)}`)
+    const wd = await wr.json()
+    const website: string | null = wd?.website || null
+    if (website) {
+      const res = await fetch('/api/menu-parse', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url: website, restaurantName: name }),
+      })
+      const data = await res.json()
+      if (res.ok && data?.success && Array.isArray(data.items) && data.items.length > 0) {
+        setReviewItems(p => ({ ...p, [restaurantId]: (data.items as ParsedItem[]).map((i) => ({ name: i.name, price: (Number(i.price) || 0).toFixed(2), category: i.category, note: i.note })) }))
+        setAutofillOpen(p => ({ ...p, [restaurantId]: false }))
+      }
+    }
+  } catch {
+    // silent — manual options remain
+  }
+  setAutofillBusy(null)
+}
 
 const parseMenu = async (restaurantId: string, opts: { url?: string; file?: File }) => {
 const rest = restaurants.find(r => r.id === restaurantId)
