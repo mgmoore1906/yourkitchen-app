@@ -423,10 +423,18 @@ style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, h
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 16px', fontWeight: 300, lineHeight: 1.6 }}>
 Add favorites and save your go-to meals with prices. Tag each as an adult or kids meal so your village always knows what to order.
 </p>
-<div style={{ background: S.sageLight, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+<div style={{ background: S.sageLight, borderRadius: 12, padding: '12px 16px', marginBottom: 12 }}>
 <p style={{ fontSize: 13, color: S.sage, margin: 0, lineHeight: 1.6, fontWeight: 400 }}>
-📋 <strong>A quick note:</strong> while we're in pilot, you'll enter your favorite dishes and their current menu prices. There are three different ways: After searching then adding your favorite restaurants you can 1. Copy/paste the MENU URL (weblink) 2. Download the menu, then upload. 3. Enter each menu item and price manually  Yes, slightly inconvenient but not forever — open the restaurant's menu on your phone and add the dishes your family loves most.
+📋 <strong>A quick note:</strong> while we're in pilot, you'll add your favorite dishes and their prices yourself. Slightly inconvenient, but not forever — open the restaurant's menu on your phone and add the dishes your family loves most.
 </p>
+</div>
+<div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}>
+<p style={{ fontSize: 12, fontWeight: 700, color: S.forest, letterSpacing: '0.04em', textTransform: 'uppercase', margin: '0 0 8px' }}>Three ways to add a menu</p>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 7 }}>
+<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>1.</strong> Paste the restaurant's menu or online-ordering link and we'll fill it in.</p>
+<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>2.</strong> Upload a photo or PDF of the menu.</p>
+<p style={{ fontSize: 13, color: S.stone, margin: 0, lineHeight: 1.5, fontWeight: 400 }}><strong style={{ color: S.sage }}>3.</strong> Or type the dishes and prices in by hand.</p>
+</div>
 </div>
 
 {/* Tier limit */}
@@ -568,7 +576,7 @@ style={{ flex: 1, minWidth: 0, padding: '6px 8px', borderRadius: 7, border: `1px
 <div style={{ position: 'relative', flexShrink: 0 }}>
 <span style={{ position: 'absolute', left: 7, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: S.stone }}>$</span>
 <input type="text" inputMode="decimal" value={it.price} onChange={e => updateReviewItem(r.id, idx, { price: e.target.value })} onBlur={e => updateReviewItem(r.id, idx, { price: (parseFloat(e.target.value) || 0).toFixed(2) })}
-style={{ width: 84, padding: '6px 6px 6px 17px', borderRadius: 7, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+style={{ width: 96, padding: '6px 6px 6px 17px', borderRadius: 7, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 </div>
 <button onClick={() => removeReviewItem(r.id, idx)} aria-label="Drop this item"
 style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, fontSize: 14, padding: '2px 4px', flexShrink: 0 }}>✕</button>
