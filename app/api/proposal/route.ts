@@ -14,6 +14,12 @@ function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!) }
 export async function POST(request: Request) {
   const stripe = getStripe()
   const supabase = getSupabase()
+  const lockedSlotIds: string[] = []
+  const releaseLocks = async () => {
+    if (lockedSlotIds.length) {
+      await supabase.from('calendar_dates').update({ status: 'available' }).in('id', lockedSlotIds)
+    }
+  }
 try {
 const {
 name, email, phone, note,
@@ -68,6 +74,30 @@ let pickupLat: number | null = null
 let pickupLng: number | null = null
 let pickupAddr = ''
 
+
+// ── Reserve each slot atomically (prevents double-booking) ──
+// Compare-and-swap available→claimed. Only the FIRST concurrent proposal for a
+// slot wins; everyone else gets a clean "already claimed" 409. Slots reopen on
+// decline (api/confirm), on an N→declined SMS, or if checkout expires unpaid
+// (checkout.session.expired in the Stripe webhook).
+for (const p of proposals) {
+  if (!p.calendar_date_id) continue
+  const { data: locked } = await supabase
+    .from('calendar_dates')
+    .update({ status: 'claimed' })
+    .eq('id', p.calendar_date_id)
+    .eq('kitchen_id', kitchen.id)
+    .eq('status', 'available')
+    .select('id')
+  if (!locked || locked.length === 0) {
+    await releaseLocks()
+    return NextResponse.json(
+      { error: 'That day was just claimed by someone else in the village. Please pick another open day.', code: 'slot_taken' },
+      { status: 409 },
+    )
+  }
+  lockedSlotIds.push(p.calendar_date_id)
+}
 
 for (const p of proposals) {
 
@@ -138,7 +168,7 @@ expires_at: new Date(Date.now() + 5 * 60 * 60 * 1000).toISOString(),
 })
 .select('id')
 .single()
-if (claimError) return NextResponse.json({ error: claimError.message }, { status: 400 })
+if (claimError) { await releaseLocks(); return NextResponse.json({ error: claimError.message }, { status: 400 }) }
 
 // ── Proposal ─────────────────────────────────────────────────────────
 const { data: proposal, error: proposalError } = await supabase
@@ -164,7 +194,7 @@ status: 'pending',
 })
 .select('id')
 .single()
-if (proposalError) return NextResponse.json({ error: proposalError.message }, { status: 400 })
+if (proposalError) { await releaseLocks(); return NextResponse.json({ error: proposalError.message }, { status: 400 }) }
 
 if (!use_places && proposal?.id) {
 const { data: calDate } = await supabase
@@ -292,6 +322,7 @@ const session = await stripe.checkout.sessions.create({
 payment_method_types: ['card'],
 line_items: lineItems,
 mode: 'payment',
+expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
 payment_intent_data: { capture_method: 'manual' },
 customer_email: email,
 success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}&slug=${encodeURIComponent(kitchen_slug ?? '')}`,
@@ -312,6 +343,7 @@ await supabase.from('meal_proposals')
 return NextResponse.json({ checkout_url: session.url })
 
 } catch (err: any) {
+await releaseLocks()
 console.error('[Proposal] Error:', err.message)
 return NextResponse.json({ error: err.message }, { status: 500 })
 }
