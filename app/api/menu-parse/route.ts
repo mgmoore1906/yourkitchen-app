@@ -369,27 +369,37 @@ export async function POST(request: Request) {
           const t = `${j ? j + '\n\n' : ''}${stripHtml(html)}`.slice(0, 50000)
           return t.replace(/\s/g, '').length >= 40 ? t : ''
         }
-        const rendered = await renderWithScrapingBee(url, !blocked, 24000)
-        if (rendered) {
-          const rtext = parseRendered(rendered)
-          let rItems = rtext ? await extractMenu({ text: rtext, restaurantName }) : []
-
-          // Google hands us the homepage, but on JS sites (Popmenu/Wix) the real menu lives on a
-          // sub-page linked via JavaScript. Follow the menu link in the rendered nav and render it.
-          if (rItems.length === 0) {
-            const sub = findMenuLinks(rendered, url).find((l) => !isUberHost(l))
-            if (sub) {
-              const subRendered = await renderWithScrapingBee(sub, true, 30000)
-              const stext = subRendered ? parseRendered(subRendered) : ''
-              if (stext) rItems = await extractMenu({ text: stext, restaurantName })
-            }
-          }
-
-          // Adopt the render when it's better: any items if we had none, or PRICED items if the
-          // cheap pass came back all-zero (some sites serve plain datacenter fetches a price-less page).
-          const rHasPrice = rItems.some(i => (i.price || 0) > 0)
-          if (rItems.length > 0 && (items.length === 0 || rHasPrice)) items = rItems
+        const renderItems = async (target: string): Promise<ParsedItem[]> => {
+          const html = await renderWithScrapingBee(target, !blocked, 20000)
+          if (!html) return []
+          const txt = parseRendered(html)
+          return txt ? await extractMenu({ text: txt, restaurantName }) : []
         }
+
+        // Candidate menu pages from the page's own links (best-scored first), one per host, then the
+        // page itself. Render each as a real browser until one yields a PRICED menu. This walks PAST a
+        // page that blocks scraping (e.g. a SpotOn order subdomain) to a readable one (the same-site
+        // /menu page) instead of stopping at the single highest-ranked link.
+        const targets: string[] = []
+        const seenHosts = new Set<string>()
+        for (const c of [...findMenuLinks(mainHtml, url).filter((l) => !isUberHost(l)), url]) {
+          let h = ''
+          try { h = new URL(c).host } catch { continue }
+          if (!seenHosts.has(h)) { seenHosts.add(h); targets.push(c) }
+        }
+
+        let rItems: ParsedItem[] = []
+        let renders = 0
+        for (const t of targets) {
+          if (renders >= 2) break
+          renders++
+          const got = await renderItems(t)
+          if (got.some(i => (i.price || 0) > 0)) { rItems = got; break }
+          if (got.length > rItems.length) rItems = got
+        }
+
+        const rHasPrice = rItems.some(i => (i.price || 0) > 0)
+        if (rItems.length > 0 && (items.length === 0 || rHasPrice)) items = rItems
       }
 
       if (items.length === 0) {
