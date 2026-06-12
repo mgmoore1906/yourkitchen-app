@@ -748,7 +748,7 @@ style={{ width: 44, height: 25, borderRadius: 999, border: 'none', background: r
 </button>
 {(searchOpen || restaurants.length === 0 || isOnboarding) && (<>
 <p style={{ fontSize: 12, color: S.stone, fontWeight: 300, margin: '12px 0 14px', lineHeight: 1.6 }}>
-Search within 8 miles of your delivery address. Restaurants over 7 miles may need a larger tip.
+Restaurants over 7 miles may need a larger tip.
 </p>
 {!kitchenLat && (
 <div style={{ background: S.amberLight, borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
