@@ -612,7 +612,7 @@ Delete selected ({reviewItems[r.id].filter(it => it.sel).length})
 </div>
 )}
 {reviewItems[r.id].length > 1 && !reviewItems[r.id].some(it => it.sel) && (<p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '0 0 8px', lineHeight: 1.4 }}>Press a checkbox and drag to select several at once.</p>)}
-<div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '11px 0' }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '11px 0', userSelect: 'none', WebkitUserSelect: 'none' }}>
 {reviewItems[r.id].map((it, idx) => {
 const k = it.category === 'kids'
 return (
