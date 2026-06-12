@@ -8,18 +8,22 @@ export async function GET(request: Request) {
     const lat    = searchParams.get('lat')
     const lng    = searchParams.get('lng')
     const query  = searchParams.get('query') || 'restaurant'
-    // No radius cap: rank by distance so the nearest results come first at any distance.
-    // (Some recipients pick up, so they may want a spot farther out than a delivery radius.)
 
     if (!lat || !lng) {
       return NextResponse.json({ error: 'lat and lng required' }, { status: 400 })
     }
 
-    const url = new URL('https://maps.googleapis.com/maps/api/place/nearbysearch/json')
+    // Relevance-ranked Text Search instead of nearbysearch + rankby=distance.
+    // rankby=distance buried a real, slightly-far restaurant under every nearer match,
+    // so a place that exists never surfaced. Text Search finds named places by relevance
+    // at ANY distance, with the kitchen as a location bias so nearby spots still rank well.
+    // No type=restaurant filter on purpose: it silently dropped bakeries, taquerias,
+    // donut shops, delis, and taco trucks (categorized as bakery / meal_takeaway), which
+    // was another "it won't show" bug. The query carries the intent.
+    const url = new URL('https://maps.googleapis.com/maps/api/place/textsearch/json')
+    url.searchParams.set('query',    query)
     url.searchParams.set('location', `${lat},${lng}`)
-    url.searchParams.set('rankby',   'distance')
-    url.searchParams.set('type',     'restaurant')
-    url.searchParams.set('keyword',  query)
+    url.searchParams.set('radius',   '50000') // 50km location bias, NOT a hard cap
     url.searchParams.set('key',      PLACES_API_KEY)
 
     const res  = await fetch(url.toString())
@@ -30,12 +34,12 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: data.error_message || data.status }, { status: 500 })
     }
 
-    const restaurants = (data.results || []).slice(0, 15).map((place: any) => ({
+    const restaurants = (data.results || []).slice(0, 20).map((place: any) => ({
       place_id:    place.place_id,
       name:        place.name,
-      address:     place.vicinity,
-      lat:         place.geometry?.location?.lat  ?? null,  // ← now included
-      lng:         place.geometry?.location?.lng  ?? null,  // ← now included
+      address:     place.formatted_address || place.vicinity || '',  // textsearch returns formatted_address
+      lat:         place.geometry?.location?.lat  ?? null,
+      lng:         place.geometry?.location?.lng  ?? null,
       rating:      place.rating      || null,
       price_level: place.price_level || null,
       is_open:     place.opening_hours?.open_now ?? null,
