@@ -1,6 +1,7 @@
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
+import { notifyCoordinatorDeclined } from '@/lib/coordinator-notify'
 
 export const dynamic = 'force-dynamic'
 
@@ -59,7 +60,7 @@ export async function POST(request: Request) {
 
     const { data: proposal } = await supabase
       .from('meal_proposals')
-      .select('*, claims(calendar_date_id)')
+      .select('*, claims(calendar_date_id, guest_coordinators(full_name, email, phone)), kitchens:kitchen_id(name, slug)')
       .eq('id', proposal_id)
       .single()
 
@@ -123,6 +124,29 @@ if (action === 'decline') {
       .update({ status: 'available' })
       .eq('id', proposal.claims?.calendar_date_id),
   ])
+
+  // Tell the coordinator their offer was declined — the /proposals/[id] screen
+  // promises "X has been notified". Email is reliable even while SMS is filtered.
+  try {
+    const k = (proposal as any).kitchens
+    const g = (proposal as any).claims?.guest_coordinators
+    const items = Array.isArray((proposal as any).meal_items) ? (proposal as any).meal_items : []
+    const mealName = (proposal as any).meal_name
+      || (items.length ? items.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : 'the meal')
+    const dateLabel = (proposal as any).delivery_date
+      ? new Date((proposal as any).delivery_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      : null
+    await notifyCoordinatorDeclined({
+      coordinatorEmail: (proposal as any).coordinator_email || g?.email || null,
+      coordinatorName: (proposal as any).coordinator_name || g?.full_name || null,
+      recipientName: (k?.name || '').split(/[\s']/)[0] || null,
+      mealName,
+      restName: (proposal as any).restaurant_name || null,
+      dateLabel,
+      reason: declineReason,
+      slug: k?.slug || null,
+    })
+  } catch (err: any) { console.error('Coordinator decline notify failed (declining anyway):', err?.message) }
 
   return NextResponse.json({ success: true })
 }
