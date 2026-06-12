@@ -259,7 +259,7 @@ async function renderWithScrapingBee(url: string, scroll: boolean, timeoutMs = 4
 
 async function fetchRich(url: string): Promise<string> {
   try {
-    const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (YourKitchen menu importer)' } })
+    const r = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'accept-language': 'en-US,en;q=0.9' } })
     const ct = r.headers.get('content-type') || ''
     if (ct.includes('application/pdf') || /\.pdf(\?|$)/i.test(url)) {
       return await extractPdfText(new Uint8Array(await r.arrayBuffer()))
@@ -309,7 +309,7 @@ export async function POST(request: Request) {
     if (url) {
       let mainResp: Response
       try {
-        mainResp = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (YourKitchen menu importer)' } })
+        mainResp = await fetch(url, { headers: { 'user-agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36', 'accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8', 'accept-language': 'en-US,en;q=0.9' } })
       } catch {
         return NextResponse.json({ error: "Couldn't reach that link." }, { status: 422 })
       }
