@@ -55,7 +55,7 @@ async function extractMenu(args: {
     headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
       model: 'claude-haiku-4-5', // ~1/3 the cost of Sonnet, strong at extraction; if accuracy dips, swap back to claude-sonnet-4-6
-      max_tokens: 3000,
+      max_tokens: 8000,
       system: SYSTEM,
       messages: [{ role: 'user', content }],
     }),
@@ -68,12 +68,16 @@ async function extractMenu(args: {
     .join('')
     .trim()
 
-  const clean = raw.replace(/```json/g, '').replace(/```/g, '').trim()
+  // Pull the JSON object out of the response, tolerating stray prose or code fences around it.
+  let clean = raw.replace(/```json/gi, '').replace(/```/g, '').trim()
+  const start = clean.indexOf('{')
+  const end = clean.lastIndexOf('}')
+  if (start >= 0 && end > start) clean = clean.slice(start, end + 1)
   let parsed: { items?: unknown }
   try {
     parsed = JSON.parse(clean)
   } catch {
-    throw new Error('Could not parse the menu \u2014 try a clearer photo or a different link.')
+    return [] // unparseable -> caller falls through to the screenshot / manual path
   }
 
   const items = Array.isArray(parsed.items) ? (parsed.items as ParsedItem[]) : []
