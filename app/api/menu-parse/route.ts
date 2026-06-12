@@ -359,7 +359,8 @@ export async function POST(request: Request) {
 
       // Render fallback for JS sites. Scroll for open lazy-loaded pages; plain render for bot-walled
       // SPAs (DoorDash Storefront). Skip Uber Eats \u2014 our partner; those go through the Uber API.
-      if (items.length === 0 && !isUberHost(url)) {
+      const allZero = items.length > 0 && items.every(i => (i.price || 0) === 0)
+      if ((items.length === 0 || allZero) && !isUberHost(url)) {
         const parseRendered = (html: string) => {
           const j = extractMenuJson(html)
           const t = `${j ? j + '\n\n' : ''}${stripHtml(html)}`.slice(0, 50000)
@@ -368,19 +369,23 @@ export async function POST(request: Request) {
         const rendered = await renderWithScrapingBee(url, !blocked, 24000)
         if (rendered) {
           const rtext = parseRendered(rendered)
-          if (rtext) items = await extractMenu({ text: rtext, restaurantName })
+          let rItems = rtext ? await extractMenu({ text: rtext, restaurantName }) : []
 
           // Google hands us the homepage, but on JS sites (Popmenu/Wix) the real menu lives on a
-          // sub-page the homepage links to via JavaScript. If the homepage had no menu, find that
-          // link in the RENDERED nav and render the sub-page itself -- the page a manual paste hits.
-          if (items.length === 0) {
+          // sub-page linked via JavaScript. Follow the menu link in the rendered nav and render it.
+          if (rItems.length === 0) {
             const sub = findMenuLinks(rendered, url).find((l) => !isUberHost(l))
             if (sub) {
               const subRendered = await renderWithScrapingBee(sub, true, 30000)
               const stext = subRendered ? parseRendered(subRendered) : ''
-              if (stext) items = await extractMenu({ text: stext, restaurantName })
+              if (stext) rItems = await extractMenu({ text: stext, restaurantName })
             }
           }
+
+          // Adopt the render when it's better: any items if we had none, or PRICED items if the
+          // cheap pass came back all-zero (some sites serve plain datacenter fetches a price-less page).
+          const rHasPrice = rItems.some(i => (i.price || 0) > 0)
+          if (rItems.length > 0 && (items.length === 0 || rHasPrice)) items = rItems
         }
       }
 
