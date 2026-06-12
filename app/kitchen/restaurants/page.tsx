@@ -563,7 +563,7 @@ style={{ padding: '10px 14px', borderRadius: 9, border: 'none', background: !(au
 ) : (
 <div>
 <p style={{ fontSize: 12.5, fontWeight: 600, color: S.sage, margin: '0 0 4px' }}>We pulled {reviewItems[r.id].length} item{reviewItems[r.id].length !== 1 ? 's' : ''} — check names &amp; prices</p>
-<p style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, margin: '0 0 10px', lineHeight: 1.5 }}>Menus aren&rsquo;t always up to date. Edit anything that looks off, drop what you don&rsquo;t want, then add them all.</p>
+<p style={{ fontSize: 11.5, color: reviewItems[r.id].length > 10 ? S.amber : S.stone, fontWeight: 400, margin: '0 0 10px', lineHeight: 1.5 }}>{reviewItems[r.id].length > 10 ? `Pick your family’s favorites — keep 10 or fewer. Remove ${reviewItems[r.id].length - 10} more, then add them.` : 'Edit anything that looks off, drop what you don’t want, then add them.'}</p>
 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 10 }}>
 {reviewItems[r.id].map((it, idx) => {
 const k = it.category === 'kids'
@@ -585,9 +585,9 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', color: S.stone, 
 })}
 </div>
 <div style={{ display: 'flex', gap: 8 }}>
-<button onClick={() => addAllReviewed(r.id)} disabled={reviewItems[r.id].length === 0 || addingAll === r.id}
-style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', background: reviewItems[r.id].length === 0 ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: reviewItems[r.id].length === 0 ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-{addingAll === r.id ? 'Adding…' : `Looks good — add ${reviewItems[r.id].length}`}
+<button onClick={() => addAllReviewed(r.id)} disabled={reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10 || addingAll === r.id}
+style={{ flex: 1, padding: '10px', borderRadius: 9, border: 'none', background: (reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10) ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: (reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10) ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{addingAll === r.id ? 'Adding…' : reviewItems[r.id].length > 10 ? `Remove ${reviewItems[r.id].length - 10} to add` : `Looks good — add ${reviewItems[r.id].length}`}
 </button>
 <button onClick={() => { setReviewItems(p => { const n = { ...p }; delete n[r.id]; return n }); setAutofillError(p => ({ ...p, [r.id]: '' })) }}
 style={{ padding: '10px 14px', borderRadius: 9, border: `1.5px solid ${S.border}`, background: S.white, color: S.stone, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
