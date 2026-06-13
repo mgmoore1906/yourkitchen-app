@@ -205,6 +205,7 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, isOwner, on
   const [posting, setPosting]   = useState(false)
   const [replyTo, setReplyTo]   = useState<string|null>(null)
   const [replyText, setReplyText] = useState('')
+  const [reacted, setReacted] = useState<Set<string>>(new Set())
   const kitchenId = kId
 
   const load = async () => {
@@ -239,7 +240,10 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, isOwner, on
   }
 
   const react = async (postId:string, emoji:string) => {
-    await fetch('/api/village-posts',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ post_id:postId, emoji }) })
+    const key = `${postId}:${emoji}`
+    const has = reacted.has(key)
+    setReacted(prev => { const n = new Set(prev); if(has) n.delete(key); else n.add(key); return n })
+    await fetch('/api/village-posts',{ method:'PATCH', headers:{'Content-Type':'application/json'}, body:JSON.stringify({ post_id:postId, emoji, direction: has ? 'remove' : 'add' }) })
     load()
   }
 
@@ -267,7 +271,7 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, isOwner, on
             <button key={emoji} onClick={()=>react(p.id,emoji)} style={{ display:'flex',alignItems:'center',gap:3,background:S.amberLight,border:'none',borderRadius:20,padding:'3px 9px',cursor:'pointer',fontSize:12,fontFamily:"'DM Sans',sans-serif" }}><span>{emoji}</span><span style={{ color:S.amber,fontWeight:600,fontSize:11 }}>{n}</span></button>
           ))}
           <div style={{ display:'flex',gap:2 }}>
-            {REACTIONS.map(e=><button key={e} onClick={()=>react(p.id,e)} style={{ background:'none',border:'none',cursor:'pointer',fontSize:14,padding:'2px 3px',opacity:0.55,lineHeight:1 }}>{e}</button>)}
+            {REACTIONS.map(e=><button key={e} onClick={()=>react(p.id,e)} style={{ background:reacted.has(`${p.id}:${e}`)?S.amberLight:'none',border:'none',borderRadius:8,cursor:'pointer',fontSize:14,padding:'2px 5px',opacity:reacted.has(`${p.id}:${e}`)?1:0.55,lineHeight:1 }}>{e}</button>)}
           </div>
           {!isReply && <button onClick={()=>{ setReplyTo(replyTo===p.id?null:p.id); setReplyText('') }} style={{ marginLeft:'auto',background:'none',border:'none',cursor:'pointer',fontSize:12,color:S.stone,fontWeight:500,fontFamily:"'DM Sans',sans-serif" }}>{replyTo===p.id?'Cancel':'Reply'}</button>}
         </div>
