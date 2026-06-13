@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { haversineDistance, formatDistance } from '@/lib/distance'
+import InfoTip from '@/app/components/infotip'
 
 const S = {
 sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
@@ -488,7 +489,7 @@ style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, h
 </div>
 )}
 <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase', color: S.sage, margin: '0 0 6px' }}>My Restaurants</p>
-<h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: S.forest, margin: '0 0 6px', letterSpacing: -0.5 }}>Favorite restaurants</h1>
+<h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: S.forest, margin: '0 0 6px', letterSpacing: -0.5 }}>Favorite restaurants<InfoTip label="How to edit meals" text={"To edit a meal, open a restaurant with its ✏️ Meals button, then tap any saved dish to change its name, price, adult/kids tag, or add a prep note."}/></h1>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 16px', fontWeight: 300, lineHeight: 1.6 }}>
 Add favorites and save your go-to meals with prices. Tag each as an adult or kids meal so your village always knows what to order.
 </p>
@@ -533,12 +534,15 @@ Upgrade →
 {restaurants.length > 0 && (
 <div style={{ marginBottom: 28 }}>
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: listOpen ? 12 : 0 }}>
+<div style={{ display:'flex', alignItems:'center', gap:6 }}>
 <button onClick={() => setListOpen(v => !v)} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 6, fontFamily: "'DM Sans', sans-serif" }}>
 <p style={{ fontSize: 11, fontWeight: 600, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: 0 }}>
 Your favorites ({restaurants.length})
 </p>
 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" style={{ transform: listOpen ? 'rotate(180deg)' : 'none', transition: 'transform 0.2s' }}><path d="M6 9l6 6 6-6" stroke={S.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
 </button>
+<InfoTip align="left" label="About your favorites" text={"The restaurants you've saved. Tap a row's toggle to show or hide it from your village — only visible spots appear on your kitchen for supporters to order from."}/>
+</div>
 {listOpen && (
 <button onClick={deleteAll}
 style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 12, color: S.red, fontWeight: 500, fontFamily: "'DM Sans', sans-serif", padding: '4px 8px' }}>
