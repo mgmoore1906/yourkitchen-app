@@ -181,7 +181,7 @@ export async function POST(request: Request) {
       const { data: proposals } = await supabase
         .from('meal_proposals')
         .select(`
-          id, meal_type, delivery_time, meal_name, meal_items,
+          id, meal_type, delivery_date, delivery_time, meal_name, meal_items,
           claims(calendar_date_id, guest_coordinators(full_name)),
           kitchen_restaurants(name),
           menu_items(name),
@@ -211,14 +211,20 @@ export async function POST(request: Request) {
         || 'a meal'
         const restName = p.kitchen_restaurants?.name || 'a restaurant'
         const whenStr = prettyTime(p.delivery_time, p.meal_type)
+        const dateLabel = p.delivery_date
+          ? new Date(p.delivery_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+          : null
+        const whenLine = dateLabel ? `${dateLabel} around ${whenStr}` : `around ${whenStr}`
 
         // SMS — frictionless reply path; fires when we have a number.
         if (profile?.phone) {
           await sendSMS(
             profile.phone,
             `${coordinatorName} wants to send you ${mealLabel} — ` +
-            `${mealName} from ${restName}, arriving around ${whenStr}.\n\n` +
-            `Reply Y to confirm or N to decline.\n` +
+            `${mealName} from ${restName}, arriving ${whenLine}.\n\n` +
+            `Tap to confirm or pick another day:\n` +
+            `https://app.yourkitchen.app/c/${p.id}\n\n` +
+            `(Or reply Y to confirm, N to decline.)\n` +
             `Reply STOP to opt out.\n\n— YourKitchen`
           )
         }
