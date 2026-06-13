@@ -1,6 +1,7 @@
 'use client'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { Suspense } from 'react'
+import { PILOT_SURVEY_URL } from '@/lib/links'
 
 const S = {
   sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
@@ -67,6 +68,9 @@ function PaymentSuccessContent() {
 
         <p style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, margin: 0, lineHeight: 1.6 }}>
           Thank you for being part of {name}&rsquo;s village.
+        </p>
+        <p style={{ fontSize: 12.5, marginTop: 14, marginBottom: 0 }}>
+          <a href={PILOT_SURVEY_URL} target="_blank" rel="noopener" style={{ color: S.sage, fontWeight: 600, textDecoration: 'none' }}>Tell us how it went — 2-min pilot survey →</a>
         </p>
       </div>
     </div>
