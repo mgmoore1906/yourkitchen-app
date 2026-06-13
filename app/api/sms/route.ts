@@ -145,8 +145,13 @@ export async function POST(request: Request) {
       return twiml("Payment capture failed. Please visit yourkitchen.app for help.")
     }
 
+    const confItems = Array.isArray(proposal.meal_items) ? proposal.meal_items : []
+    const confMeal = proposal.meal_name
+      || (confItems.length ? confItems.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : null)
+      || proposal.menu_items?.name || 'your meal'
+    const confRest = proposal.restaurant_name || proposal.kitchen_restaurants?.name || 'the restaurant'
     return twiml(
-      `✅ Confirmed! ${proposal.menu_items?.name} from ${proposal.kitchen_restaurants?.name} is on its way. You'll get a tracking link once DoorDash picks it up. — YourKitchen`
+      `✅ Confirmed! ${confMeal} from ${confRest} is on its way. You'll get a tracking link once your courier picks it up. — YourKitchen`
     )
   }
 
