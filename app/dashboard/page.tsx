@@ -1067,6 +1067,7 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
   const [editText, setEditText] = useState('')
   const [contactMember, setContactMember] = useState<any | null>(null)
   const [reacted, setReacted] = useState<Set<string>>(new Set())
+  useEffect(() => { try { setReacted(new Set(JSON.parse(localStorage.getItem('yk_reactions') || '[]'))) } catch {} }, [])
   const fileRef = useRef<HTMLInputElement>(null)
 
   const recipientFirst = kitchen.name?.split(/[\s']/)[0] || 'You'
@@ -1156,7 +1157,7 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
   const react = async (postId: string, emoji: string) => {
     const key = `${postId}:${emoji}`
     const has = reacted.has(key)
-    setReacted(prev => { const n = new Set(prev); if(has) n.delete(key); else n.add(key); return n })
+    setReacted(prev => { const n = new Set(prev); if(has) n.delete(key); else n.add(key); try { localStorage.setItem('yk_reactions', JSON.stringify([...n])) } catch {}; return n })
     await fetch('/api/village-posts', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
