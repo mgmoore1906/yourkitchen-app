@@ -410,7 +410,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
       <div style={{ background:S.white,border:`0.5px solid ${isFounding(userTier)?'#E6C99A':S.border}`,borderRadius:18,padding:'16px',marginBottom:14,position:'relative',overflow:'hidden' }}>
         {isFounding(userTier) && <FoundingRibbon/>}
         <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
-          <p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>My Calendar</p>
+          <div style={{ display:'flex',alignItems:'center' }}><p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>My Calendar</p><InfoTip label="How the calendar works" text={"Tap a day to open it for meals, then choose breakfast, lunch, or dinner. Tap an open day again to close it, or drag across days to open several at once. You can clear any open days your village hasn't claimed yet."}/></div>
           <div style={{ display:'flex',alignItems:'center',gap:6 }}>
             <button onClick={prevMonth} style={{ background:S.sageLight,border:'none',borderRadius:7,width:28,height:28,cursor:'pointer',fontSize:14,color:S.sage,display:'flex',alignItems:'center',justifyContent:'center' }}>‹</button>
             <span style={{ fontSize:12,fontWeight:500,color:S.forest,minWidth:108,textAlign:'center' }}>{monthName}</span>
@@ -1063,6 +1063,8 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
   const [replyTo, setReplyTo]     = useState<string | null>(null)
   const [replyText, setReplyText] = useState('')
   const [showRoster, setShowRoster] = useState(true)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editText, setEditText] = useState('')
   const fileRef = useRef<HTMLInputElement>(null)
 
   const recipientFirst = kitchen.name?.split(/[\s']/)[0] || 'You'
@@ -1164,6 +1166,16 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
     onPostUpdate()
   }
 
+  const saveEdit = async (postId: string) => {
+    if(!editText.trim()) return
+    await fetch('/api/village-posts', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ post_id: postId, kitchen_id: kitchen.id, content: editText.trim() }),
+    })
+    setEditingId(null); setEditText(''); onPostUpdate()
+  }
+
   const REACTIONS = ['🧡','👍','😊','🙏']
 
   const PostCard = ({ post, isReply }: { post: VillagePost; isReply?: boolean }) => {
@@ -1185,11 +1197,28 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
             </div>
           </div>
           {isRecipient && !isSystem && (
-            <button onClick={()=>removePost(post.id)} title="Remove"
-              style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:14,padding:'2px 4px',flexShrink:0,opacity:0.5 }}>✕</button>
+            <div style={{ display:'flex',gap:2,flexShrink:0 }}>
+              <button onClick={()=>{ setEditingId(editingId===post.id?null:post.id); setEditText(post.content||'') }} title="Edit"
+                style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:13,padding:'2px 4px',opacity:0.5 }}>✎</button>
+              <button onClick={()=>removePost(post.id)} title="Remove"
+                style={{ background:'none',border:'none',cursor:'pointer',color:S.stone,fontSize:14,padding:'2px 4px',opacity:0.5 }}>✕</button>
+            </div>
           )}
         </div>
-        {post.content && <p style={{ fontSize:14,color:S.forest,margin:'0 0 8px',lineHeight:1.6 }}>{post.content}</p>}
+        {editingId===post.id ? (
+          <div style={{ marginBottom:8 }}>
+            <textarea value={editText} onChange={e=>setEditText(e.target.value)} autoFocus
+              style={{ width:'100%',minHeight:64,borderRadius:10,border:`1.5px solid ${S.border}`,padding:'10px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.cream,resize:'none',outline:'none',boxSizing:'border-box',lineHeight:1.6,marginBottom:8 }}/>
+            <div style={{ display:'flex',gap:6 }}>
+              <button onClick={()=>saveEdit(post.id)} disabled={!editText.trim()}
+                style={{ padding:'8px 16px',borderRadius:9,border:'none',background:!editText.trim()?S.border:S.sage,color:!editText.trim()?S.stone:S.white,fontSize:13,fontWeight:600,cursor:!editText.trim()?'default':'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:38 }}>Save</button>
+              <button onClick={()=>{ setEditingId(null); setEditText('') }}
+                style={{ padding:'8px 16px',borderRadius:9,border:`1px solid ${S.border}`,background:S.white,color:S.stone,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",minHeight:38 }}>Cancel</button>
+            </div>
+          </div>
+        ) : (
+          post.content && <p style={{ fontSize:14,color:S.forest,margin:'0 0 8px',lineHeight:1.6 }}>{post.content}</p>
+        )}
         {post.image_url && (
           <img src={post.image_url} alt="" style={{ width:'100%',borderRadius:10,marginBottom:8,display:'block',maxHeight:320,objectFit:'cover' }}/>
         )}
