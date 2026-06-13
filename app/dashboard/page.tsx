@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import InfoTip from '@/app/components/infotip'
 
 // ── Brand ─────────────────────────────────────────────────────────────────────
 const S = {
@@ -834,7 +835,7 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
       <div style={{ background:S.forest,borderRadius:18,padding:'22px 20px',marginBottom:16,textAlign:'center' }}>
         <p style={{ fontSize:11,fontWeight:600,color:S.sageMid,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 8px' }}>Time back in your day</p>
         <div style={{ fontFamily:"'Lora',serif",fontSize:48,fontWeight:500,color:S.white,lineHeight:1,margin:'0 0 6px' }}>{totalHours}</div>
-        <p style={{ fontSize:16,color:S.sageMid,fontWeight:300,margin:'0 0 8px' }}>hours saved</p>
+        <p style={{ fontSize:16,color:S.sageMid,fontWeight:300,margin:'0 0 8px' }}>hours saved<InfoTip dark label="How hours saved is calculated" text={"An estimate of the time your village has handed back to you — roughly 95 minutes per meal (about 30 min prep, 45 cooking, 20 cleanup), across every meal you've received."}/></p>
         {totalMeals>0&&(
           <p style={{ fontSize:13,color:'rgba(255,255,255,0.5)',fontWeight:300,margin:0,lineHeight:1.6 }}>
             That's nearly {workweeks} full work week{parseFloat(workweeks)!==1?'s':''} back with your family.
