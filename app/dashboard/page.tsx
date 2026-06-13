@@ -1066,6 +1066,7 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
   const [contactMember, setContactMember] = useState<any | null>(null)
+  const [reacted, setReacted] = useState<Set<string>>(new Set())
   const fileRef = useRef<HTMLInputElement>(null)
 
   const recipientFirst = kitchen.name?.split(/[\s']/)[0] || 'You'
@@ -1153,10 +1154,13 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
   }
 
   const react = async (postId: string, emoji: string) => {
+    const key = `${postId}:${emoji}`
+    const has = reacted.has(key)
+    setReacted(prev => { const n = new Set(prev); if(has) n.delete(key); else n.add(key); return n })
     await fetch('/api/village-posts', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ post_id: postId, emoji }),
+      body: JSON.stringify({ post_id: postId, emoji, direction: has ? 'remove' : 'add' }),
     })
     onPostUpdate()
   }
@@ -1237,8 +1241,8 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
           ))}
           <div style={{ display:'flex',gap:2 }}>
             {REACTIONS.map(e=>(
-              <button key={e} onClick={()=>react(post.id,e)} title="React"
-                style={{ background:'none',border:'none',cursor:'pointer',fontSize:14,padding:'2px 3px',opacity:0.55,lineHeight:1 }}>{e}</button>
+              <button key={e} onClick={()=>react(post.id,e)} title={reacted.has(`${post.id}:${e}`)?'Tap to remove':'React'}
+                style={{ background:reacted.has(`${post.id}:${e}`)?S.sageLight:'none',border:'none',borderRadius:8,cursor:'pointer',fontSize:14,padding:'2px 5px',opacity:reacted.has(`${post.id}:${e}`)?1:0.55,lineHeight:1 }}>{e}</button>
             ))}
           </div>
           {!isReply && (
