@@ -6,6 +6,7 @@ import { useState, useEffect, useRef } from 'react'
 import { haversineDistance, getTipTier } from '@/lib/distance'
 import { createClient } from '@/lib/supabase/client'
 import InfoTip from '@/app/components/infotip'
+import { PILOT_SURVEY_URL } from '@/lib/links'
 
 // ── Coordinator palette — INVERTED YourKitchen (dark mode of the same brand colors) ──
 const S = {
@@ -653,6 +654,7 @@ return (
 <div style={{ marginTop:16,paddingTop:16,borderTop:`0.5px solid ${S.amberBorder}`,textAlign:'center' }}>
 <p style={{ fontSize:12,color:S.walnut,fontWeight:300,margin:'0 0 8px',lineHeight:1.6 }}>Does someone you love need their village to show up?</p>
 <a href="/signup" style={{ fontSize:16,color:S.amber,fontWeight:600,textDecoration:'none' }}>Create a free Kitchen →</a>
+<p style={{ marginTop:14,marginBottom:0 }}><a href={PILOT_SURVEY_URL} target="_blank" rel="noopener" style={{ fontSize:12,color:S.walnut,fontWeight:500,textDecoration:'none' }}>Share pilot feedback →</a></p>
 </div>
 </>)}
 
