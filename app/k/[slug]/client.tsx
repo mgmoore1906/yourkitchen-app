@@ -351,6 +351,7 @@ return (
 export default function CoordKitchenClient({ kitchen, availableDates, recentMeals=[] }: any) {
 const [step, setStep] = useState<1|2|3>(1)
 const [showVillage, setShowVillage] = useState(false)
+const [shareCopied, setShareCopied] = useState(false)
 useEffect(()=>{ if(typeof window!=='undefined' && new URLSearchParams(window.location.search).get('tab')==='village') setShowVillage(true) },[])
 const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 const [groups, setGroups] = useState<GroupSelection[]>([])
@@ -400,6 +401,14 @@ const sevenAgo = new Date(Date.now()-7*24*60*60*1000).toISOString().split('T')[0
 const recentRestNames = new Set(recentMeals.filter((m:any)=>m.delivery_date>=sevenAgo).map((m:any)=>m.restaurant_name?.toLowerCase()))
 const selectedSlots = availableDates.filter((d:any)=>selectedIds.has(d.id))
 const recipientFirst = kitchen.name?.split(/[\s']/)[0]||'them'
+const shareKitchen = async () => {
+  const url = typeof window!=='undefined' ? window.location.href.split('?')[0] : `https://app.yourkitchen.app/k/${kitchen.slug}`
+  const text = `Help ${recipientFirst} — send a meal through their YourKitchen 🧡`
+  if (typeof navigator!=='undefined' && (navigator as any).share) {
+    try { await (navigator as any).share({ title: kitchen.name, text, url }); return } catch {}
+  }
+  try { await navigator.clipboard.writeText(url); setShareCopied(true); setTimeout(()=>setShareCopied(false),2500) } catch {}
+}
 
 useEffect(()=>{
 fetch(`/api/restaurants/favorites?slug=${kitchen.slug}`)
@@ -625,6 +634,13 @@ return (
 <button onClick={handleProceed} disabled={selectedSlots.length===0} style={btn(selectedSlots.length===0)}>
 {selectedSlots.length===0?'Select at least one date':`Next: Choose Meals → (${selectedSlots.length} date${selectedSlots.length>1?'s':''})`}
 </button>
+<div style={{ background:S.forest,borderRadius:16,padding:'16px 18px',marginTop:16 }}>
+<p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:600,color:S.white,margin:'0 0 4px' }}>Share with the village</p>
+<p style={{ fontSize:12,color:'rgba(255,255,255,0.65)',fontWeight:300,margin:'0 0 12px',lineHeight:1.5 }}>Know others who&rsquo;d want to show up for {recipientFirst}? Send them this kitchen.</p>
+<button onClick={shareKitchen} style={{ width:'100%',padding:'12px',borderRadius:10,border:'none',background:S.sage,color:S.white,fontSize:14,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
+{shareCopied?'✓ Link copied!':'Share this kitchen →'}
+</button>
+</div>
 <div style={{ marginTop:16,paddingTop:16,borderTop:`0.5px solid ${S.amberBorder}`,textAlign:'center' }}>
 <p style={{ fontSize:12,color:S.walnut,fontWeight:300,margin:'0 0 8px',lineHeight:1.6 }}>Does someone you love need their village to show up?</p>
 <a href="/signup" style={{ fontSize:16,color:S.amber,fontWeight:600,textDecoration:'none' }}>Create a free Kitchen →</a>
