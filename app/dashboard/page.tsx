@@ -37,7 +37,7 @@ type Proposal = {
   id: string; status: string; coordinator_name: string; restaurant_name: string
   meal_name: string; delivery_date: string; meal_type: string; coordinator_note: string | null
   doordash_tracking_url: string | null; doordash_delivery_id: string | null
-  doordash_status: string | null; proposed_at: string; coordinator_email: string | null
+  doordash_status: string | null; proposed_at: string; coordinator_email: string | null; coordinator_phone: string | null
 }
 type VillagePost = { id: string; content: string; author_name: string | null; author_type: string | null; posted_at: string; image_url?: string | null; parent_id?: string | null; reactions?: Record<string,number>; post_type?: string; replies?: VillagePost[] }
 
@@ -1065,14 +1065,19 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
   const [showRoster, setShowRoster] = useState(true)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [editText, setEditText] = useState('')
+  const [contactMember, setContactMember] = useState<any | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
 
   const recipientFirst = kitchen.name?.split(/[\s']/)[0] || 'You'
 
   const uniqueCoords = Object.values(
     proposals.reduce((acc:any, p) => {
-      if(p.coordinator_name&&!acc[p.coordinator_name]) acc[p.coordinator_name]={name:p.coordinator_name,count:0}
-      if(p.coordinator_name&&['confirmed','delivered'].includes(p.status)) acc[p.coordinator_name].count++
+      if(p.coordinator_name&&!acc[p.coordinator_name]) acc[p.coordinator_name]={name:p.coordinator_name,count:0,email:null,phone:null}
+      if(p.coordinator_name){
+        if(p.coordinator_email&&!acc[p.coordinator_name].email) acc[p.coordinator_name].email=p.coordinator_email
+        if((p as any).coordinator_phone&&!acc[p.coordinator_name].phone) acc[p.coordinator_name].phone=(p as any).coordinator_phone
+        if(['confirmed','delivered'].includes(p.status)) acc[p.coordinator_name].count++
+      }
       return acc
     }, {})
   ) as any[]
@@ -1312,16 +1317,17 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" style={{ transform:showRoster?'rotate(180deg)':'none',transition:'transform 0.2s' }}><path d="M6 9l6 6 6-6" stroke={S.stone} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </button>
           {showRoster && uniqueCoords.map((coord:any)=>(
-            <div key={coord.name} style={{ background:S.white,border:`0.5px solid ${S.border}`,borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12,marginBottom:8 }}>
+            <button key={coord.name} onClick={()=>setContactMember(coord)} style={{ width:'100%',textAlign:'left',background:S.white,border:`0.5px solid ${S.border}`,borderRadius:12,padding:'12px 16px',display:'flex',alignItems:'center',gap:12,marginBottom:8,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
               <div style={{ width:36,height:36,borderRadius:11,background:S.sageLight,display:'flex',alignItems:'center',justifyContent:'center',color:S.sage,fontSize:15,fontWeight:700,flexShrink:0 }}>
                 {coord.name.charAt(0).toUpperCase()}
               </div>
-              <div style={{ flex:1 }}>
+              <div style={{ flex:1,minWidth:0 }}>
                 <div style={{ fontSize:13,fontWeight:600,color:S.forest }}>{coord.name}</div>
                 <div style={{ fontSize:11,color:S.stone,fontWeight:300 }}>{coord.count>0?`${coord.count} meal${coord.count!==1?'s':''} sent`:'Invited'}</div>
               </div>
               {coord.count>0&&<span style={{ background:S.sageLight,color:S.sage,fontSize:11,fontWeight:700,padding:'3px 10px',borderRadius:20 }}>🧡</span>}
-            </div>
+              <span style={{ color:S.stone,fontSize:16,opacity:0.5,flexShrink:0 }}>›</span>
+            </button>
           ))}
         </div>
       )}
@@ -1329,6 +1335,31 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
       {villagePosts.length===0&&uniqueCoords.length===0&&(
         <div style={{ background:S.sageLight,borderRadius:14,padding:'20px',textAlign:'center' }}>
           <p style={{ fontSize:14,color:S.sage,margin:0,lineHeight:1.7 }}>Your board comes to life once your village starts sending meals. 🧡</p>
+        </div>
+      )}
+      {contactMember && (
+        <div onClick={()=>setContactMember(null)} style={{ position:'fixed',inset:0,background:'rgba(30,38,32,0.45)',zIndex:1000,display:'flex',alignItems:'flex-end',justifyContent:'center' }}>
+          <div onClick={e=>e.stopPropagation()} style={{ background:S.white,width:'100%',maxWidth:500,borderTopLeftRadius:22,borderTopRightRadius:22,padding:'20px 18px 28px' }}>
+            <div style={{ display:'flex',alignItems:'center',gap:12,marginBottom:16 }}>
+              <div style={{ width:44,height:44,borderRadius:13,background:S.sageLight,display:'flex',alignItems:'center',justifyContent:'center',color:S.sage,fontSize:18,fontWeight:700,flexShrink:0 }}>{(contactMember.name||'?').charAt(0).toUpperCase()}</div>
+              <div style={{ flex:1,minWidth:0 }}>
+                <p style={{ fontFamily:"'Lora',serif",fontSize:17,fontWeight:600,color:S.forest,margin:0 }}>{contactMember.name}</p>
+                <p style={{ fontSize:12,color:S.stone,fontWeight:300,margin:'2px 0 0' }}>{contactMember.count>0?`${contactMember.count} meal${contactMember.count!==1?'s':''} sent`:'In your village'}</p>
+              </div>
+              <button onClick={()=>setContactMember(null)} aria-label="Close" style={{ background:'none',border:'none',fontSize:20,color:S.stone,cursor:'pointer',padding:'6px 8px' }}>✕</button>
+            </div>
+            {contactMember.phone && (
+              <a href={`sms:${contactMember.phone}?&body=${encodeURIComponent('Hi '+((contactMember.name||'').split(' ')[0])+' — thank you so much for the meal 🧡')}`}
+                style={{ display:'block',textAlign:'center',padding:'13px',borderRadius:11,background:S.forest,color:S.white,fontSize:14,fontWeight:600,textDecoration:'none',marginBottom:10,fontFamily:"'DM Sans',sans-serif" }}>Text {(contactMember.name||'').split(' ')[0]}</a>
+            )}
+            {contactMember.email && (
+              <a href={`mailto:${contactMember.email}?subject=${encodeURIComponent('Thank you 🧡')}`}
+                style={{ display:'block',textAlign:'center',padding:'13px',borderRadius:11,background:contactMember.phone?S.sageLight:S.forest,color:contactMember.phone?S.sage:S.white,fontSize:14,fontWeight:600,textDecoration:'none',marginBottom:10,fontFamily:"'DM Sans',sans-serif" }}>Email {(contactMember.name||'').split(' ')[0]}</a>
+            )}
+            {!contactMember.phone && !contactMember.email && (
+              <p style={{ textAlign:'center',fontSize:13,color:S.stone,fontWeight:300,margin:'10px 0 4px',lineHeight:1.5 }}>No contact info on file for {(contactMember.name||'').split(' ')[0]} yet — it&rsquo;ll appear here after their next meal.</p>
+            )}
+          </div>
         </div>
       )}
     </div>
@@ -1376,7 +1407,7 @@ export default function DashboardPage() {
 
   const loadProposals = useCallback(async (kitchenId: string) => {
     const { data } = await supabase.from('meal_proposals')
-      .select('id, status, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, coordinator_note, doordash_tracking_url, doordash_delivery_id, doordash_status, proposed_at, coordinator_email')
+      .select('id, status, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, coordinator_note, doordash_tracking_url, doordash_delivery_id, doordash_status, proposed_at, coordinator_email, coordinator_phone')
       .eq('kitchen_id', kitchenId)
       .order('proposed_at', { ascending: false })
     setAllProposals((data || []) as Proposal[])
