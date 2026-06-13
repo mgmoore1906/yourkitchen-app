@@ -433,6 +433,10 @@ window.addEventListener('popstate', handlePop)
 return () => window.removeEventListener('popstate', handlePop)
 }, [currentGroupIdx])
 
+// Mobile: every step / meal-group should start at the top. Without this,
+// advancing to "Your Info" can land the viewport halfway down the page.
+useEffect(()=>{ if(typeof window!=='undefined') window.scrollTo(0,0) }, [step, currentGroupIdx])
+
 const goToStep = (s: 1|2|3, groupIdx = 0) => {
 if (!isPoppingRef.current) window.history.pushState({ ykStep:s, ykGroup:groupIdx }, '')
 setStep(s)
@@ -852,6 +856,7 @@ return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 
 {groups.map((g,i)=>{const mc=MEAL_TYPE_COLORS[g.mealType]||MEAL_TYPE_COLORS.dinner;return(
 <div key={g.mealType} style={{ paddingBottom:i<groups.length-1?10:0,marginBottom:i<groups.length-1?10:0,borderBottom:i<groups.length-1?'1px solid #C8DDD0':'none' }}>
 <span style={{ background:mc.bg,color:mc.color,borderRadius:20,fontSize:10,fontWeight:600,padding:'2px 8px',border:`1px solid ${mc.color}`,display:'inline-block',marginBottom:6 }}>{MEAL_TYPE_LABELS[g.mealType]} · {g.slots.length} date{g.slots.length>1?'s':''}</span>
+<div style={{ fontSize:12,color:S.forest,fontWeight:600,marginBottom:4 }}>{g.slots.map((sl:any)=>new Date(sl.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})).join(' · ')}</div>
 <div style={{ fontSize:12,color:S.walnut,fontWeight:300,marginBottom:4 }}>{g.restaurant?.name}</div>
 {g.cart.map((c,ci)=>(
 <div key={ci} style={{ fontSize:13,color:S.mahogany,fontWeight:500 }}><>{c.category==='kids'?(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{display:'inline',marginRight:4,verticalAlign:'middle'}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke={S.walnut} strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="7" r="4" stroke={S.walnut} strokeWidth="2"/></svg>):(<svg width="12" height="12" viewBox="0 0 24 24" fill="none" style={{display:'inline',marginRight:4,verticalAlign:'middle'}}><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" stroke={S.mahogany} strokeWidth="2" strokeLinecap="round"/><circle cx="12" cy="7" r="4" stroke={S.mahogany} strokeWidth="2"/></svg>)}{c.name} ×{c.qty}</></div>
