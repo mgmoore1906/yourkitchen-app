@@ -1360,6 +1360,30 @@ function VillageTab({ kitchen, villagePosts, proposals, onPostUpdate }: { kitche
               <a href={`mailto:${contactMember.email}?subject=${encodeURIComponent('Thank you 🧡')}`}
                 style={{ display:'block',textAlign:'center',padding:'13px',borderRadius:11,background:contactMember.phone?S.sageLight:S.forest,color:contactMember.phone?S.sage:S.white,fontSize:14,fontWeight:600,textDecoration:'none',marginBottom:10,fontFamily:"'DM Sans',sans-serif" }}>Email {(contactMember.name||'').split(' ')[0]}</a>
             )}
+            {(() => {
+              const fn = (contactMember.name||'').split(' ')[0]
+              const theirs = proposals.filter(p => p.coordinator_name===contactMember.name && ['confirmed','delivered'].includes(p.status))
+                .sort((a,b)=>String(b.delivery_date||'').localeCompare(String(a.delivery_date||'')))
+              if(!theirs.length) return null
+              const dlabel = (d:string|null) => d ? new Date(d+'T12:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'}) : ''
+              return (
+                <div style={{ marginTop:16,paddingTop:16,borderTop:`0.5px solid ${S.border}` }}>
+                  <p style={{ fontSize:10,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Meals {fn} sent</p>
+                  <div style={{ display:'flex',flexDirection:'column',gap:10,maxHeight:248,overflowY:'auto' }}>
+                    {theirs.map(p=>(
+                      <div key={p.id} style={{ display:'flex',alignItems:'center',gap:10 }}>
+                        <span style={{ fontSize:20,flexShrink:0,width:24,textAlign:'center' }}>{MEAL_COLORS[p.meal_type]?.emoji||'🍽'}</span>
+                        <div style={{ flex:1,minWidth:0 }}>
+                          <div style={{ fontSize:13,fontWeight:600,color:S.forest,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{p.meal_name||'A meal'}</div>
+                          <div style={{ fontSize:11,color:S.stone,fontWeight:300,overflow:'hidden',textOverflow:'ellipsis',whiteSpace:'nowrap' }}>{p.restaurant_name||''}{p.delivery_date?` · ${dlabel(p.delivery_date)}`:''}</div>
+                        </div>
+                        {p.status==='delivered' && <span style={{ background:S.sageLight,color:S.sage,fontSize:10,fontWeight:700,padding:'2px 8px',borderRadius:20,flexShrink:0 }}>Delivered</span>}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )
+            })()}
             {!contactMember.phone && !contactMember.email && (
               <p style={{ textAlign:'center',fontSize:13,color:S.stone,fontWeight:300,margin:'10px 0 4px',lineHeight:1.5 }}>No contact info on file for {(contactMember.name||'').split(' ')[0]} yet — it&rsquo;ll appear here after their next meal.</p>
             )}
