@@ -19,6 +19,30 @@ function twiml(msg: string) {
   )
 }
 
+// Twilio delivers the sender in E.164 (+13365551234), but recipients store their
+// phone however they typed it at signup (raw — there's no normalization on write).
+// Match the inbound number against the common formats so a reply resolves whatever
+// format is on file. (Durable fix later: normalize phones to E.164 on write.)
+function phoneCandidates(raw: string): string[] {
+  const digits = (raw || '').replace(/\D/g, '')
+  const ten = digits.slice(-10)
+  const set = new Set<string>()
+  if (raw) set.add(raw)
+  if (ten.length === 10) {
+    const a = ten.slice(0, 3), b = ten.slice(3, 6), c = ten.slice(6)
+    set.add(`+1${ten}`)
+    set.add(`1${ten}`)
+    set.add(ten)
+    set.add(`(${a}) ${b}-${c}`)
+    set.add(`${a}-${b}-${c}`)
+    set.add(`${a}.${b}.${c}`)
+    set.add(`${a} ${b} ${c}`)
+    set.add(`+1 ${a} ${b} ${c}`)
+    set.add(`+1 (${a}) ${b}-${c}`)
+  }
+  return Array.from(set)
+}
+
 export async function POST(request: Request) {
   const stripe = getStripe()
   const twilioClient = getTwilio()
@@ -32,32 +56,34 @@ export async function POST(request: Request) {
   //   2. A confirmation proxy the recipient delegated to (matched via the
   //      kitchen's proxy_phone — the proxy may not have an account at all).
   let kitchen: { id: string } | null = null
+  const candidates = phoneCandidates(from)
 
-  const { data: profile } = await supabase
+  const { data: profileRows } = await supabase
     .from('profiles')
     .select('id')
-    .eq('phone', from)
-    .single()
+    .in('phone', candidates)
+    .limit(1)
+  const profileId = profileRows?.[0]?.id || null
 
-  if (profile) {
-    const { data: k } = await supabase
+  if (profileId) {
+    const { data: kRows } = await supabase
       .from('kitchens')
       .select('id')
-      .eq('recipient_id', profile.id)
+      .eq('recipient_id', profileId)
       .eq('status', 'active')
-      .single()
-    kitchen = k
+      .limit(1)
+    kitchen = kRows?.[0] || null
   }
 
   // No recipient match → see if this number is a kitchen's confirmation proxy.
   if (!kitchen) {
-    const { data: k } = await supabase
+    const { data: kRows } = await supabase
       .from('kitchens')
       .select('id')
-      .eq('proxy_phone', from)
+      .in('proxy_phone', candidates)
       .eq('status', 'active')
-      .single()
-    kitchen = k
+      .limit(1)
+    kitchen = kRows?.[0] || null
   }
 
   if (!kitchen) {
