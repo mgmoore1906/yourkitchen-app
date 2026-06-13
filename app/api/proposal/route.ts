@@ -66,7 +66,7 @@ const windowFor = (mealType: string): string | null => {
 }
 
 const proposalIds: string[] = []
-const lineItems: any[] = []
+const meals: { proposalId: string; foodItems: any[]; foodCents: number }[] = []
 let mealSubtotalCents = 0
 let deliveryMiles: number | null = null
 // Captured for the real Shipday courier quote at the fee block below.
@@ -209,15 +209,16 @@ delivery_time: windowFor(resolvedMealType),
 
 proposalIds.push(proposal.id)
 
-// ── Stripe line items ────────────────────────────────────────────────
+// ── Per-meal Stripe line items (this meal becomes its OWN transaction) ──
+const foodItems: any[] = []
+let foodCents = 0
 if (mealItems.length > 0) {
-// Multi-item cart: one line item per dish, with quantity
 for (const item of mealItems) {
 const cents = Math.round((item.price || 0) * 100)
 const qty = item.qty || 1
 if (cents <= 0) continue
-mealSubtotalCents += cents * qty
-lineItems.push({
+foodCents += cents * qty
+foodItems.push({
 price_data: {
 currency: 'usd',
 product_data: {
@@ -230,10 +231,9 @@ quantity: qty,
 })
 }
 } else {
-// Fallback: single meal
 const cents = Math.round(mealPrice * 100)
-mealSubtotalCents += cents
-lineItems.push({
+foodCents += cents
+foodItems.push({
 price_data: {
 currency: 'usd',
 product_data: {
@@ -245,12 +245,17 @@ unit_amount: cents,
 quantity: 1,
 })
 }
+mealSubtotalCents += foodCents
+meals.push({ proposalId: proposal.id, foodItems, foodCents })
+
 }
 
-// ── Courier delivery fee (real Shipday quote, fallback to mileage estimate) ──
-// Prefer the actual courier quote so the coordinator is charged what delivery
-// truly costs; fall back to the distance-based estimate if Shipday has no quote.
-// Pickup orders skip the courier entirely — no Shipday quote, no delivery fee.
+// ── Cart-level fees, computed once then SPLIT across the per-meal sessions ──
+// Each meal is its own Stripe transaction/PaymentIntent, so confirm captures —
+// and decline cancels/refunds — ONLY that meal. The coordinator's TOTAL is
+// unchanged: compute the cart courier/tip/service exactly as before, then
+// allocate each across meals (remainder on the last) so the per-session amounts
+// sum to the same grand total the cart previewed.
 let deliveryFeeAmt = 0
 if (!is_pickup) {
 const mileageEstimate = getDeliveryFee(deliveryMiles)
@@ -264,83 +269,64 @@ dropoffAddress: (kitchen as any).address || '',
 tipDollars: (tip_amount || 0) / 100,
 }, mileageEstimate)
 deliveryFeeAmt = courierQuote.feeDollars
-const distanceNote = courierQuote.source === 'shipday'
-? 'Live courier quote'
-: (deliveryMiles !== null
-? `${deliveryMiles.toFixed(1)} mi · estimated courier rate`
-: 'Estimated courier rate')
-
-lineItems.push({
-price_data: {
-currency: 'usd',
-product_data: { name: 'Courier delivery fee', description: distanceNote },
-unit_amount: Math.round(deliveryFeeAmt * 100),
-},
-quantity: 1,
-})
 }
-
-// ── Dasher tip (100% pass-through) ───────────────────────────────────────
-if (!is_pickup && (tip_amount || 0) > 0) {
-lineItems.push({
-price_data: {
-currency: 'usd',
-product_data: { name: 'Dasher tip', description: 'Goes directly to your driver — 100% passed through' },
-unit_amount: tip_amount,
-},
-quantity: 1,
-})
-}
-
-// ── Service fee (5% + $0.99) ─────────────────────────────────────────────
-// Sized to fully cover Stripe processing (~2.9% + $0.30) AND leave a real
-// per-order margin. Computed on the pre-fee total (meal + courier + tip) so
-// it scales with order size and is never underwater, even on small meals.
-// All component amounts here are in CENTS.
 const courierCents = Math.round(deliveryFeeAmt * 100)
 const tipCents = is_pickup ? 0 : (tip_amount || 0)
 const preFeeCents = mealSubtotalCents + courierCents + tipCents
 const SERVICE_PCT = 0.05
 const SERVICE_FLAT_CENTS = 99
-const serviceFee = Math.round(preFeeCents * SERVICE_PCT) + SERVICE_FLAT_CENTS
-if (serviceFee > 0) {
-lineItems.push({
-price_data: {
-currency: 'usd',
-product_data: {
-name: 'Service fee',
-description: 'Covers coordination, SMS, payment processing, and delivery integration',
-},
-unit_amount: serviceFee,
-},
-quantity: 1,
-})
-}
+const serviceCents = mealSubtotalCents > 0 ? Math.round(preFeeCents * SERVICE_PCT) + SERVICE_FLAT_CENTS : 0
 
-// ── Stripe Checkout session ──────────────────────────────────────────────
+const N = meals.length
+const totalFood = meals.reduce((s, m) => s + m.foodCents, 0) || 1
+const splitPool = (pool: number): number[] => {
+const out: number[] = []
+let used = 0
+meals.forEach((m, idx) => {
+if (idx === N - 1) { out.push(pool - used) }
+else { const a = Math.round((pool * m.foodCents) / totalFood); out.push(a); used += a }
+})
+return out
+}
+const courierSplit = splitPool(courierCents)
+const tipSplit = splitPool(tipCents)
+const serviceSplit = splitPool(serviceCents)
+
+// One Checkout session (= one PaymentIntent) per meal. Built in REVERSE so each
+// session's success_url hands off to the NEXT meal's payment via /api/pay-next —
+// the coordinator pays each meal in turn, ending on payment-success.
+const APP = process.env.NEXT_PUBLIC_APP_URL
+const SITE = process.env.NEXT_PUBLIC_SITE_URL
+let nextSuccessUrl = `${APP}/payment-success?recipient=${encodeURIComponent(recipientFirst)}&slug=${encodeURIComponent(kitchen_slug ?? '')}`
+let firstUrl: string | null = null
+for (let k = N - 1; k >= 0; k--) {
+const m = meals[k]
+const li: any[] = [...m.foodItems]
+if (courierSplit[k] > 0) li.push({ price_data: { currency: 'usd', product_data: { name: 'Courier delivery fee', description: 'Door-to-door courier' }, unit_amount: courierSplit[k] }, quantity: 1 })
+if (tipSplit[k] > 0) li.push({ price_data: { currency: 'usd', product_data: { name: 'Dasher tip', description: 'Goes directly to your driver — 100% passed through' }, unit_amount: tipSplit[k] }, quantity: 1 })
+if (serviceSplit[k] > 0) li.push({ price_data: { currency: 'usd', product_data: { name: 'Service fee', description: 'Covers coordination, SMS, payment processing, and delivery integration' }, unit_amount: serviceSplit[k] }, quantity: 1 })
+
 const session = await stripe.checkout.sessions.create({
 payment_method_types: ['card'],
-line_items: lineItems,
+line_items: li,
 mode: 'payment',
 expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
 payment_intent_data: { capture_method: 'manual' },
 customer_email: email,
-success_url: `${process.env.NEXT_PUBLIC_APP_URL}/payment-success?recipient=${encodeURIComponent(recipientFirst)}&slug=${encodeURIComponent(kitchen_slug ?? '')}`,
-cancel_url: `${process.env.NEXT_PUBLIC_SITE_URL}/k/${kitchen_slug ?? ''}`,
+success_url: nextSuccessUrl,
+cancel_url: `${SITE}/k/${kitchen_slug ?? ''}`,
 metadata: {
 type: 'proposal',
-proposal_ids: JSON.stringify(proposalIds),
+proposal_ids: JSON.stringify([m.proposalId]),
 coordinator_name: name,
 },
 })
-
-if (session.id && proposalIds.length > 0) {
-await supabase.from('meal_proposals')
-.update({ stripe_session_id: session.id })
-.in('id', proposalIds)
+await supabase.from('meal_proposals').update({ stripe_session_id: session.id }).eq('id', m.proposalId)
+nextSuccessUrl = `${APP}/api/pay-next?s=${session.id}`
+firstUrl = session.url
 }
 
-return NextResponse.json({ checkout_url: session.url })
+return NextResponse.json({ checkout_url: firstUrl })
 
 } catch (err: any) {
 await releaseLocks()
