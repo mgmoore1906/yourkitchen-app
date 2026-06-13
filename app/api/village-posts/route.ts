@@ -180,3 +180,26 @@ export async function DELETE(request: Request) {
     return NextResponse.json({ error: err.message }, { status: 500 })
   }
 }
+
+// PUT /api/village-posts  — recipient edits the text of their own post.
+// Body: { post_id, kitchen_id, content }  (kitchen_id guards against cross-kitchen edits)
+export async function PUT(request: Request) {
+  const supabase = getSupabase()
+  try {
+    const { post_id, kitchen_id, content } = await request.json()
+    if (!post_id || !kitchen_id || !content?.trim()) {
+      return NextResponse.json({ error: 'post_id, kitchen_id and content required' }, { status: 400 })
+    }
+    const { data, error } = await supabase
+      .from('village_posts')
+      .update({ content: content.trim() })
+      .eq('id', post_id)
+      .eq('kitchen_id', kitchen_id)
+      .select('id, content')
+      .single()
+    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    return NextResponse.json({ success: true, post: data })
+  } catch (err: any) {
+    return NextResponse.json({ error: err.message }, { status: 500 })
+  }
+}
