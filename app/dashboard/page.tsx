@@ -440,7 +440,16 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
                 <span style={{ fontSize:12,fontWeight:isToday?700:500,color:(isSel||isPaint)?S.sage:S.forest,lineHeight:1 }}>{day}</span>
                 {slots.length
                   ? <div style={{ display:'flex',gap:2,flexWrap:'wrap',justifyContent:'center' }}>
-                      {slots.map((s:CalDate,si:number)=><div key={si} style={{ width:5,height:5,borderRadius:'50%',background:MEAL_COLORS[s.meal_type]?.color||S.sage }}/>)}
+                      {slots.map((s:CalDate,si:number)=>{
+                        const dotColor=MEAL_COLORS[s.meal_type]?.color||S.sage
+                        const taken=s.status==='confirmed'
+                        return (
+                          <div key={si} style={{ position:'relative',width:5,height:5,display:'flex',alignItems:'center',justifyContent:'center' }}>
+                            <div style={{ width:5,height:5,borderRadius:'50%',background:dotColor,opacity:taken?0.5:1 }}/>
+                            {taken&&<div style={{ position:'absolute',top:'50%',left:-1,right:-1,height:1.5,background:S.forest,borderRadius:1,transform:'translateY(-50%)' }}/>}
+                          </div>
+                        )
+                      })}
                     </div>
                   : !isPast?<div style={{ fontSize:13,color:'#DDE8E0' }}>+</div>:null}
               </button>
@@ -460,6 +469,13 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
               <span style={{ fontSize:11,color:S.stone,fontWeight:500 }}>{v.emoji} {v.label}</span>
             </div>
           ))}
+          <div style={{ display:'flex',alignItems:'center',gap:3 }}>
+            <div style={{ position:'relative',width:6,height:6,display:'flex',alignItems:'center',justifyContent:'center' }}>
+              <div style={{ width:6,height:6,borderRadius:'50%',background:S.sage,opacity:0.5 }}/>
+              <div style={{ position:'absolute',top:'50%',left:-1,right:-1,height:1.5,background:S.forest,borderRadius:1,transform:'translateY(-50%)' }}/>
+            </div>
+            <span style={{ fontSize:11,color:S.stone,fontWeight:500 }}>Covered</span>
+          </div>
         </div>
       </div>
 
