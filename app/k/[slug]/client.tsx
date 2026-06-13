@@ -4,6 +4,8 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { haversineDistance, getTipTier } from '@/lib/distance'
+import { createClient } from '@/lib/supabase/client'
+import InfoTip from '@/app/components/infotip'
 
 // ── Coordinator palette — INVERTED YourKitchen (dark mode of the same brand colors) ──
 const S = {
@@ -153,7 +155,7 @@ for(let d=1;d<=daysInMonth;d++)cells.push(d)
 return (
 <div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:18,padding:'16px',marginBottom:8 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
-<p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>{recipientFirst}'s Calendar</p>
+<div style={{ display:'flex',alignItems:'center' }}><p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>{recipientFirst}'s Calendar</p><InfoTip label="How to pick dates" text={`Highlighted dates are days ${recipientFirst} still needs covered. Tap an open date to claim it, or tap again to release it. Pick as many dates as you'd like, then choose the meals and how many to send at the next step.`}/></div>
 <div style={{ display:'flex',alignItems:'center',gap:6 }}>
 <button onClick={prev} style={{ background:S.amberLight,border:'none',borderRadius:7,width:28,height:28,cursor:'pointer',fontSize:14,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>‹</button>
 <span style={{ fontSize:12,fontWeight:500,color:S.forest,minWidth:108,textAlign:'center' }}>{monthName}</span>
@@ -195,7 +197,7 @@ style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?
 }
 
 // ── Coordinator Village view — cork board, text + reply + react, NO photo upload ──
-function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, onClose }: { kitchenSlug:string; kitchenId:string; recipientFirst:string; onClose:()=>void }) {
+function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, isOwner, onClose }: { kitchenSlug:string; kitchenId:string; recipientFirst:string; isOwner?:boolean; onClose:()=>void }) {
   const [posts, setPosts]       = useState<any[]>([])
   const [loading, setLoading]   = useState(true)
   const [name, setName]         = useState('')
@@ -226,11 +228,11 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, onClose }: 
 
   const post = async (parentId?:string) => {
     const content = parentId ? replyText.trim() : newPost.trim()
-    if(!content || !kitchenId || !name.trim()) { if(!name.trim()) alert('Add your name first.'); return }
+    if(!content || !kitchenId || (!isOwner && !name.trim())) { if(!isOwner && !name.trim()) alert('Add your name first.'); return }
     if(!parentId) setPosting(true)
     await fetch('/api/village-posts',{
       method:'POST', headers:{'Content-Type':'application/json'},
-      body: JSON.stringify({ kitchen_id:kitchenId, content, author_name:name.trim(), author_type:'coordinator', parent_id:parentId||undefined }),
+      body: JSON.stringify({ kitchen_id:kitchenId, content, author_name:isOwner?recipientFirst:name.trim(), author_type:isOwner?'recipient':'coordinator', parent_id:parentId||undefined }),
     })
     if(parentId){ setReplyText(''); setReplyTo(null) } else { setNewPost(''); setPosting(false) }
     load()
@@ -305,9 +307,9 @@ function CoordVillage({ kitchenSlug, kitchenId: kId, recipientFirst, onClose }: 
         )}
         {/* Composer */}
         <div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:16,padding:'16px',marginBottom:20 }}>
-          <p style={{ fontSize:11,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>Leave a note</p>
-          <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"
-            style={{ width:'100%',borderRadius:9,border:`1.5px solid ${S.amberBorder}`,padding:'9px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.warmWhite,outline:'none',boxSizing:'border-box',marginBottom:8 }}/>
+          <p style={{ fontSize:11,fontWeight:700,color:S.stone,letterSpacing:'0.1em',textTransform:'uppercase',margin:'0 0 10px' }}>{isOwner?`Post as ${recipientFirst}`:'Leave a note'}</p>
+          {!isOwner && <input value={name} onChange={e=>setName(e.target.value)} placeholder="Your name"
+            style={{ width:'100%',borderRadius:9,border:`1.5px solid ${S.amberBorder}`,padding:'9px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.warmWhite,outline:'none',boxSizing:'border-box',marginBottom:8 }}/>}
           <textarea value={newPost} onChange={e=>setNewPost(e.target.value)} placeholder={`Thinking of you, ${recipientFirst} 🧡 Hope the meal hits the spot…`}
             style={{ width:'100%',minHeight:64,borderRadius:10,border:`1.5px solid ${S.amberBorder}`,padding:'10px 12px',fontSize:14,fontFamily:"'DM Sans',sans-serif",color:S.forest,background:S.warmWhite,resize:'none',outline:'none',boxSizing:'border-box',lineHeight:1.6,marginBottom:10 }}/>
           <button onClick={()=>post()} disabled={!newPost.trim()||posting||!kitchenId}
@@ -352,7 +354,9 @@ export default function CoordKitchenClient({ kitchen, availableDates, recentMeal
 const [step, setStep] = useState<1|2|3>(1)
 const [showVillage, setShowVillage] = useState(false)
 const [shareCopied, setShareCopied] = useState(false)
+const [isOwner, setIsOwner] = useState(false)
 useEffect(()=>{ if(typeof window!=='undefined' && new URLSearchParams(window.location.search).get('tab')==='village') setShowVillage(true) },[])
+useEffect(()=>{ const sb=createClient(); sb.auth.getUser().then(({data}:any)=>{ const uid=data?.user?.id; if(uid && (uid===kitchen.recipient_id || uid===kitchen.organizer_id)) setIsOwner(true) }).catch(()=>{}) },[])
 const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
 const [groups, setGroups] = useState<GroupSelection[]>([])
 const [currentGroupIdx, setCurrentGroupIdx] = useState(0)
@@ -576,7 +580,7 @@ const groupReady = (g:GroupSelection)=> !!g.restaurant && g.cart.length>0
 return (
 <div style={{ background:S.cream,fontFamily:"'DM Sans',sans-serif",display:'flex',flexDirection:'column' }}>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
-{showVillage && <CoordVillage kitchenSlug={kitchen.slug} kitchenId={kitchen.id} recipientFirst={recipientFirst} onClose={()=>setShowVillage(false)}/>}
+{showVillage && <CoordVillage kitchenSlug={kitchen.slug} kitchenId={kitchen.id} recipientFirst={recipientFirst} isOwner={isOwner} onClose={()=>setShowVillage(false)}/>}
 
 <div style={{ background:S.headerBg, padding:'10px 24px', textAlign:'center' }}>
 <div style={{ fontSize:10, fontWeight:400, letterSpacing:3, color:'rgba(255,255,255,0.5)', textTransform:'uppercase', marginBottom:3 }}>Sending a meal to</div>
