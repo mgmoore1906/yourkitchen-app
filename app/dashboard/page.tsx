@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import InfoTip from '@/app/components/infotip'
+import { PILOT_SURVEY_URL } from '@/lib/links'
 
 // ── Brand ─────────────────────────────────────────────────────────────────────
 const S = {
@@ -197,7 +198,7 @@ function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onS
             <span style={{ fontSize:14, color:S.red }}>Sign Out</span>
           </button>
           <div style={{ padding:'12px 24px 28px', display:'flex', gap:0, flexWrap:'wrap' }}>
-            {[{label:'Pilot feedback',href:'https://docs.google.com/forms/d/e/1FAIpQLSfNdC51-AFcUXBlwoZVcZgz4GPsSo-DghXT5A5u8RC93h9Ycg/viewform?usp=header'},{label:'yourkitchen.app',href:'https://yourkitchen.app'},{label:'FAQ',href:'https://yourkitchen.app/#faq'},{label:'Privacy',href:'https://yourkitchen.app/privacy'},{label:'Terms',href:'https://yourkitchen.app/terms'}].map((l,i)=>(
+            {[{label:'Pilot feedback',href:PILOT_SURVEY_URL},{label:'yourkitchen.app',href:'https://yourkitchen.app'},{label:'FAQ',href:'https://yourkitchen.app/#faq'},{label:'Privacy',href:'https://yourkitchen.app/privacy'},{label:'Terms',href:'https://yourkitchen.app/terms'}].map((l,i)=>(
               <span key={l.label}>
                 {i>0&&<span style={{ color:S.stone,margin:'0 5px',fontSize:10 }}>·</span>}
                 <a href={l.href} target="_blank" rel="noopener" style={{ fontSize:11,color:l.label==='Pilot feedback'?S.sage:S.stone,fontWeight:l.label==='Pilot feedback'?600:400,textDecoration:'none' }}>{l.label}</a>
