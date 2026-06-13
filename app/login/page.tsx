@@ -2,6 +2,7 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { PILOT_SURVEY_URL } from '@/lib/links'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -119,7 +120,7 @@ await supabase.auth.signInWithOAuth({
         </p>
         <p style={{ textAlign: 'center', fontSize: 12.5, color: '#6B7066', marginTop: 14, fontWeight: 300 }}>
           In the pilot?{' '}
-          <a href="https://docs.google.com/forms/d/e/1FAIpQLSfNdC51-AFcUXBlwoZVcZgz4GPsSo-DghXT5A5u8RC93h9Ycg/viewform?usp=header" target="_blank" rel="noopener" style={{ color: '#3D6B4F', fontWeight: 500, textDecoration: 'none' }}>Share your feedback →</a>
+          <a href={PILOT_SURVEY_URL} target="_blank" rel="noopener" style={{ color: '#3D6B4F', fontWeight: 500, textDecoration: 'none' }}>Share your feedback →</a>
         </p>
       </div>
     </div>
