@@ -335,25 +335,45 @@ function DispatchTab(props: any) {
   const { orders, loading, filter, setFilter, dispatching, cancelling, msgs, cancelReasons, setCancelReasons, cancelType, setCancelType, cancelListed, setCancelListed, cancelCorrect, setCancelCorrect, handleDispatch, handleCancel } = props
   const needsDispatch = (o: Order) => (!o.delivery_status || o.delivery_status === 'awaiting_dispatch') && !o.is_pickup
 
-  const todayOrders = orders.filter((o: Order) => o.delivery_date === TODAY).sort(sortByMealType)
-  const tomorrowOrders = orders.filter((o: Order) => o.delivery_date === TOMORROW).sort(sortByMealType)
-  const weekOrders = orders.filter((o: Order) => o.delivery_date > TOMORROW && o.delivery_date <= IN7DAYS).sort(sortByMealType)
-  const allOrders = [...orders].sort(sortByMealType)
+  const [groupBy, setGroupBy] = useState<'time' | 'recipient' | 'zip'>('time')
+  const [needsOnly, setNeedsOnly] = useState(false)
+  const [selectedDate, setSelectedDate] = useState<string>('')
+  const [expanded, setExpanded] = useState<Set<string>>(new Set())
+  const [collapsed, setCollapsed] = useState<Set<string>>(new Set())
+  const toggleIn = (set: Set<string>, setter: (s: Set<string>) => void, key: string) => { const n = new Set(set); if (n.has(key)) n.delete(key); else n.add(key); setter(n) }
 
-  const tabCounts: Record<Filter, number> = {
-    today: todayOrders.length, tomorrow: tomorrowOrders.length, week: weekOrders.length, all: allOrders.length,
-  }
+  const todayOrders = orders.filter((o: Order) => o.delivery_date === TODAY)
+  const tomorrowOrders = orders.filter((o: Order) => o.delivery_date === TOMORROW)
+  const weekOrders = orders.filter((o: Order) => o.delivery_date > TOMORROW && o.delivery_date <= IN7DAYS)
+  const allOrders = [...orders]
+  const tabCounts: Record<Filter, number> = { today: todayOrders.length, tomorrow: tomorrowOrders.length, week: weekOrders.length, all: allOrders.length }
+  const TABS: { key: Filter; label: string }[] = [{ key: 'today', label: 'Today' }, { key: 'tomorrow', label: 'Tomorrow' }, { key: 'week', label: 'This week' }, { key: 'all', label: 'All' }]
 
-  const visible = filter === 'today' ? todayOrders : filter === 'tomorrow' ? tomorrowOrders : filter === 'week' ? weekOrders : allOrders
-
-  const TABS: { key: Filter; label: string }[] = [
-    { key: 'today', label: 'Today' }, { key: 'tomorrow', label: 'Tomorrow' },
-    { key: 'week', label: 'This week' }, { key: 'all', label: 'All' },
-  ]
+  let scope: Order[] = filter === 'today' ? todayOrders : filter === 'tomorrow' ? tomorrowOrders : filter === 'week' ? weekOrders : allOrders
+  if (needsOnly) scope = scope.filter(needsDispatch)
+  const dayList = Array.from(new Set(scope.map((o: Order) => o.delivery_date))).sort()
+  const visible: Order[] = selectedDate ? scope.filter((o: Order) => o.delivery_date === selectedDate) : scope
 
   const dateGroups: Record<string, Order[]> = {}
   visible.forEach((o: Order) => { if (!dateGroups[o.delivery_date]) dateGroups[o.delivery_date] = []; dateGroups[o.delivery_date].push(o) })
   const sortedDates = Object.keys(dateGroups).sort()
+
+  const MEAL_LANES: [string, string][] = [['breakfast', '\U0001F305 Breakfast'], ['lunch', '\u2600\uFE0F Lunch'], ['dinner', '\U0001F319 Dinner']]
+  function laneGroups(dayOrders: Order[]): { key: string; label: string; items: Order[] }[] {
+    if (groupBy === 'time') {
+      return MEAL_LANES.map(([mt, label]) => ({ key: mt, label, items: dayOrders.filter(o => o.meal_type === mt).sort(sortByMealType) })).filter(g => g.items.length > 0)
+    }
+    if (groupBy === 'recipient') {
+      const m: Record<string, Order[]> = {}
+      dayOrders.forEach(o => { const k = o.kitchen_name || '\u2014'; if (!m[k]) m[k] = []; m[k].push(o) })
+      return Object.keys(m).sort().map(name => ({ key: 'r:' + name, label: name + (zipOf(m[name][0].kitchen_address) ? ' \u00B7 ' + zipOf(m[name][0].kitchen_address) : ''), items: m[name].sort(sortByMealType) }))
+    }
+    const m: Record<string, Order[]> = {}
+    dayOrders.forEach(o => { const z = zipOf(o.kitchen_address) || 'No zip'; if (!m[z]) m[z] = []; m[z].push(o) })
+    return Object.keys(m).sort().map(z => ({ key: 'z:' + z, label: '\U0001F4CD ' + z, items: m[z].sort((a, b) => (a.kitchen_name || '').localeCompare(b.kitchen_name || '') || sortByMealType(a, b)) }))
+  }
+
+  const dayChipStyle = (on: boolean): React.CSSProperties => ({ flexShrink: 0, padding: '8px 12px', borderRadius: 12, border: `1.5px solid ${on ? S.sage : S.border}`, background: on ? S.sageLight : S.white, color: on ? S.sage : S.stone, fontSize: 12, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", textAlign: 'center', lineHeight: 1.3 })
 
   return (
     <>
@@ -363,7 +383,7 @@ function DispatchTab(props: any) {
           const isActive = filter === tab.key
           const urgentCount = tab.key === 'today' ? todayOrders.filter(needsDispatch).length : tab.key === 'tomorrow' ? tomorrowOrders.filter(needsDispatch).length : 0
           return (
-            <button key={tab.key} onClick={() => setFilter(tab.key)}
+            <button key={tab.key} onClick={() => { setFilter(tab.key); setSelectedDate('') }}
               style={{ padding: '14px 20px', background: 'none', border: 'none', borderBottom: `3px solid ${isActive ? S.sage : 'transparent'}`, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", color: isActive ? S.sage : S.stone, fontWeight: isActive ? 700 : 400, fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
               {tab.label}
               {count > 0 && (
@@ -376,68 +396,113 @@ function DispatchTab(props: any) {
         })}
       </div>
 
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '24px 20px' }}>
-        {loading && <p style={{ color: S.stone, fontSize: 14, textAlign: 'center', padding: 40 }}>Loading orders…</p>}
+      <div style={{ maxWidth: 820, margin: '0 auto', padding: '20px' }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+          <span style={{ fontSize: 11, fontWeight: 700, color: S.stone, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Group by</span>
+          {([['time', 'Time'], ['recipient', 'Recipient'], ['zip', 'Zip']] as [any, string][]).map(([k, l]) => (
+            <button key={k} onClick={() => setGroupBy(k)}
+              style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${groupBy === k ? S.sage : S.border}`, background: groupBy === k ? S.sageLight : S.white, color: groupBy === k ? S.sage : S.stone, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>{l}</button>
+          ))}
+          <div style={{ flex: 1 }} />
+          <button onClick={() => setNeedsOnly(v => !v)}
+            style={{ padding: '6px 12px', borderRadius: 20, border: `1.5px solid ${needsOnly ? S.red : S.border}`, background: needsOnly ? S.redLight : S.white, color: needsOnly ? S.red : S.stone, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+            {needsOnly ? '\u2713 ' : ''}Needs dispatch
+          </button>
+        </div>
+
+        {dayList.length > 1 && (
+          <div style={{ display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 6, marginBottom: 16 }}>
+            <button onClick={() => setSelectedDate('')} style={dayChipStyle(selectedDate === '')}>
+              <div style={{ fontWeight: 700 }}>All days</div>
+              <div style={{ fontSize: 10, opacity: 0.8 }}>{scope.length} orders</div>
+            </button>
+            {dayList.map(d => {
+              const ods = scope.filter((o: Order) => o.delivery_date === d)
+              const need = ods.filter(needsDispatch).length
+              const sel = selectedDate === d
+              return (
+                <button key={d} onClick={() => setSelectedDate(sel ? '' : d)} style={dayChipStyle(sel)}>
+                  <div style={{ fontWeight: 700 }}>{friendlyDate(d)}</div>
+                  <div style={{ fontSize: 10, color: need > 0 ? S.red : S.stone }}>{ods.length} \u00B7 {need} to ship</div>
+                </button>
+              )
+            })}
+          </div>
+        )}
+
+        {loading && <p style={{ color: S.stone, fontSize: 14, textAlign: 'center', padding: 40 }}>Loading orders\u2026</p>}
 
         {!loading && visible.length === 0 && (
           <div style={{ textAlign: 'center', padding: 60 }}>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>{filter === 'today' ? '🎉' : filter === 'tomorrow' ? '😌' : '📭'}</div>
-            <p style={{ fontFamily: "'Lora',serif", fontSize: 18, color: S.forest, margin: '0 0 8px' }}>
-              {filter === 'today' ? 'Nothing due today' : filter === 'tomorrow' ? 'Nothing tomorrow' : 'No orders here'}
-            </p>
-            <p style={{ fontSize: 13, color: S.stone }}>{filter === 'today' ? 'Check back later or refresh.' : 'Switch tabs to see upcoming orders.'}</p>
+            <div style={{ fontSize: 40, marginBottom: 12 }}>{needsOnly ? '\u2705' : '\U0001F4ED'}</div>
+            <p style={{ fontFamily: "'Lora',serif", fontSize: 18, color: S.forest, margin: '0 0 8px' }}>{needsOnly ? 'Nothing waiting to ship' : 'No orders here'}</p>
+            <p style={{ fontSize: 13, color: S.stone }}>Switch tabs or clear filters to see more.</p>
           </div>
         )}
 
         {sortedDates.map(date => {
-          const dateOrders = dateGroups[date].slice().sort((a: Order, b: Order) => (zipOf(a.kitchen_address).localeCompare(zipOf(b.kitchen_address))) || (a.kitchen_name || '').localeCompare(b.kitchen_name || '') || sortByMealType(a, b))
-          const pendingInDate = dateOrders.filter(needsDispatch).length
+          const dayOrders = dateGroups[date]
+          const pendingInDate = dayOrders.filter(needsDispatch).length
           const isToday = date === TODAY
           const isTomorrow = date === TOMORROW
+          const lanes = laneGroups(dayOrders)
           return (
-            <div key={date} style={{ marginBottom: 28 }}>
-              {(filter === 'week' || filter === 'all') && (
-                <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                  <div style={{ flex: 1, height: 0.5, background: S.border }} />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                    <span style={{ fontSize: 13, fontWeight: 700, color: isToday ? S.red : isTomorrow ? S.amber : S.stone }}>{friendlyDate(date)}</span>
-                    {pendingInDate > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: isToday ? S.redLight : S.amberLight, color: isToday ? S.red : S.amber, borderRadius: 20, padding: '2px 8px' }}>{pendingInDate} need dispatch</span>}
-                  </div>
-                  <div style={{ flex: 1, height: 0.5, background: S.border }} />
-                </div>
-              )}
-              {dateOrders.map((order: Order) => {
-                const isAwaiting = needsDispatch(order)
-                const isPickupOrder = !!order.is_pickup
-                const isDispatching_ = dispatching === order.id
-                const isCancelling_ = cancelling === order.id
-                const msg = msgs[order.id]
-                return (
-                  <div key={order.id} style={{ background: S.white, border: `2px solid ${isAwaiting ? S.red : isPickupOrder ? S.blue : S.border}`, borderRadius: 16, padding: 20, marginBottom: 12, opacity: (isAwaiting || isPickupOrder) ? 1 : 0.75 }}>
-                    <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 14 }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                          <span style={{ fontSize: 18 }}>{MEAL_EMOJI[order.meal_type] || '🍽'}</span>
-                          <span style={{ fontFamily: "'Lora',serif", fontSize: 16, fontWeight: 600, color: S.forest }}>{order.meal_name}</span>
-                        </div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: S.forest, marginBottom: 2 }}>For {order.kitchen_name || '—'}{zipOf(order.kitchen_address) && <span style={{ fontWeight: 400, color: S.stone }}> · {zipOf(order.kitchen_address)}</span>}</div>
-                        <div style={{ fontSize: 13, color: S.stone }}>
-                          {order.restaurant_name}
-                          {(filter === 'week' || filter === 'all') && <span style={{ color: isAwaiting && order.delivery_date === TODAY ? S.red : S.stone }}> · {friendlyDate(order.delivery_date)}</span>}
-                        </div>
-                        {order.restaurant_address && <div style={{ fontSize: 12, color: S.stone, marginTop: 1 }}>📍 {order.restaurant_address}</div>}
-                        <div style={{ fontSize: 12, color: S.stone, marginTop: 2 }}>from <strong style={{ color: S.forest }}>{order.coordinator_name}</strong></div>
-                      </div>
-                      <span style={{ fontSize: 10, fontWeight: 700, padding: '4px 12px', borderRadius: 20, background: isAwaiting ? S.redLight : isPickupOrder ? S.blueLight : S.sageLight, color: isAwaiting ? S.red : isPickupOrder ? S.blue : S.sage, flexShrink: 0 }}>
-                        {isAwaiting ? '🔴 Needs dispatch' : isPickupOrder ? '🥡 Pickup' : '✅ Dispatched'}
-                      </span>
-                    </div>
+            <div key={date} style={{ marginBottom: 24 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
+                <span style={{ fontSize: 14, fontWeight: 700, color: isToday ? S.red : isTomorrow ? S.amber : S.forest }}>{friendlyDate(date)}</span>
+                <span style={{ fontSize: 12, color: S.stone }}>{dayOrders.length} orders</span>
+                {pendingInDate > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: isToday ? S.redLight : S.amberLight, color: isToday ? S.red : S.amber, borderRadius: 20, padding: '2px 8px' }}>{pendingInDate} need dispatch</span>}
+                <div style={{ flex: 1, height: 0.5, background: S.border }} />
+              </div>
 
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: isAwaiting ? S.amberLight : S.sageLight, borderRadius: 10, padding: '9px 12px', marginBottom: 10 }}>
-                      <span style={{ fontSize: 15 }}>🕐</span>
-                      <span style={{ fontSize: 13, fontWeight: 700, color: S.forest }}>Deliver around {prettyTime(order.delivery_time, order.meal_type)}</span>
-                      <span style={{ fontSize: 12, color: S.stone }}>· {order.meal_type}</span>
-                    </div>
+              {lanes.map(lane => {
+                const laneKey = date + '|' + lane.key
+                const isCollapsed = collapsed.has(laneKey)
+                const laneNeed = lane.items.filter(needsDispatch).length
+                return (
+                  <div key={laneKey} style={{ marginBottom: 10 }}>
+                    <button onClick={() => toggleIn(collapsed, setCollapsed, laneKey)}
+                      style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 8, background: S.cream, border: `1px solid ${S.border}`, borderRadius: 10, padding: '9px 12px', cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", marginBottom: 6 }}>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: S.forest }}>{lane.label}</span>
+                      <span style={{ fontSize: 12, color: S.stone }}>{lane.items.length}</span>
+                      {laneNeed > 0 && <span style={{ fontSize: 10, fontWeight: 700, background: S.redLight, color: S.red, borderRadius: 20, padding: '2px 8px' }}>{laneNeed} to ship</span>}
+                      <div style={{ flex: 1 }} />
+                      <span style={{ fontSize: 12, color: S.stone }}>{isCollapsed ? '\u25B8' : '\u25BE'}</span>
+                    </button>
+
+                    {!isCollapsed && lane.items.map((order: Order) => {
+                      const isAwaiting = needsDispatch(order)
+                      const isPickupOrder = !!order.is_pickup
+                      const isExpanded = expanded.has(order.id)
+                      const isDispatching_ = dispatching === order.id
+                      const isCancelling_ = cancelling === order.id
+                      const msg = msgs[order.id]
+                      const dotColor = isAwaiting ? S.red : isPickupOrder ? S.blue : S.sage
+                      return (
+                        <div key={order.id} style={{ border: `1px solid ${isAwaiting ? S.red : S.border}`, borderRadius: 12, marginBottom: 8, overflow: 'hidden', background: S.white }}>
+                          <div onClick={() => toggleIn(expanded, setExpanded, order.id)}
+                            style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '11px 13px', cursor: 'pointer' }}>
+                            <span style={{ fontSize: 12, fontWeight: 700, color: S.forest, width: 62, flexShrink: 0 }}>{prettyTime(order.delivery_time, order.meal_type)}</span>
+                            <div style={{ flex: 1, minWidth: 0 }}>
+                              <div style={{ fontSize: 13, fontWeight: 700, color: S.forest, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{order.kitchen_name || '\u2014'}{zipOf(order.kitchen_address) && <span style={{ fontWeight: 400, color: S.stone }}> \u00B7 {zipOf(order.kitchen_address)}</span>}</div>
+                              <div style={{ fontSize: 12, color: S.stone, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{MEAL_EMOJI[order.meal_type] || '\U0001F37D'} {order.meal_name} \u00B7 {order.restaurant_name}</div>
+                            </div>
+                            <span style={{ width: 8, height: 8, borderRadius: '50%', background: dotColor, flexShrink: 0 }} />
+                            {isAwaiting && (
+                              <button onClick={(e) => { e.stopPropagation(); handleDispatch(order.id) }} disabled={isDispatching_ || isCancelling_}
+                                style={{ flexShrink: 0, padding: '6px 12px', background: isDispatching_ ? S.border : S.forest, color: isDispatching_ ? S.stone : S.white, border: 'none', borderRadius: 8, fontSize: 12, fontWeight: 700, cursor: isDispatching_ ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+                                {isDispatching_ ? '\u23F3' : '\U0001F680 Ship'}
+                              </button>
+                            )}
+                            <span style={{ fontSize: 12, color: S.stone, flexShrink: 0 }}>{isExpanded ? '\u25BE' : '\u25B8'}</span>
+                          </div>
+
+                          {isExpanded && (
+                            <div style={{ padding: '0 14px 14px' }}>
+                              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12 }}>
+                                <span style={{ fontSize: 12, color: S.stone }}>from <strong style={{ color: S.forest }}>{order.coordinator_name}</strong></span>
+                                <span style={{ fontSize: 10, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: isAwaiting ? S.redLight : isPickupOrder ? S.blueLight : S.sageLight, color: isAwaiting ? S.red : isPickupOrder ? S.blue : S.sage }}>{isAwaiting ? '\U0001F534 Needs dispatch' : isPickupOrder ? '\U0001F961 Pickup' : '\u2705 Dispatched'}</span>
+                              </div>
                     <div style={{ background: S.cream, borderRadius: 10, padding: '12px 14px', marginBottom: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>Delivery address</div>
@@ -529,6 +594,11 @@ function DispatchTab(props: any) {
                     )}
 
                     {msg && <div style={{ marginTop: 10, padding: '10px 14px', borderRadius: 9, background: msg.startsWith('✅') ? S.sageLight : S.redLight, color: msg.startsWith('✅') ? S.sage : S.red, fontSize: 13, fontWeight: 500 }}>{msg}</div>}
+                            </div>
+                          )}
+                        </div>
+                      )
+                    })}
                   </div>
                 )
               })}
@@ -539,6 +609,7 @@ function DispatchTab(props: any) {
     </>
   )
 }
+
 
 // ── Main admin page ───────────────────────────────────────────────────────────
 export default function AdminPage() {
