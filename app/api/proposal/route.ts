@@ -3,6 +3,7 @@ import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 import { haversineDistance, getDeliveryFee } from '@/lib/distance'
 import { resolveCourierFee } from '@/lib/shipday'
+const MEAL_LABEL: Record<string, string> = { breakfast: '🌅 Breakfast', lunch: '☀️ Lunch', dinner: '🌙 Dinner' }
 export const dynamic = 'force-dynamic'
 function getSupabase() {
   return createClient(
@@ -107,6 +108,7 @@ let mealPrice: number
 let restName: string
 let dateLabel: string
 let mealItems: any[] = []
+const mealLabel = p.meal_type ? (MEAL_LABEL[p.meal_type] || '') : ''
 
 if (use_places) {
 mealName = p.menu_item_name || 'Meal'
@@ -224,7 +226,7 @@ price_data: {
 currency: 'usd',
 product_data: {
 name: `${item.name}${item.category === 'kids' ? ' (kids)' : ''}`,
-description: `${restName}${dateLabel ? ` · ${dateLabel}` : ''}`,
+description: `${restName}${dateLabel ? ` · ${dateLabel}` : ''}${mealLabel ? ` · ${mealLabel}` : ''}`,
 },
 unit_amount: cents,
 },
@@ -239,7 +241,7 @@ price_data: {
 currency: 'usd',
 product_data: {
 name: `${mealName} from ${restName}`,
-description: dateLabel || 'YourKitchen meal delivery',
+description: `${dateLabel || 'YourKitchen meal delivery'}${mealLabel ? ` · ${mealLabel}` : ''}`,
 },
 unit_amount: cents,
 },
