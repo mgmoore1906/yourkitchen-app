@@ -205,6 +205,9 @@ if (data.success) {
 setRestaurants(prev => prev.filter(r => r.id !== id))
 setSaveMsg(`${name} removed`)
 setTimeout(() => setSaveMsg(''), 2500)
+} else {
+setSaveMsg(data.error || 'Could not remove — please try again')
+setTimeout(() => setSaveMsg(''), 3500)
 }
 setDeleting(null)
 }
