@@ -24,6 +24,7 @@ type Order = {
   tip_amount: number | null; doordash_tracking_url: string | null
   doordash_delivery_id: string | null; kitchen_name: string; kitchen_address: string
   restaurant_address?: string; restaurant_phone?: string; is_pickup?: boolean
+  meal_items?: any[]; stripe_amount?: number | null
 }
 
 type AnalyticsData = { kitchens: any[]; proposals: any[]; profiles: any[] }
@@ -631,6 +632,31 @@ function DispatchTab(props: any) {
                         <div style={{ fontSize: 13, color: S.forest }}>{order.meal_type?.charAt(0).toUpperCase() + order.meal_type?.slice(1)}</div>
                       </div>
                     </div>
+
+                    {(() => {
+                      const it: any[] = Array.isArray((order as any).meal_items) ? (order as any).meal_items : []
+                      const foodCents = it.reduce((s: number, m: any) => s + Math.round((m.price || 0) * 100) * (m.qty || 1), 0)
+                      const tipC = order.tip_amount || 0
+                      const totalC = (order as any).stripe_amount || 0
+                      const feesC = totalC - foodCents - tipC
+                      const underpaid = totalC > 0 && totalC < foodCents + tipC
+                      return (
+                        <div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
+                          <div style={{ fontSize: 11, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 10 }}>Order &amp; invoice</div>
+                          {it.length > 0 ? it.map((m: any, idx: number) => (
+                            <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 13, color: S.forest, marginBottom: 5 }}>
+                              <span style={{ paddingRight: 12 }}>{(m.qty || 1) > 1 ? `${m.qty}× ` : ''}{m.name || 'Item'}</span>
+                              <span style={{ whiteSpace: 'nowrap' }}>${(((Math.round((m.price || 0) * 100) * (m.qty || 1))) / 100).toFixed(2)}</span>
+                            </div>
+                          )) : <div style={{ fontSize: 13, color: S.stone, marginBottom: 5 }}>No itemized food saved on this order</div>}
+                          <div style={{ borderTop: `0.5px solid ${S.border}`, margin: '8px 0', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 12, color: S.stone }}><span>Food subtotal</span><span>${(foodCents / 100).toFixed(2)}</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: S.stone, marginBottom: 4 }}><span>Tip (100% to driver)</span><span>${(tipC / 100).toFixed(2)}</span></div>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: feesC < 0 ? S.red : S.stone, marginBottom: 4 }}><span>Delivery + service</span><span>${(feesC / 100).toFixed(2)}</span></div>
+                          <div style={{ borderTop: `1.5px solid ${S.border}`, marginTop: 6, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 14, fontWeight: 700, color: underpaid ? S.red : S.forest }}><span>Total paid</span><span>${(totalC / 100).toFixed(2)}{underpaid ? ' ⚠' : ''}</span></div>
+                          {underpaid && <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: S.red, background: S.redLight, borderRadius: 8, padding: '7px 10px' }}>⚠ Underpaid — total is less than food + tip. Check before dispatching.</div>}
+                        </div>
+                      )
+                    })()}
 
                     {isAwaiting && (
                       <div style={{ background: S.amberLight, border: `1px solid ${S.amber}`, borderRadius: 10, padding: '12px 14px', marginBottom: 14 }}>
