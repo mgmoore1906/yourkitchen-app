@@ -107,7 +107,7 @@ const loadRestaurants = async (kId: string) => {
 const { data } = await supabase
 .from('kitchen_restaurants')
 .select('id, name, cuisine, is_active, place_id, address, lat, lng, favorite_meals, favorite_meal_prices, favorite_meal_categories, pickup_preferred')
-.eq('kitchen_id', kId).order('created_at', { ascending: true })
+.eq('kitchen_id', kId).is('deleted_at', null).order('created_at', { ascending: true })
 const mapped = (data || []).map((r: any) => ({
 ...r,
 favorite_meals: r.favorite_meals || [],
