@@ -31,6 +31,23 @@ function prettyTime(t: string | null, mealType: string): string {
   return mealType === 'breakfast' ? 'the morning' : mealType === 'lunch' ? 'midday' : 'the evening'
 }
 
+const TIME_OPTIONS: Record<string, string[]> = {
+  breakfast: ['07:30', '08:00', '08:30', '09:00', '09:30', '10:00'],
+  lunch: ['11:00', '11:30', '12:00', '12:30', '13:00', '13:30'],
+  dinner: ['16:30', '17:00', '17:30', '18:00', '18:30', '19:00', '19:30'],
+}
+const DEFAULT_TIME_OPT: Record<string, string> = { breakfast: '08:30', lunch: '12:30', dinner: '18:30' }
+function normTime(t: string | null, mealType: string): string {
+  const raw = (t && String(t).trim()) ? String(t).split('-')[0].trim() : (DEFAULT_TIME_OPT[mealType] || '18:30')
+  const [h, m] = raw.split(':')
+  if (!h) return DEFAULT_TIME_OPT[mealType] || '18:30'
+  return `${h.padStart(2, '0')}:${(m || '00').padStart(2, '0')}`
+}
+function timeOptionsFor(mealType: string, current: string): string[] {
+  const base = TIME_OPTIONS[mealType] || TIME_OPTIONS.dinner
+  return base.includes(current) ? base : [current, ...base].filter(Boolean).sort()
+}
+
 export default function ConfirmPage() {
   const params = useParams()
   const id = (Array.isArray(params.id) ? params.id[0] : params.id) || ''
@@ -41,6 +58,7 @@ export default function ConfirmPage() {
   const [phase, setPhase] = useState<'idle' | 'working' | 'confirmed' | 'declined' | 'already' | 'error'>('idle')
   const [declineOpen, setDeclineOpen] = useState(false)
   const [reason, setReason] = useState('')
+  const [chosenTime, setChosenTime] = useState('')
 
   useEffect(() => {
     if (!id) { setLoading(false); setLoadErr(true); return }
@@ -48,6 +66,7 @@ export default function ConfirmPage() {
       .then(r => r.ok ? r.json() : Promise.reject())
       .then((d: Summary) => {
         setData(d)
+        setChosenTime(normTime(d.delivery_time, d.meal_type))
         if (d.status === 'confirmed' || d.status === 'declined') setPhase('already')
       })
       .catch(() => setLoadErr(true))
@@ -60,7 +79,7 @@ export default function ConfirmPage() {
       const res = await fetch('/api/confirm', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ proposal_id: id, action, reason: action === 'decline' ? reason : undefined }),
+        body: JSON.stringify({ proposal_id: id, action, reason: action === 'decline' ? reason : undefined, delivery_time: action === 'confirm' ? chosenTime : undefined }),
       })
       if (!res.ok) throw new Error()
       setPhase(action === 'confirm' ? 'confirmed' : 'declined')
@@ -173,6 +192,14 @@ export default function ConfirmPage() {
 
         {!declineOpen ? (
           <>
+            <div style={{ background: S.cream, borderRadius: 12, padding: '14px 16px', marginBottom: 16, textAlign: 'left' }}>
+              <label style={{ fontSize: 12, fontWeight: 700, color: S.stone, letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Confirm delivery time</label>
+              <select value={chosenTime} onChange={e => setChosenTime(e.target.value)}
+                style={{ width: '100%', padding: '12px 14px', borderRadius: 10, border: `1.5px solid ${S.border}`, fontSize: 15, color: S.forest, background: S.white, outline: 'none', fontFamily: "'DM Sans', sans-serif", boxSizing: 'border-box' }}>
+                {timeOptionsFor(data.meal_type, chosenTime).map(t => <option key={t} value={t}>{prettyTime(t, data.meal_type)}</option>)}
+              </select>
+              <p style={{ fontSize: 12, color: S.stone, margin: '8px 0 0', lineHeight: 1.5 }}>We&rsquo;ll aim to have it arrive around this time — change it if another works better.</p>
+            </div>
             <button
               onClick={() => act('confirm')}
               disabled={phase === 'working'}
