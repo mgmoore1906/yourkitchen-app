@@ -150,11 +150,34 @@ export async function DELETE(request: Request) {
   try {
     const { restaurant_id, kitchen_id, delete_all } = await request.json()
     if (delete_all && kitchen_id) {
+      // Detach order history before removing the restaurants. Orders keep their
+      // restaurant_name/meal_name (stored as text), so nulling the foreign keys
+      // preserves history while letting the rows be deleted.
+      const { data: rests } = await supabase
+        .from('kitchen_restaurants').select('id').eq('kitchen_id', kitchen_id)
+      const restIds = (rests || []).map((r: any) => r.id)
+      await supabase.from('meal_proposals')
+        .update({ kitchen_restaurant_id: null, menu_item_id: null })
+        .eq('kitchen_id', kitchen_id)
+      if (restIds.length) await supabase.from('menu_items').delete().in('kitchen_restaurant_id', restIds)
       const { error } = await supabase.from('kitchen_restaurants').delete().eq('kitchen_id', kitchen_id)
       if (error) return NextResponse.json({ error: error.message }, { status: 400 })
       return NextResponse.json({ success: true, deleted: 'all' })
     }
     if (!restaurant_id) return NextResponse.json({ error: 'restaurant_id required' }, { status: 400 })
+    // A restaurant that's already been ordered from is referenced by meal_proposals
+    // (the order) and may own menu_items. Detach/clear those first so the delete
+    // isn't blocked — order history survives because restaurant_name/meal_name are
+    // stored as plain text on each proposal.
+    const { data: items } = await supabase
+      .from('menu_items').select('id').eq('kitchen_restaurant_id', restaurant_id)
+    const itemIds = (items || []).map((m: any) => m.id)
+    await supabase.from('meal_proposals')
+      .update({ kitchen_restaurant_id: null }).eq('kitchen_restaurant_id', restaurant_id)
+    if (itemIds.length) {
+      await supabase.from('meal_proposals').update({ menu_item_id: null }).in('menu_item_id', itemIds)
+      await supabase.from('menu_items').delete().eq('kitchen_restaurant_id', restaurant_id)
+    }
     const { error } = await supabase.from('kitchen_restaurants').delete().eq('id', restaurant_id)
     if (error) return NextResponse.json({ error: error.message }, { status: 400 })
     return NextResponse.json({ success: true })
