@@ -75,11 +75,20 @@ function Metric({ label, value, sub, color }: { label: string; value: string | n
 }
 
 // ── Card wrapper ──────────────────────────────────────────────────────────────
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
+function Card({ title, children, collapsible }: { title: string; children: React.ReactNode; collapsible?: boolean }) {
+  const [open, setOpen] = useState(true)
+  const tStyle = { fontSize: 10, fontWeight: 700 as const, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase' as const, margin: 0 }
   return (
     <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px 18px' }}>
-      <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 14px' }}>{title}</p>
-      {children}
+      {collapsible ? (
+        <button onClick={() => setOpen(o => !o)} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: open ? 14 : 0 }}>
+          <p style={tStyle}>{title}</p>
+          <span style={{ color: S.stone, fontSize: 11 }}>{open ? '▾' : '▸'}</span>
+        </button>
+      ) : (
+        <p style={{ ...tStyle, marginBottom: 14 }}>{title}</p>
+      )}
+      {(!collapsible || open) && children}
     </div>
   )
 }
@@ -103,6 +112,8 @@ function AnalyticsTab() {
   const [data, setData] = useState<AnalyticsData | null>(null)
   const [loading, setLoading] = useState(true)
   const [range, setRange] = useState<'7d' | '30d' | '90d' | 'all'>('30d')
+  const [secOpen, setSecOpen] = useState<Record<string, boolean>>({ orders: true, kitchens: true, shipday: true })
+  const [openOrder, setOpenOrder] = useState<string | null>(null)
 
   const loadData = useCallback(async () => {
     setLoading(true)
@@ -163,6 +174,18 @@ function AnalyticsTab() {
   const restCounts: Record<string, number> = {}
   confirmed.forEach(p => { if (p.restaurant_name) restCounts[p.restaurant_name] = (restCounts[p.restaurant_name] || 0) + 1 })
   const topRests = Object.entries(restCounts).sort((a, b) => b[1] - a[1]).slice(0, 5)
+  const dispatchedCt = proposals.filter((p: any) => p.delivery_status === 'dispatched').length
+  const deliveredCt = proposals.filter((p: any) => p.doordash_status === 'delivered' || p.status === 'delivered').length
+  const failedCt = proposals.filter((p: any) => p.doordash_status === 'cancelled' || p.status === 'delivery_failed').length
+  const inTransitCt = proposals.filter((p: any) => p.delivery_status === 'dispatched' && p.doordash_status !== 'delivered' && p.doordash_status !== 'cancelled' && p.status !== 'delivered').length
+  const successRate = (deliveredCt + failedCt) ? Math.round((deliveredCt / (deliveredCt + failedCt)) * 100) : 0
+  const tipRows = purchased.filter((p: any) => p.tip_amount)
+  const totalTips = tipRows.reduce((acc: number, p: any) => acc + (p.tip_amount || 0), 0)
+  const avgTip = tipRows.length ? totalTips / tipRows.length : 0
+  const ddCounts: Record<string, number> = {}
+  proposals.forEach((p: any) => { if (p.doordash_status) ddCounts[p.doordash_status] = (ddCounts[p.doordash_status] || 0) + 1 })
+  const ddRows = Object.entries(ddCounts).sort((a, b) => b[1] - a[1])
+  const ddMax = Math.max(1, ...ddRows.map(r => r[1]))
 
   const suppCounts: Record<string, number> = {}
   confirmed.forEach(p => { if (p.coordinator_name) suppCounts[p.coordinator_name] = (suppCounts[p.coordinator_name] || 0) + 1 })
@@ -254,7 +277,7 @@ function AnalyticsTab() {
       </div>
 
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, marginBottom: 24 }}>
-        <Card title="Top Restaurants">
+        <Card title="Top Restaurants" collapsible>
           {topRests.length === 0 ? <p style={{ fontSize: 13, color: S.stone }}>No data yet</p> : topRests.map(([name, count]) => (
             <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <span style={{ fontSize: 13, color: S.forest, flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{name}</span>
@@ -262,7 +285,7 @@ function AnalyticsTab() {
             </div>
           ))}
         </Card>
-        <Card title="Top Supporters">
+        <Card title="Top Supporters" collapsible>
           {topSupps.length === 0 ? <p style={{ fontSize: 13, color: S.stone }}>No data yet</p> : topSupps.map(([name, count]) => (
             <div key={name} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 8 }}>
               <div style={{ width: 30, height: 30, borderRadius: 9, background: S.sageLight, display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.sage, fontSize: 12, fontWeight: 700, flexShrink: 0 }}>
@@ -276,8 +299,36 @@ function AnalyticsTab() {
       </div>
 
       <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px 18px', marginBottom: 24 }}>
+        <button onClick={() => setSecOpen(s => ({ ...s, shipday: !s.shipday }))} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'none', border: 'none', padding: 0, cursor: 'pointer', marginBottom: secOpen.shipday ? 14 : 0 }}>
+          <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>Delivery &amp; Dispatch · Shipday</p>
+          <span style={{ color: S.stone, fontSize: 11 }}>{secOpen.shipday ? '▾' : '▸'}</span>
+        </button>
+        {secOpen.shipday && (<>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 12 }}>
+            <Metric label="Dispatched" value={dispatchedCt} sub="sent to courier" />
+            <Metric label="Delivered" value={deliveredCt} sub={`${successRate}% success`} />
+            <Metric label="In transit" value={inTransitCt} sub="en route now" color={S.amber} />
+            <Metric label="Failed / cancelled" value={failedCt} sub="courier issues" color={failedCt ? S.red : S.stone} />
+          </div>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 12, marginBottom: ddRows.length ? 16 : 4 }}>
+            <Metric label="Driver tips (passed through)" value={fmtMoney(totalTips)} sub="100% to drivers" color={S.amber} />
+            <Metric label="Avg tip / delivery" value={avgTip ? fmtMoney(avgTip) : '—'} sub={`${tipRows.length} tipped`} />
+          </div>
+          {ddRows.length > 0 && (
+            <>
+              <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '4px 0 10px' }}>Courier status breakdown</p>
+              {ddRows.map(([st, ct]) => (
+                <BarRow key={st} label={st.replace(/_/g, ' ')} count={ct} max={ddMax} color={st === 'delivered' ? S.sage : st === 'cancelled' ? S.red : S.stone} />
+              ))}
+            </>
+          )}
+          <p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '12px 0 0', lineHeight: 1.5 }}>Driver tips are tracked per order (100% pass-through). Per-order courier cost and door-to-door times aren&rsquo;t captured yet &mdash; your weekly Shipday statement is the source of truth for actual DoorDash/Uber charges. I can add capture so those populate here going forward.</p>
+        </>)}
+      </div>
+
+      <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px 18px', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>All Orders ({purchased.length})</p>
+          <button onClick={() => setSecOpen(s => ({ ...s, orders: !s.orders }))} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}><span style={{ color: S.stone, fontSize: 11 }}>{secOpen.orders ? '▾' : '▸'}</span><p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>All Orders ({purchased.length})</p></button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => exportCSV(exportRows, `yourkitchen-orders-${range}-${TODAY}.csv`)}
               style={{ padding: '6px 14px', borderRadius: 8, border: `1.5px solid ${S.border}`, background: S.white, color: S.forest, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>↓ CSV</button>
@@ -285,7 +336,7 @@ function AnalyticsTab() {
               style={{ padding: '6px 14px', borderRadius: 8, border: `1.5px solid ${S.sage}`, background: S.sageLight, color: S.sage, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>↓ Excel</button>
           </div>
         </div>
-        <div style={{ overflowX: 'auto' }}>
+        <div style={{ display: secOpen.orders ? 'block' : 'none', overflowX: 'auto' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
             <thead>
               <tr style={{ borderBottom: `2px solid ${S.border}` }}>
@@ -295,19 +346,50 @@ function AnalyticsTab() {
               </tr>
             </thead>
             <tbody>
-              {purchased.slice(0, 50).map((p, i) => (
-                <tr key={p.id} style={{ borderBottom: `0.5px solid ${S.border}`, background: i % 2 === 0 ? S.white : S.cream }}>
-                  <td style={{ padding: '8px 10px', color: S.stone, whiteSpace: 'nowrap' }}>{p.delivery_date || '—'}</td>
+              {purchased.slice(0, 50).map((p, i) => {
+                const it: any[] = Array.isArray((p as any).meal_items) ? (p as any).meal_items : []
+                const foodCents = it.reduce((s: number, m: any) => s + Math.round((m.price || 0) * 100) * (m.qty || 1), 0)
+                const tipC = (p as any).tip_amount || 0
+                const totalC = (p as any).stripe_amount || 0
+                const feesC = totalC - foodCents - tipC
+                const underpaid = totalC > 0 && totalC < foodCents + tipC
+                const isOpen = openOrder === p.id
+                return (
+                <React.Fragment key={p.id}>
+                <tr onClick={() => setOpenOrder(o => o === p.id ? null : p.id)} style={{ borderBottom: `0.5px solid ${S.border}`, background: i % 2 === 0 ? S.white : S.cream, cursor: 'pointer' }}>
+                  <td style={{ padding: '8px 10px', color: S.stone, whiteSpace: 'nowrap' }}><span style={{ color: S.sage, marginRight: 4 }}>{isOpen ? '▾' : '▸'}</span>{p.delivery_date || '—'}</td>
                   <td style={{ padding: '8px 10px' }}>{MEAL_EMOJI[p.meal_type] || ''} {p.meal_name || '—'}</td>
                   <td style={{ padding: '8px 10px', color: S.forest }}>{p.restaurant_name || '—'}</td>
                   <td style={{ padding: '8px 10px', color: S.forest }}>{p.coordinator_name || '—'}</td>
-                  <td style={{ padding: '8px 10px', color: S.forest, whiteSpace: 'nowrap' }}>{p.stripe_amount ? fmtMoney(p.stripe_amount) : '—'}</td>
-                  <td style={{ padding: '8px 10px', color: S.amber, whiteSpace: 'nowrap' }}>{p.tip_amount ? fmtMoney(p.tip_amount) : '—'}</td>
+                  <td style={{ padding: '8px 10px', color: underpaid ? S.red : S.forest, whiteSpace: 'nowrap', fontWeight: underpaid ? 700 : 400 }}>{totalC ? fmtMoney(totalC) : '—'}{underpaid && <span title="Underpaid" style={{ marginLeft: 4 }}>⚠</span>}</td>
+                  <td style={{ padding: '8px 10px', color: S.amber, whiteSpace: 'nowrap' }}>{tipC ? fmtMoney(tipC) : '—'}</td>
                   <td style={{ padding: '8px 10px', whiteSpace: 'nowrap' }}>
                     <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: p.status === 'confirmed' || p.status === 'delivered' ? S.sageLight : p.status === 'pending' ? S.amberLight : S.redLight, color: p.status === 'confirmed' || p.status === 'delivered' ? S.sage : p.status === 'pending' ? S.amber : S.red }}>{p.status}</span>
                   </td>
                 </tr>
-              ))}
+                {isOpen && (
+                <tr style={{ background: S.cream }}>
+                  <td colSpan={7} style={{ padding: '2px 10px 14px 24px' }}>
+                    <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 10, padding: '12px 14px', maxWidth: 360 }}>
+                      <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', margin: '0 0 10px' }}>Checkout invoice</p>
+                      {it.length > 0 ? it.map((m: any, idx: number) => (
+                        <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: S.forest, marginBottom: 5 }}>
+                          <span style={{ paddingRight: 12 }}>{m.name || 'Item'}{(m.qty || 1) > 1 ? ` ×${m.qty}` : ''}</span>
+                          <span style={{ whiteSpace: 'nowrap' }}>{fmtMoney(Math.round((m.price || 0) * 100) * (m.qty || 1))}</span>
+                        </div>
+                      )) : <div style={{ fontSize: 12, color: S.stone, marginBottom: 5 }}>No itemized food saved on this order</div>}
+                      <div style={{ borderTop: `0.5px solid ${S.border}`, margin: '8px 0', paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 12, color: S.stone }}><span>Food subtotal</span><span>{fmtMoney(foodCents)}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: S.stone, marginBottom: 5 }}><span>Tip (100% to driver)</span><span>{tipC ? fmtMoney(tipC) : '—'}</span></div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 12, color: feesC < 0 ? S.red : S.stone, marginBottom: 5 }}><span>Delivery + service</span><span>{fmtMoney(feesC)}</span></div>
+                      <div style={{ borderTop: `1.5px solid ${S.border}`, marginTop: 8, paddingTop: 8, display: 'flex', justifyContent: 'space-between', fontSize: 13, fontWeight: 700, color: S.forest }}><span>Total paid</span><span>{fmtMoney(totalC)}</span></div>
+                      {underpaid && <div style={{ marginTop: 10, fontSize: 12, fontWeight: 700, color: S.red, background: S.redLight, borderRadius: 8, padding: '7px 10px' }}>⚠ Underpaid — total is less than food + tip. Check this order.</div>}
+                    </div>
+                  </td>
+                </tr>
+                )}
+                </React.Fragment>
+                )
+              })}
             </tbody>
           </table>
           {purchased.length > 50 && <p style={{ fontSize: 12, color: S.stone, margin: '10px 0 0', textAlign: 'center' }}>Showing 50 of {purchased.length} — export for full data</p>}
@@ -316,7 +398,7 @@ function AnalyticsTab() {
 
       <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px 18px', marginBottom: 8 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>Kitchens ({data.kitchens.length})</p>
+          <button onClick={() => setSecOpen(s => ({ ...s, kitchens: !s.kitchens }))} style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'none', border: 'none', padding: 0, cursor: 'pointer' }}><span style={{ color: S.stone, fontSize: 11 }}>{secOpen.kitchens ? '▾' : '▸'}</span><p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>Kitchens ({data.kitchens.length})</p></button>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => exportCSV(kitchenExportRows, `yourkitchen-kitchens-${TODAY}.csv`)}
               style={{ padding: '6px 14px', borderRadius: 8, border: `1.5px solid ${S.border}`, background: S.white, color: S.forest, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>↓ CSV</button>
@@ -324,6 +406,29 @@ function AnalyticsTab() {
               style={{ padding: '6px 14px', borderRadius: 8, border: `1.5px solid ${S.sage}`, background: S.sageLight, color: S.sage, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>↓ Excel</button>
           </div>
         </div>
+        {secOpen.kitchens && (
+        <div style={{ overflowX: 'auto', marginTop: 14 }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 12 }}>
+            <thead>
+              <tr style={{ borderBottom: `2px solid ${S.border}` }}>
+                {['Kitchen', 'Tier', 'Household', 'Created'].map(h => (
+                  <th key={h} style={{ padding: '8px 10px', textAlign: 'left', fontWeight: 700, color: S.stone, whiteSpace: 'nowrap' }}>{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {data.kitchens.map((k: any, i: number) => (
+                <tr key={k.id} style={{ borderBottom: `0.5px solid ${S.border}`, background: i % 2 === 0 ? S.white : S.cream }}>
+                  <td style={{ padding: '8px 10px', color: S.forest }}>{k.name || k.slug || '—'}</td>
+                  <td style={{ padding: '8px 10px' }}><span style={{ fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, background: k.tier === 'founding' ? S.amberLight : S.sageLight, color: k.tier === 'founding' ? S.amber : S.sage }}>{k.tier || 'care'}</span></td>
+                  <td style={{ padding: '8px 10px', color: S.stone, whiteSpace: 'nowrap' }}>{(k.household_adults || 0)}A · {(k.household_children || 0)}C</td>
+                  <td style={{ padding: '8px 10px', color: S.stone, whiteSpace: 'nowrap' }}>{k.created_at ? new Date(k.created_at).toLocaleDateString() : '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        )}
       </div>
 
       <p style={{ fontSize: 11, color: S.stone, fontWeight: 300, textAlign: 'center', marginTop: 16, lineHeight: 1.6 }}>
