@@ -909,10 +909,10 @@ function InsightsTab({ proposals, kitchenName }: { proposals: Proposal[]; kitche
   const totalMins    = totalMeals * MINS_PER_MEAL
   const totalHours   = Math.round(totalMins / 60)
   const workweeks    = (totalMins / (40 * 60)).toFixed(1)
-  const uniqueCoords = [...new Set(proposals.map(p=>p.coordinator_name).filter(Boolean))]
+  const uniqueCoords = [...new Set(delivered.map(p=>p.coordinator_name).filter(Boolean))]
   const villageSize  = uniqueCoords.length
   const coordCounts: Record<string,number> = {}
-  proposals.forEach(p => { if(p.coordinator_name) coordCounts[p.coordinator_name]=(coordCounts[p.coordinator_name]||0)+1 })
+  delivered.forEach(p => { if(p.coordinator_name) coordCounts[p.coordinator_name]=(coordCounts[p.coordinator_name]||0)+1 })
   const topCoord = Object.entries(coordCounts).sort((a,b)=>b[1]-a[1])[0]
   const restCounts: Record<string,number> = {}
   delivered.forEach(p => { if(p.restaurant_name) restCounts[p.restaurant_name]=(restCounts[p.restaurant_name]||0)+1 })
