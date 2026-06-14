@@ -1599,6 +1599,7 @@ export default function DashboardPage() {
           .select('id', { count: 'exact', head: true })
           .eq('kitchen_id', k.id)
           .eq('is_active', true)
+          .is('deleted_at', null)
         setRestaurantCount(count ?? 0)
         await Promise.all([
           loadCalDates(k.id),
