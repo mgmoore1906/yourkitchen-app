@@ -696,6 +696,12 @@ function DispatchTab(props: any) {
                           {isDispatching_ ? '⏳ Dispatching…' : '🚀 Dispatch to Shipday →'}
                         </button>
                     )}
+                    {!isAwaiting && !isPickupOrder && (
+                        <button onClick={() => handleDispatch(order.id, true)} disabled={isDispatching_ || isCancelling_}
+                          style={{ width: '100%', padding: 14, background: isDispatching_ ? S.border : S.amber, color: S.white, border: 'none', borderRadius: 10, fontSize: 14, fontWeight: 700, cursor: isDispatching_ ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif", marginBottom: 10 }}>
+                          {isDispatching_ ? '⏳ Redispatching…' : '🔄 Redispatch (resend courier)'}
+                        </button>
+                    )}
                     {(isAwaiting || isPickupOrder) && (
                         <div style={{ borderTop: `0.5px solid ${S.border}`, paddingTop: 12 }}>
                           <p style={{ fontSize: 11, fontWeight: 700, color: S.stone, letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 8px' }}>Cancel order</p>
@@ -804,10 +810,11 @@ export default function AdminPage() {
     setAuthed(true); loadOrders(adminSecret)
   }
 
-  const handleDispatch = async (orderId: string) => {
+  const handleDispatch = async (orderId: string, force?: boolean) => {
+    if (force && !window.confirm('Redispatch sends a NEW courier order (and a new charge). Cancel the old order in your Shipday dashboard first. Continue?')) return
     setDispatching(orderId); setMsgs(m => ({ ...m, [orderId]: '' }))
     try {
-      const res = await fetch('/api/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret }, body: JSON.stringify({ proposal_id: orderId }) })
+      const res = await fetch('/api/dispatch', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret }, body: JSON.stringify({ proposal_id: orderId, force: !!force }) })
       const data = await res.json()
       if (res.ok) { setMsgs(m => ({ ...m, [orderId]: `✅ Dispatched! ${data.orderNumber}${data.trackingUrl ? ' · ' + data.trackingUrl : ''}` })); await loadOrders() }
       else { setMsgs(m => ({ ...m, [orderId]: `❌ ${data.error}` })) }
