@@ -56,7 +56,7 @@ export async function POST(request: Request) {
   const supabase = getSupabase()
   const stripe = getStripe()
   try {
-    const { proposal_id, action, note, reason } = await request.json()
+    const { proposal_id, action, note, reason, delivery_time } = await request.json()
 
     const { data: proposal } = await supabase
       .from('meal_proposals')
@@ -90,7 +90,7 @@ if (action === 'confirm') {
 
   await Promise.all([
     supabase.from('meal_proposals')
-      .update({ status: 'confirmed', responded_at: new Date().toISOString() })
+      .update({ status: 'confirmed', responded_at: new Date().toISOString(), ...(delivery_time ? { delivery_time } : {}) })
       .eq('id', proposal_id),
     supabase.from('calendar_dates')
       .update({ status: 'confirmed' })
