@@ -664,6 +664,18 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
   const [showOlder, setShowOlder] = useState(false)
   const [showPrev, setShowPrev] = useState(true)
   const fmt = (s:string) => new Date(s+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})
+  const pad2 = (n:number)=>String(n).padStart(2,'0')
+  const _today = new Date()
+  const todayStr = `${_today.getFullYear()}-${pad2(_today.getMonth()+1)}-${pad2(_today.getDate())}`
+  const scheduled = [...onTheWay, ...pending].filter(p=>p.delivery_date)
+  const mealMap: Record<string, Proposal[]> = {}
+  scheduled.forEach(p=>{ if(!mealMap[p.delivery_date]) mealMap[p.delivery_date]=[]; mealMap[p.delivery_date].push(p) })
+  const _firstUpcoming = scheduled.map(p=>p.delivery_date).filter(d=>d>=todayStr).sort()[0] || null
+  const _initDate = _firstUpcoming ? new Date(_firstUpcoming+'T12:00:00') : _today
+  const [view, setView] = useState<'list'|'calendar'>('list')
+  const [calSel, setCalSel] = useState<string|null>(_firstUpcoming)
+  const [calY, setCalY] = useState(_initDate.getFullYear())
+  const [calM, setCalM] = useState(_initDate.getMonth())
 
   const handleShare = async (p: Proposal) => {
     const text = `${p.coordinator_name} showed up for my family tonight 🧡\n\n${p.meal_name} from ${p.restaurant_name}\n\nThrough YourKitchen — your kitchen, covered.\n\nyourkitchen.app`
@@ -726,6 +738,74 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
 
   return (
     <div style={{ padding:'16px 20px' }}>
+      <div style={{ display:'flex',gap:0,background:S.sageLight,borderRadius:10,padding:3,marginBottom:18,width:'fit-content' }}>
+        {(['list','calendar'] as const).map(v=>(
+          <button key={v} onClick={()=>setView(v)} style={{ border:'none',cursor:'pointer',borderRadius:8,padding:'6px 16px',fontSize:12,fontWeight:600,fontFamily:"'DM Sans',sans-serif",background:view===v?S.white:'transparent',color:view===v?S.sage:S.stone,boxShadow:view===v?'0 1px 3px rgba(0,0,0,0.08)':'none' }}>{v==='list'?'List':'📅 Calendar'}</button>
+        ))}
+      </div>
+      {view==='calendar' ? (
+        <div>
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
+            <button onClick={()=>{ const m=calM-1; if(m<0){setCalM(11);setCalY(y=>y-1)}else setCalM(m) }} style={{ background:S.sageLight,border:'none',borderRadius:7,width:30,height:30,cursor:'pointer',fontSize:15,color:S.sage }}>‹</button>
+            <span style={{ fontSize:15,fontWeight:600,color:S.forest,fontFamily:"'Lora',serif" }}>{new Date(calY,calM,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})}</span>
+            <button onClick={()=>{ const m=calM+1; if(m>11){setCalM(0);setCalY(y=>y+1)}else setCalM(m) }} style={{ background:S.sageLight,border:'none',borderRadius:7,width:30,height:30,cursor:'pointer',fontSize:15,color:S.sage }}>›</button>
+          </div>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2,marginBottom:3 }}>
+            {['Su','Mo','Tu','We','Th','Fr','Sa'].map(d=>(<div key={d} style={{ textAlign:'center',fontSize:11,fontWeight:600,color:S.stone,padding:'2px 0' }}>{d}</div>))}
+          </div>
+          <div style={{ display:'grid',gridTemplateColumns:'repeat(7,minmax(0,1fr))',gap:2 }}>
+            {[...Array(new Date(calY,calM,1).getDay()).fill(null), ...Array.from({length:new Date(calY,calM+1,0).getDate()},(_,i)=>i+1)].map((day,i)=>{
+              if(!day) return <div key={i}/>
+              const ds=`${calY}-${pad2(calM+1)}-${pad2(day)}`
+              const meals=mealMap[ds]||[]
+              const isToday=ds===todayStr
+              const isSel=calSel===ds
+              return (
+                <button key={i} onClick={()=>setCalSel(isSel?null:ds)} style={{ background:isSel?S.sageLight:meals.length?'#F8FAF8':S.white,border:isSel?`2px solid ${S.sage}`:isToday?`2px solid ${S.sageMid}`:meals.length?'1px solid #C8DDD0':'1px solid transparent',borderRadius:8,padding:'6px 2px',minHeight:'clamp(46px,12vw,56px)',cursor:'pointer',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:3,fontFamily:"'DM Sans',sans-serif" }}>
+                  <span style={{ fontSize:12,fontWeight:isToday?700:500,color:isSel?S.sage:S.forest,lineHeight:1 }}>{day}</span>
+                  {meals.length>0&&(<div style={{ display:'flex',gap:2,flexWrap:'wrap',justifyContent:'center' }}>
+                    {meals.slice(0,4).map((p,mi)=>{ const col=MEAL_COLORS[p.meal_type]?.color||S.sage; const conf=p.status==='confirmed'; return (<div key={mi} style={{ width:6,height:6,borderRadius:'50%',background:conf?col:'transparent',border:`1.5px solid ${col}` }}/>) })}
+                  </div>)}
+                </button>
+              )
+            })}
+          </div>
+          <div style={{ display:'flex',gap:12,marginTop:10,paddingTop:10,borderTop:`0.5px solid ${S.border}`,flexWrap:'wrap' }}>
+            {Object.entries(MEAL_COLORS).map(([k,v])=>(<div key={k} style={{ display:'flex',alignItems:'center',gap:3 }}><div style={{ width:6,height:6,borderRadius:'50%',background:v.color }}/><span style={{ fontSize:11,color:S.stone,fontWeight:500 }}>{v.emoji} {v.label}</span></div>))}
+            <div style={{ display:'flex',alignItems:'center',gap:3 }}><div style={{ width:6,height:6,borderRadius:'50%',border:`1.5px solid ${S.stone}` }}/><span style={{ fontSize:11,color:S.stone,fontWeight:500 }}>Awaiting reply</span></div>
+          </div>
+          <div style={{ marginTop:18 }}>
+            {calSel && (mealMap[calSel]||[]).length>0 ? (
+              <>
+                <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10 }}>
+                  <p style={{ ...sLabel, margin:0 }}>{new Date(calSel+'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric'})}</p>
+                  <button onClick={()=>downloadMealICS((mealMap[calSel]||[]).filter(p=>p.status==='confirmed'),`meals-${calSel}.ics`)} style={{ fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase' }}>📅 Add day</button>
+                </div>
+                {(mealMap[calSel]||[]).map(p=>(
+                  <div key={p.id} style={{ background:S.white,border:`1px solid ${p.status==='confirmed'?S.sage:S.amber}`,borderRadius:12,padding:'12px 14px',marginBottom:8 }}>
+                    <div style={{ display:'flex',alignItems:'flex-start',gap:10 }}>
+                      <span style={{ fontSize:18 }}>{MEAL_COLORS[p.meal_type]?.emoji||'🍽'}</span>
+                      <div style={{ flex:1,overflow:'hidden' }}>
+                        <div style={{ fontFamily:"'Lora',serif",fontSize:13,fontWeight:600,color:S.forest }}>{p.meal_name}</div>
+                        <div style={{ fontSize:12,color:S.stone,fontWeight:300 }}>{p.restaurant_name}</div>
+                        <div style={{ fontSize:12,color:S.stone,fontWeight:300 }}>from <strong style={{ color:S.forest,fontWeight:600 }}>{p.coordinator_name}</strong></div>
+                      </div>
+                      <span style={{ background:p.status==='confirmed'?S.sageLight:S.amberLight,color:p.status==='confirmed'?S.sage:S.amber,fontSize:10,fontWeight:700,padding:'3px 8px',borderRadius:20,whiteSpace:'nowrap' }}>{p.status==='confirmed'?'Confirmed':'Pending'}</span>
+                    </div>
+                    <div style={{ display:'flex',gap:8,marginTop:10 }}>
+                      {p.status==='confirmed'&&<button onClick={()=>downloadMealICS([p],`meal-${p.id}.ics`)} style={{ flex:1,padding:'8px',borderRadius:8,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>📅 Add to calendar</button>}
+                      {p.status==='pending'&&<button onClick={()=>router.push(`/proposals/${p.id}`)} style={{ flex:1,padding:'8px',borderRadius:8,border:'none',background:S.forest,color:S.white,fontSize:12,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Review →</button>}
+                      {p.doordash_tracking_url&&<a href={p.doordash_tracking_url} target="_blank" rel="noopener noreferrer" style={{ flex:1,padding:'8px',borderRadius:8,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,textDecoration:'none',textAlign:'center',fontFamily:"'DM Sans',sans-serif" }}>🚗 Track</a>}
+                    </div>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <p style={{ fontSize:13,color:S.stone,textAlign:'center',padding:'24px 0',fontWeight:300 }}>{calSel?'No meals scheduled this day.':'Tap a day to see its meals.'}</p>
+            )}
+          </div>
+        </div>
+      ) : (<>
       {onTheWay.length>0&&(
         <div style={{ marginBottom:24 }}>
           <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10 }}>
@@ -808,6 +888,7 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
           </>)}
         </div>
       )}
+      </>)}
     </div>
   )
 }
