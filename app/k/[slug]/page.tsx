@@ -65,7 +65,7 @@ export default async function KitchenPage({ params }: Props) {
   if (!kitchen) notFound()
 
   const activeRestaurants = kitchen.kitchen_restaurants?.filter(
-    (r: any) => r.is_active !== false
+    (r: any) => r.is_active !== false && !r.deleted_at
   ) || []
 
   const availableDates = kitchen.calendar_dates
