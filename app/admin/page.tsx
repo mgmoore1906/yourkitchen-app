@@ -143,7 +143,9 @@ function AnalyticsTab() {
   const proposals = data.proposals
   const confirmed = proposals.filter(p => ['confirmed', 'delivered'].includes(p.status))
   const delivered = proposals.filter(p => p.status === 'delivered')
-  const cancelled = proposals.filter(p => ['cancelled', 'declined', 'expired'].includes(p.status))
+  const cancelled = proposals.filter(p => ['cancelled', 'declined'].includes(p.status))
+  const expired = proposals.filter(p => p.status === 'expired')
+  const purchased = proposals.filter(p => !!p.payment_intent_id)
 
   const gmv = confirmed.reduce((s, p) => s + (p.stripe_amount || 0), 0)
   // Service-fee revenue estimate. Fee model = 5% of (meal+courier+tip) + $0.99,
@@ -154,7 +156,7 @@ function AnalyticsTab() {
   const driverFees = confirmed.length * 649
 
   const convRate = proposals.length ? Math.round((confirmed.length / proposals.length) * 100) : 0
-  const cancelRate = proposals.length ? Math.round((cancelled.length / proposals.length) * 100) : 0
+  const cancelRate = purchased.length ? Math.round((cancelled.length / purchased.length) * 100) : 0
 
   const mealBreakdown = ['breakfast', 'lunch', 'dinner'].map(mt => ({ type: mt, count: confirmed.filter(p => p.meal_type === mt).length }))
 
@@ -177,7 +179,7 @@ function AnalyticsTab() {
   }).filter(Boolean) as number[]
   const avgOnboarding = onboardingTimes.length ? Math.round(onboardingTimes.reduce((s, t) => s + t, 0) / onboardingTimes.length) : null
 
-  const exportRows = proposals.map(p => ({
+  const exportRows = purchased.map(p => ({
     id: p.id, status: p.status, delivery_status: p.delivery_status || '',
     meal_type: p.meal_type, delivery_date: p.delivery_date,
     restaurant: p.restaurant_name || '', meal: p.meal_name || '', supporter: p.coordinator_name || '',
@@ -225,6 +227,7 @@ function AnalyticsTab() {
         <Metric label="Confirmed" value={confirmed.length} sub={`${convRate}% conversion`} color={S.sage} />
         <Metric label="Delivered" value={delivered.length} sub="Fully complete" />
         <Metric label="Cancelled / Declined" value={cancelled.length} sub={`${cancelRate}% cancel rate`} color={S.red} />
+        <Metric label="Expired (unpaid)" value={expired.length} sub="never purchased" color={S.stone} />
       </div>
 
       <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: '0 0 12px' }}>Users &amp; Kitchens</p>
@@ -274,7 +277,7 @@ function AnalyticsTab() {
 
       <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '16px 18px', marginBottom: 24 }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
-          <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>All Orders ({proposals.length})</p>
+          <p style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.1em', textTransform: 'uppercase', margin: 0 }}>All Orders ({purchased.length})</p>
           <div style={{ display: 'flex', gap: 8 }}>
             <button onClick={() => exportCSV(exportRows, `yourkitchen-orders-${range}-${TODAY}.csv`)}
               style={{ padding: '6px 14px', borderRadius: 8, border: `1.5px solid ${S.border}`, background: S.white, color: S.forest, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>↓ CSV</button>
@@ -292,7 +295,7 @@ function AnalyticsTab() {
               </tr>
             </thead>
             <tbody>
-              {proposals.slice(0, 50).map((p, i) => (
+              {purchased.slice(0, 50).map((p, i) => (
                 <tr key={p.id} style={{ borderBottom: `0.5px solid ${S.border}`, background: i % 2 === 0 ? S.white : S.cream }}>
                   <td style={{ padding: '8px 10px', color: S.stone, whiteSpace: 'nowrap' }}>{p.delivery_date || '—'}</td>
                   <td style={{ padding: '8px 10px' }}>{MEAL_EMOJI[p.meal_type] || ''} {p.meal_name || '—'}</td>
@@ -307,7 +310,7 @@ function AnalyticsTab() {
               ))}
             </tbody>
           </table>
-          {proposals.length > 50 && <p style={{ fontSize: 12, color: S.stone, margin: '10px 0 0', textAlign: 'center' }}>Showing 50 of {proposals.length} — export for full data</p>}
+          {purchased.length > 50 && <p style={{ fontSize: 12, color: S.stone, margin: '10px 0 0', textAlign: 'center' }}>Showing 50 of {purchased.length} — export for full data</p>}
         </div>
       </div>
 
