@@ -549,12 +549,15 @@ const pickupLocked = groups.some((g:any)=>g.restaurant?.pickup_preferred===true)
 
 // Price estimate — sum of cart × qty × dates per group
 const mealSubtotal = groups.reduce((sum,g)=> sum + cartTotal(g.cart) * g.slots.length, 0)
-const tipDollars = isPickup ? 0 : tipAmount / 100
-// Service fee mirrors the server (5% + $0.99 on meal + courier + tip) — covers
-// Stripe processing and platform margin. Must stay in sync with /api/proposal.
-const preFee = mealSubtotal + deliveryFee + tipDollars
-const serviceFee = Math.round((preFee * 0.05 + 0.99) * 100) / 100
-const grandTotal = mealSubtotal + deliveryFee + tipDollars + serviceFee
+// Each meal is a separate delivery (its own driver), so tip + courier + service
+// are charged PER delivery. Mirrors /api/proposal. Must stay in sync with it.
+const deliveries = groups.filter(g=>cartTotal(g.cart)>0).length || 1
+const tipPerDelivery = isPickup ? 0 : tipAmount / 100
+const courierPerDelivery = isPickup ? 0 : deliveryFee
+const tipDollars = tipPerDelivery * deliveries
+const courierTotal = courierPerDelivery * deliveries
+const serviceFee = groups.reduce((sum,g)=>{ const food=cartTotal(g.cart)*g.slots.length; if(!food) return sum; const pre=food+courierPerDelivery+tipPerDelivery; return sum + Math.round((pre*0.05+0.99)*100)/100 }, 0)
+const grandTotal = mealSubtotal + courierTotal + tipDollars + serviceFee
 
 const handleSubmit = async () => {
 setLoading(true); setErrorMsg('')
@@ -990,11 +993,11 @@ return (
 })}
 {!isPickup ? (<>
 <div style={{ display:'flex',justifyContent:'space-between',marginBottom:4 }}>
-<span style={{ fontSize:13,color:S.stone }}>Courier delivery fee</span>
-<span style={{ fontSize:13,color:S.forest }}>${deliveryFee.toFixed(2)}</span>
+<span style={{ fontSize:13,color:S.stone }}>Courier delivery fee{deliveries>1?` (× ${deliveries})`:''}</span>
+<span style={{ fontSize:13,color:S.forest }}>${courierTotal.toFixed(2)}</span>
 </div>
 <div style={{ display:'flex',justifyContent:'space-between',marginBottom:4 }}>
-<span style={{ fontSize:13,color:S.stone }}>Dasher tip</span>
+<span style={{ fontSize:13,color:S.stone }}>Dasher tip{deliveries>1?` ($${tipPerDelivery.toFixed(2)} × ${deliveries})`:''}</span>
 <span style={{ fontSize:13,color:S.forest }}>${tipDollars.toFixed(2)}</span>
 </div>
 </>) : (
@@ -1008,7 +1011,7 @@ return (
 <span style={{ fontSize:13,color:S.forest }}>${serviceFee.toFixed(2)}</span>
 </div>
 <p style={{ fontSize:11.5,color:S.stone,margin:'10px 0 0',fontWeight:300,lineHeight:1.6 }}>
-Price reflects what {recipientFirst} saved; the actual total may vary slightly. The service fee (5% + $0.99) covers card processing and keeps YourKitchen running{!isPickup ? ' — and 100% of your tip goes to the driver' : ''}.
+Price reflects what {recipientFirst} saved; the actual total may vary slightly. The service fee (5% + $0.99) covers card processing and keeps YourKitchen running{!isPickup ? ' — and 100% of your tip goes to the driver' : ''}.{deliveries>1?' Each restaurant is its own delivery — separate driver, courier fee, and tip.':''}
 </p>
 </div>
 )}
