@@ -68,56 +68,60 @@ export type TipTier = {
 export function getTipTier(miles: number): TipTier {
   const dist = formatDistance(miles)
 
+  // Tip floors scale with distance. DoorDash Dashers filter on $/mile, so a long
+  // haul needs a real tip or it sits unaccepted. "No tip" is intentionally not
+  // offered — a $0 Drive order almost never gets picked up. (Pickup orders skip
+  // this entirely; they have no Dasher.)
+
   if (miles < 4) return {
-    default: 300,
+    default: 400,
     options: [
-      { label: 'No tip', value: 0   },
-      { label: '$2',     value: 200 },
-      { label: '$3',     value: 300 },
-      { label: '$5',     value: 500 },
+      { label: '$3', value: 300 },
+      { label: '$4', value: 400 },
+      { label: '$5', value: 500 },
+      { label: '$7', value: 700 },
     ],
     badge:  { text: dist, color: '#276749', bg: '#E6F7EF' },
-    reason: `Short haul (${dist}) — $3 is a fair tip`,
+    reason: `Short haul (${dist}) — $4 is a solid tip`,
   }
 
   if (miles < 7) return {
-    default: 400,
+    default: 600,
     options: [
-      { label: 'No tip', value: 0   },
-      { label: '$3',     value: 300 },
-      { label: '$4',     value: 400 },
-      { label: '$5',     value: 500 },
-      { label: '$6',     value: 600 },
+      { label: '$4',  value: 400  },
+      { label: '$6',  value: 600  },
+      { label: '$8',  value: 800  },
+      { label: '$10', value: 1000 },
     ],
     badge:  { text: dist, color: '#276749', bg: '#E6F7EF' },
-    reason: `${dist} delivery — $4 helps attract a Dasher quickly`,
+    reason: `${dist} delivery — $6 attracts a Dasher quickly`,
   }
 
   if (miles < 10) return {
-    default: 600,
-    options: [
-      { label: 'No tip', value: 0    },
-      { label: '$4',     value: 400  },
-      { label: '$5',     value: 500  },
-      { label: '$6',     value: 600  },
-      { label: '$8',     value: 800  },
-    ],
-    warning: `🟡 ${dist} — a $6+ tip helps ensure a Dasher accepts quickly`,
-    badge:   { text: dist, color: '#7A5800', bg: '#FFF8E8' },
-    reason:  `${dist} delivery — tip below $6 may slow driver acceptance`,
-  }
-
-  return {
     default: 800,
     options: [
-      { label: 'No tip', value: 0    },
-      { label: '$5',     value: 500  },
-      { label: '$6',     value: 600  },
-      { label: '$8',     value: 800  },
-      { label: '$10',    value: 1000 },
+      { label: '$6',  value: 600  },
+      { label: '$8',  value: 800  },
+      { label: '$10', value: 1000 },
+      { label: '$12', value: 1200 },
     ],
-    warning: `🔴 ${dist} — a $8+ tip is strongly recommended for reliable delivery`,
+    warning: `\uD83D\uDFE1 ${dist} — under $8 may sit unaccepted; Dashers weigh the tip against the distance`,
+    badge:   { text: dist, color: '#7A5800', bg: '#FFF8E8' },
+    reason:  `${dist} delivery — $8+ keeps acceptance fast`,
+  }
+
+  // 10+ miles — scale the recommendation with distance (~$1/mile, min $10)
+  const rec = Math.max(10, Math.round(miles))
+  return {
+    default: rec * 100,
+    options: [
+      { label: `$${rec - 2}`, value: (rec - 2) * 100 },
+      { label: `$${rec}`,     value: rec * 100       },
+      { label: `$${rec + 3}`, value: (rec + 3) * 100 },
+      { label: `$${rec + 6}`, value: (rec + 6) * 100 },
+    ],
+    warning: `\uD83D\uDD34 ${dist} is a long haul — about $${rec} (~$1/mile) is needed for reliable pickup`,
     badge:   { text: dist, color: '#B94040', bg: '#FDE8E8' },
-    reason:  `${dist} is a long haul — a generous tip ensures driver acceptance`,
+    reason:  `${dist} long haul — ~$1/mile keeps drivers willing`,
   }
 }
