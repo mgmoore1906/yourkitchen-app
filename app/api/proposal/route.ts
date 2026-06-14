@@ -67,7 +67,7 @@ const windowFor = (mealType: string): string | null => {
 }
 
 const proposalIds: string[] = []
-const meals: { proposalId: string; foodItems: any[]; foodCents: number }[] = []
+const meals: { proposalId: string; foodItems: any[]; foodCents: number; pickupLat: number | null; pickupLng: number | null; pickupAddr: string; deliveryMiles: number | null; restName: string }[] = []
 let mealSubtotalCents = 0
 let deliveryMiles: number | null = null
 // Captured for the real Shipday courier quote at the fee block below.
@@ -109,6 +109,7 @@ let restName: string
 let dateLabel: string
 let mealItems: any[] = []
 const mealLabel = p.meal_type ? (MEAL_LABEL[p.meal_type] || '') : ''
+deliveryMiles = null; pickupLat = null; pickupLng = null; pickupAddr = ''
 
 if (use_places) {
 mealName = p.menu_item_name || 'Meal'
@@ -249,51 +250,43 @@ quantity: 1,
 })
 }
 mealSubtotalCents += foodCents
-meals.push({ proposalId: proposal.id, foodItems, foodCents })
+meals.push({ proposalId: proposal.id, foodItems, foodCents, pickupLat, pickupLng, pickupAddr, deliveryMiles, restName })
 
 }
 
-// ── Cart-level fees, computed once then SPLIT across the per-meal sessions ──
-// Each meal is its own Stripe transaction/PaymentIntent, so confirm captures —
-// and decline cancels/refunds — ONLY that meal. The coordinator's TOTAL is
-// unchanged: compute the cart courier/tip/service exactly as before, then
-// allocate each across meals (remainder on the last) so the per-session amounts
-// sum to the same grand total the cart previewed.
-let deliveryFeeAmt = 0
-if (!is_pickup) {
-const mileageEstimate = getDeliveryFee(deliveryMiles)
-const courierQuote = await resolveCourierFee({
-pickupLat,
-pickupLng,
-pickupAddress: pickupAddr,
-dropoffLat: kitchen.latitude != null ? Number(kitchen.latitude) : null,
-dropoffLng: kitchen.longitude != null ? Number(kitchen.longitude) : null,
-dropoffAddress: (kitchen as any).address || '',
-tipDollars: (tip_amount || 0) / 100,
-}, mileageEstimate)
-deliveryFeeAmt = courierQuote.feeDollars
-}
-const courierCents = Math.round(deliveryFeeAmt * 100)
-const tipCents = is_pickup ? 0 : (tip_amount || 0)
-const preFeeCents = mealSubtotalCents + courierCents + tipCents
+// ── Per-delivery fees: each meal is its own driver run ──────────────────────
+// Each meal is its own Stripe PaymentIntent AND its own courier dispatch, so we
+// quote the courier PER restaurant (real pickup → kitchen distance) and charge
+// the FULL tip PER delivery — never split one tip across multiple drivers. The
+// service fee (5% + $0.99) is per delivery too, since each is its own card
+// transaction. Single-restaurant orders are unchanged; multi-restaurant orders
+// now cost (tip + courier + service) × number of deliveries, as they should.
 const SERVICE_PCT = 0.05
 const SERVICE_FLAT_CENTS = 99
-const serviceCents = mealSubtotalCents > 0 ? Math.round(preFeeCents * SERVICE_PCT) + SERVICE_FLAT_CENTS : 0
+const perTipCents = is_pickup ? 0 : (tip_amount || 0)
+
+const fees: { courier: number; tip: number; service: number }[] = []
+for (const m of meals) {
+  let courierCents = 0
+  if (!is_pickup) {
+    const mileageEstimate = getDeliveryFee(m.deliveryMiles)
+    const q = await resolveCourierFee({
+      pickupLat: m.pickupLat,
+      pickupLng: m.pickupLng,
+      pickupAddress: m.pickupAddr,
+      dropoffLat: kitchen.latitude != null ? Number(kitchen.latitude) : null,
+      dropoffLng: kitchen.longitude != null ? Number(kitchen.longitude) : null,
+      dropoffAddress: (kitchen as any).address || '',
+      tipDollars: (tip_amount || 0) / 100,
+    }, mileageEstimate)
+    courierCents = Math.round(q.feeDollars * 100)
+  }
+  const preFee = m.foodCents + courierCents + perTipCents
+  const serviceC = m.foodCents > 0 ? Math.round(preFee * SERVICE_PCT) + SERVICE_FLAT_CENTS : 0
+  fees.push({ courier: courierCents, tip: perTipCents, service: serviceC })
+}
 
 const N = meals.length
-const totalFood = meals.reduce((s, m) => s + m.foodCents, 0) || 1
-const splitPool = (pool: number): number[] => {
-const out: number[] = []
-let used = 0
-meals.forEach((m, idx) => {
-if (idx === N - 1) { out.push(pool - used) }
-else { const a = Math.round((pool * m.foodCents) / totalFood); out.push(a); used += a }
-})
-return out
-}
-const courierSplit = splitPool(courierCents)
-const tipSplit = splitPool(tipCents)
-const serviceSplit = splitPool(serviceCents)
 
 // One Checkout session (= one PaymentIntent) per meal. Built in REVERSE so each
 // session's success_url hands off to the NEXT meal's payment via /api/pay-next —
@@ -304,10 +297,11 @@ let nextSuccessUrl = `${APP}/payment-success?recipient=${encodeURIComponent(reci
 let firstUrl: string | null = null
 for (let k = N - 1; k >= 0; k--) {
 const m = meals[k]
+const f = fees[k]
 const li: any[] = [...m.foodItems]
-if (courierSplit[k] > 0) li.push({ price_data: { currency: 'usd', product_data: { name: 'Courier delivery fee', description: 'Door-to-door courier' }, unit_amount: courierSplit[k] }, quantity: 1 })
-if (tipSplit[k] > 0) li.push({ price_data: { currency: 'usd', product_data: { name: 'Dasher tip', description: 'Goes directly to your driver — 100% passed through' }, unit_amount: tipSplit[k] }, quantity: 1 })
-if (serviceSplit[k] > 0) li.push({ price_data: { currency: 'usd', product_data: { name: 'Service fee', description: 'Covers coordination, SMS, payment processing, and delivery integration' }, unit_amount: serviceSplit[k] }, quantity: 1 })
+if (f.courier > 0) li.push({ price_data: { currency: 'usd', product_data: { name: 'Courier delivery fee', description: 'Door-to-door courier' }, unit_amount: f.courier }, quantity: 1 })
+if (f.tip > 0) li.push({ price_data: { currency: 'usd', product_data: { name: 'Dasher tip', description: 'Goes directly to your driver — 100% passed through' }, unit_amount: f.tip }, quantity: 1 })
+if (f.service > 0) li.push({ price_data: { currency: 'usd', product_data: { name: 'Service fee', description: 'Covers coordination, SMS, payment processing, and delivery integration' }, unit_amount: f.service }, quantity: 1 })
 
 const session = await stripe.checkout.sessions.create({
 payment_method_types: ['card'],
