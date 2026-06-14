@@ -60,15 +60,16 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
     orderTime:           new Date().toISOString(),
     restaurantName:      restaurant?.name || 'Restaurant',
     restaurantAddress:   restaurant?.address || '',
-    restaurantPhone:     restaurant?.phone || '',
+    restaurantPhoneNumber: restaurant?.phone || '',
     customerName:        kitchen?.name || 'Recipient',
     customerAddress:     destAddress,
     customerEmail:       '',
-    customerPhone:       recipientPhone || '',
+    customerPhoneNumber: recipientPhone || '',
     deliveryInstruction: instruction,
-    items:                   buildItems(proposal),
+    orderItem:               buildItems(proposal),
     orderSource:             'YourKitchen',
-    tip:                     (proposal.tip_amount || 0) / 100,
+    tips:                    (proposal.tip_amount || 0) / 100,
+    totalOrderCost:          buildItems(proposal).reduce((acc: number, it: any) => acc + (Number(it.unitPrice) || 0) * (Number(it.quantity) || 1), 0) + (proposal.tip_amount || 0) / 100,
     requestOnDemandDelivery: true,
   }
 
@@ -132,7 +133,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
-    const { proposal_id } = await request.json()
+    const { proposal_id, force } = await request.json()
     if (!proposal_id) {
       return NextResponse.json({ error: 'proposal_id required' }, { status: 400 })
     }
@@ -158,7 +159,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: `Proposal status is ${(proposal as any).status} — must be confirmed to dispatch` }, { status: 400 })
     }
 
-    if ((proposal as any).delivery_status === 'dispatched') {
+    if (!force && (proposal as any).delivery_status === 'dispatched') {
       return NextResponse.json({ error: 'Already dispatched' }, { status: 400 })
     }
 
