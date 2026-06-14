@@ -16,11 +16,17 @@ const TIER_LIMITS: Record<string, number> = { free: 3, trial: 10, care: 10, annu
 const MEAL_LIMITS: Record<string, number> = { free: 4, trial: 12, care: 12, annual: 12, founding: 999 }
 const TIER_LABELS: Record<string, string> = { free: 'Free', trial: 'Free Trial', care: 'Care+', annual: 'Early Adopter', founding: 'Founding Member' }
 
+const TAG_ROLES = ['👩','👨','🧑','👧','👦','🧒','👶','👵','👴']
+const TAG_TONES = ['','🏻','🏼','🏽','🏾','🏿']
+function parseMealTag(t: string): { emoji: string; label: string } {
+  const [emoji, label] = (t || '').split('\t')
+  return { emoji: emoji || '', label: label || '' }
+}
 type Restaurant = {
 id: string; name: string; cuisine: string; is_active: boolean; pickup_preferred: boolean
 place_id: string | null; address: string | null
 lat: number | null; lng: number | null
-favorite_meals: string[]; favorite_meal_prices: number[]; favorite_meal_categories: string[]; favorite_meal_notes: string[]
+favorite_meals: string[]; favorite_meal_prices: number[]; favorite_meal_categories: string[]; favorite_meal_notes: string[]; favorite_meal_tags: string[]
 }
 type PlaceResult = {
 place_id: string; name: string; address: string
@@ -62,6 +68,7 @@ const [userTier, setUserTier] = useState('free')
 const [restaurants, setRestaurants] = useState<Restaurant[]>([])
 const [saveMsg, setSaveMsg] = useState('')
 const [expandedId, setExpandedId] = useState<string | null>(null)
+const [tagPicker, setTagPicker] = useState<{ rId: string; idx: number; role: string; tone: string; label: string } | null>(null)
 const [newMealName, setNewMealName] = useState<Record<string, string>>({})
 const [newMealPrice, setNewMealPrice] = useState<Record<string, string>>({})
 const [newMealCategory, setNewMealCategory] = useState<Record<string, 'adult'|'kids'>>({})
@@ -106,7 +113,7 @@ load()
 const loadRestaurants = async (kId: string) => {
 const { data } = await supabase
 .from('kitchen_restaurants')
-.select('id, name, cuisine, is_active, place_id, address, lat, lng, favorite_meals, favorite_meal_prices, favorite_meal_categories, pickup_preferred')
+.select('id, name, cuisine, is_active, place_id, address, lat, lng, favorite_meals, favorite_meal_prices, favorite_meal_categories, favorite_meal_notes, favorite_meal_tags, pickup_preferred')
 .eq('kitchen_id', kId).is('deleted_at', null).order('created_at', { ascending: true })
 const mapped = (data || []).map((r: any) => ({
 ...r,
@@ -114,6 +121,7 @@ favorite_meals: r.favorite_meals || [],
 favorite_meal_prices: r.favorite_meal_prices || [],
 favorite_meal_categories: r.favorite_meal_categories || [],
 favorite_meal_notes: r.favorite_meal_notes || [],
+favorite_meal_tags: r.favorite_meal_tags || [],
 pickup_preferred: r.pickup_preferred ?? false,
 }))
 setRestaurants(mapped)
@@ -240,14 +248,15 @@ const updatedMeals = [...(rest.favorite_meals || []), name]
 const updatedPrices = [...(rest.favorite_meal_prices || []), price]
 const updatedCategories = [...(rest.favorite_meal_categories || []), category]
 const updatedNotes = [...(rest.favorite_meal_notes || []), noteText]
+const updatedTags = [...(rest.favorite_meal_tags || []), '']
 const res = await fetch('/api/restaurants/favorites', {
 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes }),
+body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags }),
 })
 const data = await res.json()
 if (data.success) {
 setRestaurants(prev => prev.map(r => r.id === restaurantId
-? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes } : r))
+? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags } : r))
 setNewMealName(prev => ({ ...prev, [restaurantId]: '' }))
 setNewMealPrice(prev => ({ ...prev, [restaurantId]: '' }))
 setNewMealCategory(prev => ({ ...prev, [restaurantId]: 'adult' }))
@@ -256,18 +265,34 @@ setNewMealNote(prev => ({ ...prev, [restaurantId]: '' }))
 setSavingMeals(null)
 }
 
+const openTagPicker = (r: Restaurant, i: number) => {
+const cur = parseMealTag(r.favorite_meal_tags?.[i] || '')
+setTagPicker({ rId: r.id, idx: i, role: TAG_ROLES[0], tone: '', label: cur.label })
+}
+const writeMealTag = async (rId: string, idx: number, value: string) => {
+const rest = restaurants.find(r => r.id === rId); if (!rest) return
+const tags = [...(rest.favorite_meal_tags || [])]
+while (tags.length <= idx) tags.push('')
+tags[idx] = value
+setRestaurants(prev => prev.map(r => r.id === rId ? { ...r, favorite_meal_tags: tags } : r))
+setTagPicker(null)
+await fetch('/api/restaurants/favorites', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurant_id: rId, favorite_meal_tags: tags }) })
+}
+const saveMealTag = (rId: string, idx: number) => { if (!tagPicker) return; writeMealTag(rId, idx, `${tagPicker.role}${tagPicker.tone}\t${(tagPicker.label || '').trim()}`) }
+const clearMealTag = (rId: string, idx: number) => writeMealTag(rId, idx, '')
 const removeMeal = async (restaurantId: string, index: number) => {
 const rest = restaurants.find(r => r.id === restaurantId)!
 const updatedMeals = rest.favorite_meals.filter((_, i) => i !== index)
 const updatedPrices = rest.favorite_meal_prices.filter((_, i) => i !== index)
 const updatedCategories = (rest.favorite_meal_categories || []).filter((_, i) => i !== index)
 const updatedNotes = (rest.favorite_meal_notes || []).filter((_, i) => i !== index)
+const updatedTags = (rest.favorite_meal_tags || []).filter((_, i) => i !== index)
 await fetch('/api/restaurants/favorites', {
 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes }),
+body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags }),
 })
 setRestaurants(prev => prev.map(r => r.id === restaurantId
-? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes } : r))
+? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags } : r))
 }
 
 const startEditMeal = (r: any, i: number) => {
@@ -433,13 +458,14 @@ const updatedMeals = [...(rest.favorite_meals || []), ...toAdd.map(i => i.name.t
 const updatedPrices = [...(rest.favorite_meal_prices || []), ...toAdd.map(i => Math.max(0, parseFloat(i.price) || 0))]
 const updatedCategories = [...(rest.favorite_meal_categories || []), ...toAdd.map(i => i.category === 'kids' ? 'kids' : 'adult')]
 const updatedNotes = [...(rest.favorite_meal_notes || []), ...toAdd.map(i => (i.note || '').trim())]
+const updatedTags = [...(rest.favorite_meal_tags || []), ...toAdd.map(() => '')]
 const res = await fetch('/api/restaurants/favorites', {
 method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes }),
+body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags }),
 })
 const data = await res.json()
 if (data.success) {
-setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes } : r))
+setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags } : r))
 setReviewItems(p => { const n = { ...p }; delete n[restaurantId]; return n })
 setSaveMsg(`Added ${toAdd.length} meal${toAdd.length !== 1 ? 's' : ''}${trimmedNote}`)
 setTimeout(() => setSaveMsg(''), 4000)
@@ -747,6 +773,41 @@ Cancel
 &ldquo;{r.favorite_meal_notes[i]}&rdquo;
 </div>
 )}
+{(() => { const pt = parseMealTag(r.favorite_meal_tags?.[i] || ''); const open = !!tagPicker && tagPicker.rId === r.id && tagPicker.idx === i; return (
+<div style={{ marginTop: 6, paddingLeft: 22 }}>
+{pt.emoji ? (
+<button onClick={() => openTagPicker(r, i)} style={{ display:'inline-flex',alignItems:'center',gap:5,background:S.white,border:`1px solid ${isKids?S.amber:S.sage}`,borderRadius:999,padding:'3px 10px',cursor:'pointer',fontSize:12,fontWeight:600,color:S.forest,fontFamily:"'DM Sans',sans-serif" }}>{pt.emoji}{pt.label?` ${pt.label}`:''} ✎</button>
+) : (
+<button onClick={() => openTagPicker(r, i)} style={{ display:'inline-flex',alignItems:'center',gap:4,background:'none',border:`1px dashed ${S.border}`,borderRadius:999,padding:'3px 10px',cursor:'pointer',fontSize:11.5,fontWeight:500,color:S.stone,fontFamily:"'DM Sans',sans-serif" }}>+ Who&rsquo;s this for?</button>
+)}
+{open && (
+<div style={{ marginTop: 8, background: S.white, border: `1px solid ${S.border}`, borderRadius: 12, padding: '12px' }}>
+<p style={{ fontSize:11,fontWeight:700,color:S.stone,letterSpacing:'0.06em',textTransform:'uppercase',margin:'0 0 8px' }}>Who&rsquo;s this meal for?</p>
+<div style={{ display:'flex',flexWrap:'wrap',gap:6,marginBottom:12 }}>
+{TAG_ROLES.map(role => (
+<button key={role} onClick={() => setTagPicker(p => p ? { ...p, role } : p)} style={{ fontSize:20,lineHeight:1,padding:'6px',borderRadius:9,cursor:'pointer',background:tagPicker!.role===role?S.sageLight:S.white,border:`1.5px solid ${tagPicker!.role===role?S.sage:S.border}` }}>{role}{tagPicker!.tone}</button>
+))}
+</div>
+<p style={{ fontSize:10.5,fontWeight:600,color:S.stone,margin:'0 0 6px' }}>Skin tone</p>
+<div style={{ display:'flex',gap:6,marginBottom:12,flexWrap:'wrap' }}>
+{TAG_TONES.map((tone, ti) => (
+<button key={ti} onClick={() => setTagPicker(p => p ? { ...p, tone } : p)} title={ti===0?'Default':`Tone ${ti}`} style={{ fontSize:18,lineHeight:1,padding:'5px 7px',borderRadius:9,cursor:'pointer',background:tagPicker!.tone===tone?S.sageLight:S.white,border:`1.5px solid ${tagPicker!.tone===tone?S.sage:S.border}` }}>{tagPicker!.role}{tone}</button>
+))}
+</div>
+<input value={tagPicker!.label} onChange={e => setTagPicker(p => p ? { ...p, label: e.target.value.slice(0,14) } : p)} placeholder="Label (optional) — Mom, Dad, Kid 1…" maxLength={14} style={{ width:'100%',boxSizing:'border-box',padding:'9px 11px',borderRadius:9,border:`1.5px solid ${S.border}`,fontSize:13,fontFamily:"'DM Sans',sans-serif",color:S.forest,outline:'none',marginBottom:10 }} />
+<div style={{ display:'flex',alignItems:'center',gap:8,marginBottom:10 }}>
+<span style={{ fontSize:11,color:S.stone }}>Preview:</span>
+<span style={{ fontSize:13,fontWeight:600,color:S.forest,background:S.sageLight,borderRadius:999,padding:'3px 10px' }}>{tagPicker!.role}{tagPicker!.tone}{tagPicker!.label.trim()?` ${tagPicker!.label.trim()}`:''}</span>
+</div>
+<div style={{ display:'flex',gap:8 }}>
+<button onClick={() => saveMealTag(r.id, i)} style={{ flex:1,padding:'9px',borderRadius:9,border:'none',background:S.sage,color:S.white,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Save</button>
+{pt.emoji && <button onClick={() => clearMealTag(r.id, i)} style={{ padding:'9px 14px',borderRadius:9,border:`1.5px solid ${S.border}`,background:S.white,color:S.stone,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Clear</button>}
+<button onClick={() => setTagPicker(null)} style={{ padding:'9px 14px',borderRadius:9,border:`1.5px solid ${S.border}`,background:S.white,color:S.stone,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Cancel</button>
+</div>
+</div>
+)}
+</div>
+)})()}
 </>)}
 </div>
 )
