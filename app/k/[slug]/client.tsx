@@ -382,7 +382,7 @@ const [email, setEmail] = useState('')
 const [phone, setPhone] = useState('')
 const [smsConsent, setSmsConsent] = useState(false)
 const [note, setNote] = useState('')
-const [tipAmount, setTipAmount] = useState(300)
+const [tipAmount, setTipAmount] = useState(500)
 const [tipInitialized, setTipInitialized] = useState(false)
 const [showTipAdjust, setShowTipAdjust] = useState(false)
 const [deliveryNote, setDeliveryNote] = useState('')
@@ -950,7 +950,7 @@ I agree to receive recurring SMS from YourKitchen — meal proposals, confirmati
 <div style={{ background:S.amberLight,border:`1.5px solid ${S.amberBorder}`,borderRadius:14,padding:'14px 16px',marginBottom:12 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:6 }}>
 <div>
-<p style={{ fontSize:14,fontWeight:700,color:S.forest,margin:'0 0 3px',display:'flex',alignItems:'center',gap:6 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-2" stroke={S.sage} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><circle cx="7.5" cy="17.5" r="2.5" stroke={S.sage} strokeWidth="1.7"/><circle cx="17.5" cy="17.5" r="2.5" stroke={S.sage} strokeWidth="1.7"/></svg> Recommended tip: ${(activeTipTier?.default||300)/100}</p>
+<p style={{ fontSize:14,fontWeight:700,color:S.forest,margin:'0 0 3px',display:'flex',alignItems:'center',gap:6 }}><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M5 17H3a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v9a2 2 0 0 1-2 2h-2" stroke={S.sage} strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round"/><circle cx="7.5" cy="17.5" r="2.5" stroke={S.sage} strokeWidth="1.7"/><circle cx="17.5" cy="17.5" r="2.5" stroke={S.sage} strokeWidth="1.7"/></svg> Recommended tip: ${(activeTipTier?.default||500)/100}</p>
 <p style={{ fontSize:12,color:S.stone,margin:0,fontWeight:300,lineHeight:1.5 }}>
 {activeMiles !== null ? `For a ${activeMiles.toFixed(1)} mi delivery — helps ensure quick pickup` : 'Helps ensure prompt pickup and a happy Dasher'}
 </p>
@@ -968,7 +968,7 @@ I agree to receive recurring SMS from YourKitchen — meal proposals, confirmati
 </button>
 {showTipAdjust&&(
 <div style={{ display:'flex',gap:8,marginBottom:20 }}>
-{(activeTipTier?.options||[{label:'No tip',value:0},{label:'$2',value:200},{label:'$3',value:300},{label:'$5',value:500}]).map(opt=>(
+{(activeTipTier?.options||[{label:'$5',value:500},{label:'$7',value:700},{label:'$9',value:900},{label:'$12',value:1200}]).map(opt=>(
 <button key={opt.value} onClick={()=>setTipAmount(opt.value)}
 style={{ flex:1,padding:'11px 4px',borderRadius:10,border:'none',background:tipAmount===opt.value?S.sage:S.sageLight,color:tipAmount===opt.value?S.white:S.sage,fontSize:13,fontWeight:600,cursor:'pointer',fontFamily:"'DM Sans',sans-serif",transition:'all 0.15s' }}>
 {opt.label}
