@@ -761,7 +761,6 @@ Cancel
 </div>
 ) : (<>
 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-<span style={{ fontSize: 14 }}>{isKids ? '🧒' : '👤'}</span>
 <button onClick={() => startEditMeal(r, i)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, color: S.forest, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>{meal}</button>
 <span style={{ fontSize: 11, fontWeight: 700, color: isKids ? S.amber : S.sage, background: S.white, borderRadius: 20, padding: '2px 7px' }}>{isKids ? 'KIDS' : 'ADULT'}</span>
 <span style={{ fontSize: 13, fontWeight: 700, color: isKids ? S.amber : S.sage }}>${(r.favorite_meal_prices[i] || 15).toFixed(2)}</span>
@@ -769,12 +768,12 @@ Cancel
 <button onClick={() => removeMeal(r.id, i)} aria-label="Remove this meal" style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 14, padding: '2px 6px' }}>✕</button>
 </div>
 {(r.favorite_meal_notes?.[i] || '').trim() && (
-<div onClick={() => startEditMeal(r, i)} style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, marginTop: 5, paddingLeft: 22, lineHeight: 1.5, fontStyle: 'italic', cursor: 'pointer' }}>
+<div onClick={() => startEditMeal(r, i)} style={{ fontSize: 11.5, color: S.stone, fontWeight: 300, marginTop: 5, paddingLeft: 0, lineHeight: 1.5, fontStyle: 'italic', cursor: 'pointer' }}>
 &ldquo;{r.favorite_meal_notes[i]}&rdquo;
 </div>
 )}
 {(() => { const pt = parseMealTag(r.favorite_meal_tags?.[i] || ''); const open = !!tagPicker && tagPicker.rId === r.id && tagPicker.idx === i; return (
-<div style={{ marginTop: 6, paddingLeft: 22 }}>
+<div style={{ marginTop: 6, paddingLeft: 0 }}>
 {pt.emoji ? (
 <button onClick={() => openTagPicker(r, i)} style={{ display:'inline-flex',alignItems:'center',gap:5,background:S.white,border:`1px solid ${isKids?S.amber:S.sage}`,borderRadius:999,padding:'3px 10px',cursor:'pointer',fontSize:12,fontWeight:600,color:S.forest,fontFamily:"'DM Sans',sans-serif" }}>{pt.emoji}{pt.label?` ${pt.label}`:''} ✎</button>
 ) : (
