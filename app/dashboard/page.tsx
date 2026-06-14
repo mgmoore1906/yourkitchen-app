@@ -34,11 +34,42 @@ const MINS_PER_MEAL = 95
 type Tab = 'home' | 'activity' | 'insights' | 'share' | 'village'
 type CalDate  = { id: string; date: string; meal_type: string; status: string }
 type Kitchen  = { id: string; name: string; slug: string; address: string | null; household_size: number | null }
+async function downloadMealICS(meals: any[], filename: string) {
+  const pad = (n: number) => String(n).padStart(2, '0')
+  const TIME: Record<string, [number, number]> = { breakfast: [8, 0], lunch: [12, 0], dinner: [18, 0] }
+  const esc = (t: string) => (t || '').replace(/\\/g, '\\\\').replace(/;/g, '\\;').replace(/,/g, '\\,').replace(/\n/g, '\\n')
+  const dtF = (date: string, h: number, m: number) => { const [Y, Mo, D] = date.split('-'); return `${Y}${Mo}${D}T${pad(h)}${pad(m)}00` }
+  const now = new Date()
+  const stamp = `${now.getUTCFullYear()}${pad(now.getUTCMonth() + 1)}${pad(now.getUTCDate())}T${pad(now.getUTCHours())}${pad(now.getUTCMinutes())}${pad(now.getUTCSeconds())}Z`
+  const valid = (meals || []).filter(p => p && p.delivery_date)
+  if (valid.length === 0) { alert('No scheduled meals to add yet.'); return }
+  const lines: string[] = ['BEGIN:VCALENDAR', 'VERSION:2.0', 'PRODID:-//YourKitchen//Meal Calendar//EN', 'CALSCALE:GREGORIAN', 'METHOD:PUBLISH']
+  valid.forEach(p => {
+    const t = TIME[p.meal_type] || [18, 0]; const h = t[0], m = t[1]
+    const start = dtF(p.delivery_date, h, m), end = dtF(p.delivery_date, h + 1 > 23 ? 23 : h + 1, m)
+    const emoji = MEAL_COLORS[p.meal_type]?.emoji || '🍽'
+    const title = `${emoji} ${p.meal_name}${p.restaurant_name ? ` — ${p.restaurant_name}` : ''}`
+    const desc = `${p.coordinator_name ? `From ${p.coordinator_name}. ` : ''}${p.restaurant_name ? `${p.restaurant_name}. ` : ''}Sent with love through YourKitchen.`
+    lines.push('BEGIN:VEVENT', `UID:${p.id}@yourkitchen.app`, `DTSTAMP:${stamp}`, `DTSTART:${start}`, `DTEND:${end}`, `SUMMARY:${esc(title)}`, `DESCRIPTION:${esc(desc)}`, 'END:VEVENT')
+  })
+  lines.push('END:VCALENDAR')
+  const ics = lines.join('\r\n')
+  try {
+    const file = new File([ics], filename, { type: 'text/calendar' })
+    const nav: any = navigator
+    if (nav.canShare && nav.canShare({ files: [file] })) { await nav.share({ files: [file], title: 'My YourKitchen meals' }); return }
+  } catch { /* fall through to download */ }
+  const blob = new Blob([ics], { type: 'text/calendar;charset=utf-8' })
+  const url = URL.createObjectURL(blob)
+  const a = document.createElement('a'); a.href = url; a.download = filename; a.click()
+  URL.revokeObjectURL(url)
+}
+
 type Proposal = {
   id: string; status: string; coordinator_name: string; restaurant_name: string
   meal_name: string; delivery_date: string; meal_type: string; coordinator_note: string | null
   doordash_tracking_url: string | null; doordash_delivery_id: string | null
-  doordash_status: string | null; proposed_at: string; coordinator_email: string | null; coordinator_phone: string | null
+  doordash_status: string | null; proposed_at: string; coordinator_email: string | null; coordinator_phone: string | null; payment_intent_id: string | null
 }
 type VillagePost = { id: string; content: string; author_name: string | null; author_type: string | null; posted_at: string; image_url?: string | null; parent_id?: string | null; reactions?: Record<string,number>; post_type?: string; replies?: VillagePost[] }
 
@@ -624,8 +655,8 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
 // ── ACTIVITY TAB ──────────────────────────────────────────────────────────────
 function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any }) {
   const onTheWay = proposals.filter(p => p.status==='confirmed' && p.doordash_status!=='cancelled')
-  const pending  = proposals.filter(p => p.status==='pending')
-  const previousAll = proposals.filter(p => ['delivered','declined','expired','cancelled'].includes(p.status)||(p.status==='confirmed'&&p.doordash_status==='cancelled'))
+  const pending  = proposals.filter(p => p.status==='pending' && !!p.payment_intent_id)
+  const previousAll = proposals.filter(p => ['delivered','declined','cancelled'].includes(p.status)||(p.status==='confirmed'&&p.doordash_status==='cancelled'))
   const previous = [...previousAll].sort((a,b)=>(b.delivery_date||'').localeCompare(a.delivery_date||''))
   const RECENT_N = 5
   const recentPrev = previous.slice(0, RECENT_N)
@@ -697,7 +728,10 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
     <div style={{ padding:'16px 20px' }}>
       {onTheWay.length>0&&(
         <div style={{ marginBottom:24 }}>
-          <p style={sLabel}>🚗 On the Way</p>
+          <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10 }}>
+            <p style={{ ...sLabel, margin:0 }}>🚗 On the Way</p>
+            <button onClick={()=>downloadMealICS(onTheWay,'yourkitchen-meals.ics')} style={{ fontSize:10,fontWeight:700,letterSpacing:'0.04em',color:S.sage,background:'none',border:'none',cursor:'pointer',padding:0,fontFamily:"'DM Sans',sans-serif",textTransform:'uppercase' }}>📅 Add all</button>
+          </div>
           {onTheWay.map(p=>(
             <div key={p.id} style={{ background:S.white,border:`1.5px solid ${S.sage}`,borderRadius:14,overflow:'hidden',marginBottom:10 }}>
               <div style={{ padding:'14px 16px',display:'flex',alignItems:'flex-start',gap:12 }}>
@@ -716,7 +750,10 @@ function ActivityTab({ proposals, router }: { proposals: Proposal[]; router: any
                     🚗 Track My Delivery
                   </a>
                 )}
-                <button onClick={()=>handleShare(p)} style={{ width:'100%',padding:'9px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>🧡 Share this meal</button>
+                <div style={{ display:'flex',gap:8 }}>
+                  <button onClick={()=>handleShare(p)} style={{ flex:1,padding:'9px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>🧡 Share</button>
+                  <button onClick={()=>downloadMealICS([p],`meal-${p.id}.ics`)} style={{ flex:1,padding:'9px',borderRadius:9,border:`1px solid ${S.border}`,background:'transparent',fontSize:12,fontWeight:600,color:S.stone,cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>📅 Add to calendar</button>
+                </div>
               </div>
             </div>
           ))}
@@ -1437,7 +1474,7 @@ export default function DashboardPage() {
 
   const loadProposals = useCallback(async (kitchenId: string) => {
     const { data } = await supabase.from('meal_proposals')
-      .select('id, status, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, coordinator_note, doordash_tracking_url, doordash_delivery_id, doordash_status, proposed_at, coordinator_email, coordinator_phone')
+      .select('id, status, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, coordinator_note, doordash_tracking_url, doordash_delivery_id, doordash_status, proposed_at, coordinator_email, coordinator_phone, payment_intent_id')
       .eq('kitchen_id', kitchenId)
       .order('proposed_at', { ascending: false })
     setAllProposals((data || []) as Proposal[])
