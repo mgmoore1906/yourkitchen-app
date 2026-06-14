@@ -36,6 +36,15 @@ sageLight:  '#EAF2ED',
 forest:     '#1E2620',
 stone:      '#6B7066',   // muted text — dark, for use on light cards
 }
+function parseMealTag(t: string): { emoji: string; label: string } {
+  const [emoji, label] = (t || '').split('\t')
+  return { emoji: emoji || '', label: label || '' }
+}
+function mealTagChip(tag: string) {
+  const t = parseMealTag(tag)
+  if (!t.emoji) return null
+  return <span style={{ fontSize:11,fontWeight:600,color:'#3D6B4F',background:'#EAF2ED',borderRadius:20,padding:'1px 8px',whiteSpace:'nowrap' }}>{t.emoji}{t.label?` ${t.label}`:''}</span>
+}
 const MEAL_TYPE_LABELS: Record<string, string> = {
 breakfast: '🌅 Breakfast', lunch: '☀️ Lunch', dinner: '🌙 Dinner',
 }
@@ -59,7 +68,7 @@ type FavRestaurant = {
 id: string; name: string; address: string | null
 place_id: string | null; lat: number | null; lng: number | null
 favorite_meals: string[]; favorite_meal_prices: number[]
-favorite_meal_categories: string[]; favorite_meal_notes: string[]; pickup_preferred?: boolean
+favorite_meal_categories: string[]; favorite_meal_notes: string[]; favorite_meal_tags?: string[]; pickup_preferred?: boolean
 }
 type CartItem = { name: string; price: number; qty: number; category: 'adult'|'kids'; isCustom: boolean; note?: string }
 type GroupSelection = {
@@ -711,7 +720,7 @@ const isRecent = recentRestNames.has(fav.name?.toLowerCase())
 const hasMeals = fav.favorite_meals?.length>0
 
 // Split meals by category
-const allMeals = (fav.favorite_meals||[]).map((m,i)=>({ name:m, price:fav.favorite_meal_prices?.[i]||15, category:(fav.favorite_meal_categories?.[i]||'adult') as 'adult'|'kids', note:(fav.favorite_meal_notes?.[i]||'') }))
+const allMeals = (fav.favorite_meals||[]).map((m,i)=>({ name:m, price:fav.favorite_meal_prices?.[i]||15, category:(fav.favorite_meal_categories?.[i]||'adult') as 'adult'|'kids', note:(fav.favorite_meal_notes?.[i]||''), tag:(fav.favorite_meal_tags?.[i]||'') }))
 const adultMeals = allMeals.filter(m=>m.category==='adult')
 const kidsMeals = allMeals.filter(m=>m.category==='kids')
 
@@ -767,7 +776,7 @@ const qty=cartGet(m.name,'adult')?.qty||0
 return (
 <div key={i} style={{ background:qty>0?S.amberLight:S.warmWhite,border:`2px solid ${qty>0?S.amber:S.amberBorder}`,borderRadius:11,padding:'11px 14px',display:'flex',alignItems:'center',gap:12,transition:'all 0.1s' }}>
 <div style={{ flex:1 }}>
-<div style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:600,color:S.forest }}>{m.name}</div>
+<div style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:600,color:S.forest,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap' }}>{m.name}{mealTagChip((m as any).tag)}</div>
 {m.note&&<div style={{ fontSize:11.5,color:S.stone,fontWeight:300,fontStyle:'italic',marginTop:2,lineHeight:1.4 }}>&ldquo;{m.note}&rdquo;</div>}
 <div style={{ fontSize:13,fontWeight:700,color:S.amber,marginTop:1 }}>${m.price.toFixed(2)}</div>
 </div>
@@ -787,7 +796,7 @@ const qty=cartGet(m.name,'kids')?.qty||0
 return (
 <div key={i} style={{ background:qty>0?S.amberLight:S.warmWhite,border:`2px solid ${qty>0?S.amber:S.border}`,borderRadius:11,padding:'11px 14px',display:'flex',alignItems:'center',gap:12,transition:'all 0.1s' }}>
 <div style={{ flex:1 }}>
-<div style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:600,color:S.forest }}>{m.name}</div>
+<div style={{ fontFamily:"'Lora',serif",fontSize:14,fontWeight:600,color:S.forest,display:'flex',alignItems:'center',gap:6,flexWrap:'wrap' }}>{m.name}{mealTagChip((m as any).tag)}</div>
 {m.note&&<div style={{ fontSize:11.5,color:S.stone,fontWeight:300,fontStyle:'italic',marginTop:2,lineHeight:1.4 }}>&ldquo;{m.note}&rdquo;</div>}
 <div style={{ fontSize:13,fontWeight:700,color:S.amber,marginTop:1 }}>${m.price.toFixed(2)}</div>
 </div>
