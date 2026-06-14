@@ -18,7 +18,7 @@ type AdminView = 'dispatch' | 'analytics'
 
 type Order = {
   id: string; status: string; delivery_status: string | null
-  meal_type: string; delivery_date: string
+  meal_type: string; delivery_date: string; delivery_time: string | null
   delivery_preference: string | null; delivery_note: string | null
   coordinator_name: string; restaurant_name: string; meal_name: string
   tip_amount: number | null; doordash_tracking_url: string | null
@@ -40,9 +40,25 @@ function sortByMealType(a: Order, b: Order) {
 }
 
 function friendlyDate(dateStr: string): string {
-  if (dateStr === TODAY) return 'Today'
-  if (dateStr === TOMORROW) return 'Tomorrow'
-  return new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  const d = new Date(dateStr + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' })
+  if (dateStr === TODAY) return `Today · ${d}`
+  if (dateStr === TOMORROW) return `Tomorrow · ${d}`
+  return d
+}
+
+const DEFAULT_TIME: Record<string, string> = { breakfast: '08:30', lunch: '12:30', dinner: '18:30' }
+function prettyTime(t: string | null | undefined, mealType: string): string {
+  const raw = (t && String(t).trim()) ? String(t).split('-')[0].trim() : (DEFAULT_TIME[mealType] || '18:30')
+  const [hStr, m] = raw.split(':')
+  let h = parseInt(hStr, 10)
+  if (isNaN(h)) return 'soon'
+  const ampm = h >= 12 ? 'PM' : 'AM'
+  h = h % 12; if (h === 0) h = 12
+  return `${h}:${m || '00'} ${ampm}`
+}
+function zipOf(addr: string | null | undefined): string {
+  const m = String(addr || '').match(/\b(\d{5})(?:-\d{4})?\b/)
+  return m ? m[1] : ''
 }
 
 function fmtMoney(cents: number) { return '$' + (cents / 100).toFixed(2) }
@@ -374,7 +390,7 @@ function DispatchTab(props: any) {
         )}
 
         {sortedDates.map(date => {
-          const dateOrders = dateGroups[date]
+          const dateOrders = dateGroups[date].slice().sort((a: Order, b: Order) => (zipOf(a.kitchen_address).localeCompare(zipOf(b.kitchen_address))) || (a.kitchen_name || '').localeCompare(b.kitchen_name || '') || sortByMealType(a, b))
           const pendingInDate = dateOrders.filter(needsDispatch).length
           const isToday = date === TODAY
           const isTomorrow = date === TOMORROW
@@ -404,6 +420,7 @@ function DispatchTab(props: any) {
                           <span style={{ fontSize: 18 }}>{MEAL_EMOJI[order.meal_type] || '🍽'}</span>
                           <span style={{ fontFamily: "'Lora',serif", fontSize: 16, fontWeight: 600, color: S.forest }}>{order.meal_name}</span>
                         </div>
+                        <div style={{ fontSize: 13, fontWeight: 700, color: S.forest, marginBottom: 2 }}>For {order.kitchen_name || '—'}{zipOf(order.kitchen_address) && <span style={{ fontWeight: 400, color: S.stone }}> · {zipOf(order.kitchen_address)}</span>}</div>
                         <div style={{ fontSize: 13, color: S.stone }}>
                           {order.restaurant_name}
                           {(filter === 'week' || filter === 'all') && <span style={{ color: isAwaiting && order.delivery_date === TODAY ? S.red : S.stone }}> · {friendlyDate(order.delivery_date)}</span>}
@@ -416,6 +433,11 @@ function DispatchTab(props: any) {
                       </span>
                     </div>
 
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, background: isAwaiting ? S.amberLight : S.sageLight, borderRadius: 10, padding: '9px 12px', marginBottom: 10 }}>
+                      <span style={{ fontSize: 15 }}>🕐</span>
+                      <span style={{ fontSize: 13, fontWeight: 700, color: S.forest }}>Deliver around {prettyTime(order.delivery_time, order.meal_type)}</span>
+                      <span style={{ fontSize: 12, color: S.stone }}>· {order.meal_type}</span>
+                    </div>
                     <div style={{ background: S.cream, borderRadius: 10, padding: '12px 14px', marginBottom: 14, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8 }}>
                       <div>
                         <div style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.08em', textTransform: 'uppercase', marginBottom: 3 }}>Delivery address</div>
