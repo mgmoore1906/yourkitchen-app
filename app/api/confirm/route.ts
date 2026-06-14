@@ -2,6 +2,7 @@ import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
 import { notifyCoordinatorDeclined } from '@/lib/coordinator-notify'
+import { notifyMealConfirmed } from '@/lib/meal-confirmed-notify'
 
 export const dynamic = 'force-dynamic'
 
@@ -60,7 +61,7 @@ export async function POST(request: Request) {
 
     const { data: proposal } = await supabase
       .from('meal_proposals')
-      .select('*, claims(calendar_date_id, guest_coordinators(full_name, email, phone)), kitchens:kitchen_id(name, slug)')
+      .select('*, claims(calendar_date_id, guest_coordinators(full_name, email, phone)), kitchens:kitchen_id(name, slug, recipient_id)')
       .eq('id', proposal_id)
       .single()
 
@@ -98,6 +99,39 @@ if (action === 'confirm') {
   ])
 
   await stripe.paymentIntents.capture(paymentIntentId)
+
+  // Email the recipient a calendar (.ics) so they can add this meal to Google/
+  // Apple/Outlook in one tap, right from their inbox. Best-effort — the confirm
+  // and capture already succeeded above, so this never blocks the response.
+  try {
+    const k = (proposal as any).kitchens
+    const recipientId = k?.recipient_id
+    let recipientEmail: string | null = null
+    if (recipientId) {
+      try { const { data: au } = await supabase.auth.admin.getUserById(recipientId); recipientEmail = au?.user?.email || null } catch {}
+    }
+    if (recipientEmail) {
+      const items = Array.isArray((proposal as any).meal_items) ? (proposal as any).meal_items : []
+      const mealName = (proposal as any).meal_name
+        || (items.length ? items.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : 'a meal')
+      const dl = (proposal as any).delivery_date
+        ? new Date((proposal as any).delivery_date + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+        : null
+      await notifyMealConfirmed({
+        recipientEmail,
+        recipientName: (k?.name || '').split(/[\s']/)[0] || null,
+        coordinatorName: (proposal as any).coordinator_name || proposal.claims?.guest_coordinators?.full_name || null,
+        mealName,
+        restName: (proposal as any).restaurant_name || null,
+        dateLabel: dl,
+        deliveryDate: (proposal as any).delivery_date || null,
+        mealType: (proposal as any).meal_type || null,
+        deliveryTime: (delivery_time || (proposal as any).delivery_time) || null,
+        proposalId: proposal_id,
+      })
+    }
+  } catch (err: any) { console.error('Meal-confirmed email failed (confirming anyway):', err?.message) }
+
   return NextResponse.json({ success: true })
 }
 
