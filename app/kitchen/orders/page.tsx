@@ -25,6 +25,7 @@ type Proposal = {
   doordash_tracking_url: string | null
   doordash_delivery_id: string | null
   doordash_status: string | null
+  payment_intent_id: string | null
 }
 
 function formatDate(s: string) {
@@ -57,7 +58,7 @@ export default function OrdersPage() {
 
     const { data: proposalData } = await supabase
       .from('meal_proposals')
-      .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, doordash_status, proposed_at')
+      .select('id, coordinator_name, restaurant_name, meal_name, delivery_date, meal_type, status, coordinator_note, doordash_tracking_url, doordash_delivery_id, doordash_status, proposed_at, payment_intent_id')
       .eq('kitchen_id', kitchens[0].id)
       .order('proposed_at', { ascending: false })
     setProposals((proposalData || []) as Proposal[])
@@ -70,9 +71,9 @@ export default function OrdersPage() {
   p.status === 'confirmed' && p.doordash_status !== 'cancelled')
   const cancelledDeliveries = proposals.filter(p =>
   p.status === 'confirmed' && p.doordash_status === 'cancelled')
-  const pending   = proposals.filter(p => p.status === 'pending')
+  const pending   = proposals.filter(p => p.status === 'pending' && !!p.payment_intent_id)
   const previous = proposals.filter(p => 
-  ['delivered','declined','expired','cancelled','failed'].includes(p.status)
+  ['delivered','declined','cancelled','failed'].includes(p.status)
 ).concat(cancelledDeliveries)
   const totalPending = pending.length + onTheWay.length
 
@@ -93,11 +94,6 @@ export default function OrdersPage() {
           <div style={{ fontSize: 8, fontWeight: 500, letterSpacing: 5, color: S.sageMid, textTransform: 'uppercase' }}>Your</div>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 20, fontWeight: 500, color: S.forest }}>Kitchen</div>
         </div>
-        {totalPending > 0 && (
-          <div style={{ marginLeft: 'auto', background: S.amber, color: S.white, borderRadius: 20, padding: '4px 12px', fontSize: 12, fontWeight: 700 }}>
-            {totalPending} need{totalPending === 1 ? 's' : ''} attention
-          </div>
-        )}
       </nav>
 
       <div style={{ maxWidth: 580, margin: '0 auto', padding: '28px 24px 80px' }}>
