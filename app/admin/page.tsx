@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, Fragment } from 'react'
 import { createClient } from '@/lib/supabase/client'
 
 const S = {
@@ -355,7 +355,7 @@ function AnalyticsTab() {
                 const underpaid = totalC > 0 && totalC < foodCents + tipC
                 const isOpen = openOrder === p.id
                 return (
-                <React.Fragment key={p.id}>
+                <Fragment key={p.id}>
                 <tr onClick={() => setOpenOrder(o => o === p.id ? null : p.id)} style={{ borderBottom: `0.5px solid ${S.border}`, background: i % 2 === 0 ? S.white : S.cream, cursor: 'pointer' }}>
                   <td style={{ padding: '8px 10px', color: S.stone, whiteSpace: 'nowrap' }}><span style={{ color: S.sage, marginRight: 4 }}>{isOpen ? '▾' : '▸'}</span>{p.delivery_date || '—'}</td>
                   <td style={{ padding: '8px 10px' }}>{MEAL_EMOJI[p.meal_type] || ''} {p.meal_name || '—'}</td>
@@ -387,7 +387,7 @@ function AnalyticsTab() {
                   </td>
                 </tr>
                 )}
-                </React.Fragment>
+                </Fragment>
                 )
               })}
             </tbody>
