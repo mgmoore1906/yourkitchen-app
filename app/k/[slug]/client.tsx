@@ -174,7 +174,7 @@ const isPast=ds<todayStr,isToday=ds===todayStr
 const slots=dateMap[ds]||[],has=slots.length>0
 const isSel=slots.some((s:any)=>selectedIds.has(s.id))
 return (
-<button key={i} onClick={()=>{ if(!has||isPast)return;slots.forEach((s:any)=>onToggle(s)) }} disabled={isPast||!has}
+<button key={i} onClick={()=>{ if(!has||isPast)return;const allSel=slots.every((s:any)=>selectedIds.has(s.id));slots.forEach((s:any)=>{ if(allSel||!selectedIds.has(s.id)) onToggle(s) }) }} disabled={isPast||!has}
 style={{ background:isSel?S.amberLight:has?'#F8FAF8':'transparent',border:isSel?`2px solid ${S.amber}`:isToday?`2px solid ${S.amber}`:has?`1px solid ${S.amberBorder}`:'1px solid transparent',borderRadius:8,padding:'clamp(3px,1.2vw,6px) 2px',minHeight:'clamp(44px,11vw,54px)',cursor:has&&!isPast?'pointer':'default',display:'flex',flexDirection:'column',alignItems:'center',justifyContent:'center',gap:2,fontFamily:"'DM Sans',sans-serif",opacity:isPast?0.35:1,transition:'all 0.1s' }}>
 <span style={{ fontSize:12,fontWeight:isToday?700:500,color:isSel?S.amber:S.forest,lineHeight:1 }}>{day}</span>
 {has&&<div style={{ display:'flex',gap:2 }}>{slots.map((s:any,si:number)=>{const mc=MEAL_TYPE_COLORS[s.meal_type]||MEAL_TYPE_COLORS.dinner;return<div key={si} style={{ width:6,height:6,borderRadius:'50%',background:selectedIds.has(s.id)?mc.color:'#C8D5CA' }}/>})}</div>}
@@ -466,14 +466,14 @@ const removeSlot = (id:string) => setSelectedIds(prev=>{ const n=new Set(prev);n
 
 const buildGroups = (): GroupSelection[] => {
 const order=['breakfast','lunch','dinner']
-const map:Record<string,any[]>={}
-selectedSlots.forEach((s:any)=>{ const mt=s.meal_type||'dinner';if(!map[mt])map[mt]=[];map[mt].push(s) })
-return order.filter(mt=>map[mt]).map(mt=>({ mealType:mt,slots:map[mt],restaurant:null,cart:[],customMeal:'',customPrice:'',customCategory:'adult' as const }))
+return selectedSlots.slice().sort((a:any,b:any)=> String(a.date).localeCompare(String(b.date)) || order.indexOf(a.meal_type)-order.indexOf(b.meal_type)).map((s:any)=>({ mealType:s.meal_type||'dinner',slots:[s],restaurant:null,cart:[],customMeal:'',customPrice:'',customCategory:'adult' as const }))
 }
 
 const handleProceed = () => { const g=buildGroups(); setGroups(g); setCurrentGroupIdx(0); goToStep(2, 0) }
 
 const currentGroup = groups[currentGroupIdx]
+const gDate = (g:any) => g?.slots?.[0] ? new Date(g.slots[0].date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'}) : ''
+const gShort = (g:any) => g?.slots?.[0] ? new Date(g.slots[0].date+'T12:00:00').toLocaleDateString('en-US',{month:'numeric',day:'numeric'}) : ''
 const updateGroup = (i:number,u:Partial<GroupSelection>)=>setGroups(prev=>prev.map((g,idx)=>idx===i?{...g,...u}:g))
 
 // Composition for a group (slot override → kitchen default)
@@ -622,7 +622,7 @@ return (
 )}
 {selectedSlots.length>0&&(
 <div style={{ background:S.amberLight,borderRadius:14,padding:'14px 16px',marginBottom:16,border:`1px solid ${S.amberBorder}` }}>
-<p style={{ fontSize:11,fontWeight:600,color:S.amber,letterSpacing:1.5,textTransform:'uppercase',margin:'0 0 10px' }}>{selectedSlots.length} date{selectedSlots.length>1?'s':''} selected</p>
+<div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:10 }}><p style={{ fontSize:11,fontWeight:600,color:S.amber,letterSpacing:1.5,textTransform:'uppercase',margin:0 }}>{selectedSlots.length} date{selectedSlots.length>1?'s':''} selected</p><button onClick={()=>setSelectedIds(new Set())} style={{ background:'none',border:'none',cursor:'pointer',color:S.walnut,fontSize:11,fontWeight:600,textDecoration:'underline',textUnderlineOffset:2,padding:'2px 4px',fontFamily:"'DM Sans',sans-serif" }}>Clear all</button></div>
 {selectedSlots.map((slot:any)=>{
 const mc=MEAL_TYPE_COLORS[slot.meal_type]||MEAL_TYPE_COLORS.dinner
 const d=new Date(slot.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})
@@ -667,13 +667,13 @@ return (
 {groups.map((g,i)=>{const mc=MEAL_TYPE_COLORS[g.mealType]||MEAL_TYPE_COLORS.dinner;const done=i<currentGroupIdx,cur=i===currentGroupIdx;return(
 <div key={i} style={{ flex:1 }}>
 <div style={{ height:4,borderRadius:4,background:done||cur?mc.color:S.border,opacity:cur?1:done?1:0.4,transition:'all 0.3s' }}/>
-<p style={{ fontSize:10,color:cur?mc.color:S.stone,fontWeight:cur?600:400,margin:'4px 0 0',textAlign:'center' }}>{MEAL_TYPE_LABELS[g.mealType]}</p>
+<p style={{ fontSize:10,color:cur?mc.color:S.stone,fontWeight:cur?600:400,margin:'4px 0 0',textAlign:'center' }}>{MEAL_TYPE_LABELS[g.mealType]?.split(' ')[1]||g.mealType}<br/>{gShort(g)}</p>
 </div>
 )})}
 </div>
 </div>
 )}
-<h2 style={h2}>{groups.length>1?`Choose a ${currentGroup.mealType} restaurant`:'Choose a restaurant'}</h2>
+<h2 style={h2}>{groups.length>1?`${MEAL_TYPE_LABELS[currentGroup.mealType]} · ${gDate(currentGroup)}`:'Choose a restaurant'}</h2>
 <p style={sub}>{recipientFirst}'s saved favorites — tap to expand</p>
 
 {/* Household composition chip */}
@@ -869,7 +869,7 @@ return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 
 <div style={{ display:'flex',gap:10,marginTop:16 }}>
 <button onClick={()=>{ if(currentGroupIdx>0){setCurrentGroupIdx(i=>i-1)}else{goToStep(1)} }} style={back}>← Back</button>
 <button onClick={handleGroupNext} disabled={!groupReady(currentGroup)} style={{ ...btn(!groupReady(currentGroup)),flex:1 }}>
-{currentGroupIdx<groups.length-1?`Next: ${MEAL_TYPE_LABELS[groups[currentGroupIdx+1]?.mealType]} →`:'Next: Your Info →'}
+{currentGroupIdx<groups.length-1?`Next: ${MEAL_TYPE_LABELS[groups[currentGroupIdx+1]?.mealType]} · ${gShort(groups[currentGroupIdx+1])} →`:'Next: Your Info →'}
 </button>
 </div>
 </>)}
@@ -882,7 +882,7 @@ return msg ? <p style={{ fontSize:12,color:S.amber,fontWeight:500,margin:'8px 0 
 <div style={{ background:S.amberLight,borderRadius:14,padding:'16px',marginBottom:20 }}>
 {groups.map((g,i)=>{const mc=MEAL_TYPE_COLORS[g.mealType]||MEAL_TYPE_COLORS.dinner;return(
 <div key={g.mealType} style={{ paddingBottom:i<groups.length-1?10:0,marginBottom:i<groups.length-1?10:0,borderBottom:i<groups.length-1?'1px solid #C8DDD0':'none' }}>
-<span style={{ background:mc.bg,color:mc.color,borderRadius:20,fontSize:10,fontWeight:600,padding:'2px 8px',border:`1px solid ${mc.color}`,display:'inline-block',marginBottom:6 }}>{MEAL_TYPE_LABELS[g.mealType]} · {g.slots.length} date{g.slots.length>1?'s':''}</span>
+<span style={{ background:mc.bg,color:mc.color,borderRadius:20,fontSize:10,fontWeight:600,padding:'2px 8px',border:`1px solid ${mc.color}`,display:'inline-block',marginBottom:6 }}>{MEAL_TYPE_LABELS[g.mealType]} · {gDate(g)}</span>
 <div style={{ fontSize:12,color:S.forest,fontWeight:600,marginBottom:4 }}>{g.slots.map((sl:any)=>new Date(sl.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short',month:'short',day:'numeric'})).join(' · ')}</div>
 <div style={{ fontSize:12,color:S.walnut,fontWeight:300,marginBottom:4 }}>{g.restaurant?.name}</div>
 {g.cart.map((c,ci)=>(
@@ -983,7 +983,7 @@ const sub=cartTotal(g.cart)*g.slots.length
 if(!sub)return null
 return (
 <div key={g.mealType} style={{ display:'flex',justifyContent:'space-between',marginBottom:4 }}>
-<span style={{ fontSize:13,color:S.stone }}>{MEAL_TYPE_LABELS[g.mealType]?.split(' ')[1]}: {cartCount(g.cart)} item{cartCount(g.cart)>1?'s':''}{g.slots.length>1?` × ${g.slots.length}`:''}</span>
+<span style={{ fontSize:13,color:S.stone }}>{MEAL_TYPE_LABELS[g.mealType]?.split(' ')[1]}{g.slots[0]?` · ${gShort(g)}`:''}: {cartCount(g.cart)} item{cartCount(g.cart)>1?'s':''}</span>
 <span style={{ fontSize:13,color:S.forest,fontWeight:500 }}>${sub.toFixed(2)}</span>
 </div>
 )
