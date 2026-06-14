@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     .select(`
       id, status, delivery_status, meal_type, delivery_date, delivery_time, is_pickup,
       delivery_preference, delivery_note, coordinator_name,
-      restaurant_name, meal_name, meal_items, tip_amount,
+      restaurant_name, meal_name, meal_items, tip_amount, stripe_amount,
       doordash_tracking_url, doordash_delivery_id,
       kitchen_restaurants(name, address, phone),
       kitchens:kitchen_id(name, address)
