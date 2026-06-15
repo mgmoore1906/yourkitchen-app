@@ -34,8 +34,8 @@ lat: number | null; lng: number | null
 rating: number | null; is_open: boolean | null
 }
 
-type ParsedItem = { name: string; price: number; category: 'adult' | 'kids'; note: string }
-type ReviewItem = { name: string; price: string; category: 'adult' | 'kids'; note: string; sel?: boolean }
+type ParsedItem = { name: string; price: number; category: 'adult' | 'kids'; note: string; market?: boolean }
+type ReviewItem = { name: string; price: string; category: 'adult' | 'kids'; note: string; sel?: boolean; market?: boolean }
 
 function distanceFromKitchen(r: { lat: number | null; lng: number | null }, kitLat: number, kitLng: number): number | null {
 if (!r.lat || !r.lng) return null
@@ -345,7 +345,7 @@ const autoImportMenu = async (restaurantId: string, placeId: string | null, name
       })
       const data = await res.json()
       if (res.ok && data?.success && Array.isArray(data.items) && data.items.length > 0) {
-        setReviewItems(p => ({ ...p, [restaurantId]: (data.items as ParsedItem[]).map((i) => ({ name: i.name, price: (Number(i.price) || 0).toFixed(2), category: i.category, note: i.note })) }))
+        setReviewItems(p => ({ ...p, [restaurantId]: (data.items as ParsedItem[]).map((i) => ({ name: i.name, price: (Number(i.price) || 0).toFixed(2), category: i.category, note: i.note, sel: true, market: !!i.market })) }))
         setAutofillOpen(p => ({ ...p, [restaurantId]: false }))
       }
     }
@@ -376,7 +376,7 @@ setAutofillError(p => ({ ...p, [restaurantId]: data.error || 'Could not read tha
 } else if (!Array.isArray(data.items) || data.items.length === 0) {
 setAutofillError(p => ({ ...p, [restaurantId]: 'No menu items found there. Try a clearer photo or a different link.' }))
 } else {
-setReviewItems(p => ({ ...p, [restaurantId]: (data.items as ParsedItem[]).map((i) => ({ name: i.name, price: (Number(i.price) || 0).toFixed(2), category: i.category, note: i.note })) }))
+setReviewItems(p => ({ ...p, [restaurantId]: (data.items as ParsedItem[]).map((i) => ({ name: i.name, price: (Number(i.price) || 0).toFixed(2), category: i.category, note: i.note, sel: true, market: !!i.market })) }))
 setAutofillOpen(p => ({ ...p, [restaurantId]: false }))
 }
 } catch {
@@ -663,9 +663,10 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, pa
 style={{ flex: 1, minWidth: 0, padding: '7px 9px', borderRadius: 8, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 <div style={{ position: 'relative', flexShrink: 0 }}>
 <span style={{ position: 'absolute', left: 8, top: '50%', transform: 'translateY(-50%)', fontSize: 12, color: S.stone }}>$</span>
-<input type="text" inputMode="decimal" value={it.price} onChange={e => updateReviewItem(r.id, idx, { price: e.target.value })} onBlur={e => updateReviewItem(r.id, idx, { price: (parseFloat(e.target.value) || 0).toFixed(2) })}
-style={{ width: 84, padding: '7px 6px 7px 18px', borderRadius: 8, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
+<input type="text" inputMode="decimal" placeholder={it.market ? 'Market' : undefined} value={it.market && (it.price === '0.00' || it.price === '0' || !it.price) ? '' : it.price} onChange={e => updateReviewItem(r.id, idx, { price: e.target.value })} onBlur={e => updateReviewItem(r.id, idx, { price: (parseFloat(e.target.value) || 0).toFixed(2) })}
+style={{ width: 84, padding: '7px 6px 7px 18px', borderRadius: 8, border: `1px solid ${it.market ? S.amber : S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 </div>
+{it.market && <InfoTip label="Market rate" text={"The restaurant prices this dish daily \u2014 it shows as \u201cMKT\u201d or \u201cMarket\u201d instead of a set price. Enter today\u2019s price so your village can order it."} />}
 <button onClick={() => removeReviewItem(r.id, idx)} aria-label="Drop this item"
 style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A7ADA3', fontSize: 13, padding: '2px 3px', flexShrink: 0 }}>✕</button>
 </div>
