@@ -10,20 +10,20 @@ function e164(raw: string): string | null {
   return null
 }
 
-// Verifies the SMS code via Twilio Verify. Returns { ok: true } only when the
-// code is approved. Twilio throws after too many attempts / on expiry — we
-// surface that as a non-approved result so the UI can prompt a resend.
+// Sends a one-time SMS code via Twilio Verify (Twilio manages the code, expiry,
+// and rate limiting — no codes stored on our side).
 export async function POST(request: Request) {
   try {
-    const { phone, code } = await request.json()
+    const { phone } = await request.json()
     const to = e164(phone || '')
-    if (!to || !code) return NextResponse.json({ ok: false, error: 'missing' }, { status: 400 })
+    if (!to) return NextResponse.json({ ok: false, error: 'invalid_phone' }, { status: 400 })
     const sid = process.env.TWILIO_VERIFY_SERVICE_SID
     if (!sid) return NextResponse.json({ ok: false, error: 'not_configured' }, { status: 500 })
     const client = twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!)
-    const check = await client.verify.v2.services(sid).verificationChecks.create({ to, code: String(code) })
-    return NextResponse.json({ ok: check.status === 'approved' })
+    await client.verify.v2.services(sid).verifications.create({ to, channel: 'sms' })
+    return NextResponse.json({ ok: true })
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || 'check_failed' })
+    // Surface the real Twilio error (code + message) so failures are diagnosable.
+    return NextResponse.json({ ok: false, error: e?.message || 'request_failed', code: e?.code ?? null, twStatus: e?.status ?? null })
   }
 }
