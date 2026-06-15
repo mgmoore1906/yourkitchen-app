@@ -4,12 +4,12 @@ export const runtime = 'nodejs'
 export const maxDuration = 60
 
 // Output shape maps 1:1 onto kitchen_restaurants' parallel meal arrays.
-type ParsedItem = { name: string; price: number; category: 'adult' | 'kids'; note: string }
+type ParsedItem = { name: string; price: number; category: 'adult' | 'kids'; note: string; market: boolean }
 
 const SYSTEM = `You extract orderable food items from a restaurant menu (given as text, raw JSON from an ordering system, or an image).
 
 Return ONLY valid JSON, no prose and no markdown fences:
-{"items":[{"name": string, "price": number, "category": "adult"|"kids", "note": string}]}
+{"items":[{"name": string, "price": number, "category": "adult"|"kids", "note": string, "market": boolean}]}
 
 Rules:
 - price: dollars as a number (e.g. 12.99). If no price is shown, use 0.
@@ -19,6 +19,7 @@ Rules:
 - SIZE / PORTION variants: when an item lists several prices for sizes or portions (Small/Medium/Large, cup/bowl, half/full, 6pc/12pc/24pc, etc.), output exactly ONE entry for it, priced at the SMALLEST size / lowest portion — the base price to order it. Never split it into multiple entries and never skip the item.
 - "+$X" add-on or modifier prices (extra protein, toppings, sides, "add guac +2") are NOT the item's price. Flatten them into a named variant per the FLATTEN rule above, or ignore them — never price an item at a bare add-on amount.
 - CRITICAL, no false zeros: if a dollar amount appears anywhere on or beside an item, that item's price MUST be greater than 0 — use the smallest real price you can see for it. Only output 0 when the item genuinely shows no price at all.
+- MARKET PRICE: when an item's price is shown as a market-rate label instead of a number — "MKT", "Mkt", "Market", "Market Price", "Market Rate", "Mkt Price", "P/A", or "Priced Daily" — set "market": true and "price": 0 (its price genuinely varies day to day). For every item that has a normal numeric price, set "market": false. Never infer market just because a price is missing — only an explicit market-rate label counts.
 - note: a short clarifier, or "" (empty string). Never null.
 - Skip section headers, pure drink lists, and anything not orderable as a meal. Cap at 80 items.
 - Only include prepared food and drinks that are made to order and served for immediate pickup or delivery. EXCLUDE retail merchandise and packaged goods: bottled or jarred seasonings, spice blends, rubs, coatings, bottled sauces, pancake/waffle or other dry mixes, cooking kits, shippable grocery items, gift cards, cookbooks, and branded apparel or goods (shirts, hoodies, sweatshirts, hats, beanies, mugs, tumblers, totes, keychains). These are store products, not meals — never output them.
@@ -28,7 +29,8 @@ Rules:
 Worked examples (multi-price items):
 "Nachos  Small 9 / Loaded 13 / Family 18"  ->  {"name":"Nachos","price":9,"category":"adult","note":""}
 "Tortilla Soup  Cup 5  Bowl 8"  ->  {"name":"Tortilla Soup","price":5,"category":"adult","note":""}
-"Burrito 10 (+3 steak, +2 guac)"  ->  {"name":"Burrito","price":10,"category":"adult","note":""}`
+"Burrito 10 (+3 steak, +2 guac)"  ->  {"name":"Burrito","price":10,"category":"adult","note":"","market":false}
+"Market Catch  MKT"  ->  {"name":"Market Catch","price":0,"category":"adult","note":"","market":true}`
 
 // Online-ordering platforms whose pages usually expose the full priced menu in source/JSON.
 // NOTE: order.online is deliberately excluded — it's DoorDash's Storefront product, i.e. the
@@ -97,6 +99,7 @@ async function extractMenu(args: {
       price: Math.max(0, Number(i?.price) || 0),
       category: i?.category === 'kids' ? ('kids' as const) : ('adult' as const),
       note: String(i?.note || '').slice(0, 140),
+      market: i?.market === true,
     }))
     .filter((i) => i.name.length > 0)
     .slice(0, 80)
