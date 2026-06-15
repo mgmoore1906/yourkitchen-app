@@ -66,6 +66,16 @@ dietary_restrictions: [] as string[],
 street: '', apt: '', city: '', state: 'TX', zip: '',
 })
 const [addressConfirmed, setAddressConfirmed] = useState(false)
+const [addrVerified, setAddrVerified] = useState(false)
+const [verifiedAddress, setVerifiedAddress] = useState('')
+const [verifying, setVerifying] = useState(false)
+const [verifyError, setVerifyError] = useState('')
+const [otpSent, setOtpSent] = useState(false)
+const [otpCode, setOtpCode] = useState('')
+const [otpSending, setOtpSending] = useState(false)
+const [otpChecking, setOtpChecking] = useState(false)
+const [phoneVerified, setPhoneVerified] = useState(false)
+const [otpError, setOtpError] = useState('')
 const [selectedTier, setSelectedTier] = useState('trial')
 
 const [dateSlots, setDateSlots] = useState<DateSlots>({})
@@ -153,6 +163,7 @@ load()
 }, [])
 
 const update = (field: string, value: any) => setForm(prev => ({ ...prev, [field]: value }))
+const updateAddr = (field: string, value: any) => { setForm(prev => ({ ...prev, [field]: value })); setAddrVerified(false); setAddressConfirmed(false); setVerifyError('') }
 const toggleDiet = (d: string) => setForm(prev => ({
 ...prev,
 dietary_restrictions: prev.dietary_restrictions.includes(d) ? prev.dietary_restrictions.filter(x => x !== d) : [...prev.dietary_restrictions, d],
@@ -167,12 +178,45 @@ return { ...prev, [dateStr]: updated }
 }
 
 const address = `${form.street}${form.apt ? ` ${form.apt}` : ''}, ${form.city}, ${form.state} ${form.zip}`.replace(/^,\s*/, '').trim()
+const verifyAddress = async () => {
+  setVerifying(true); setVerifyError(''); setAddrVerified(false)
+  try {
+    const res = await fetch('/api/validate-address', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ address }) })
+    const data = await res.json()
+    if (data.ok) { setVerifiedAddress(data.formatted); setAddrVerified(true) }
+    else if (data.reason === 'imprecise') { setVerifyError('We found a close match but not an exact address. Add the house or building number so a driver can find it.') }
+    else { setVerifyError("We couldn't find that address. Double-check the street, city, and ZIP — it needs to be a real, complete delivery address.") }
+  } catch { setVerifyError('Could not check the address right now. Please try again.') }
+  setVerifying(false)
+}
+const sendOtp = async () => {
+  setOtpSending(true); setOtpError('')
+  try {
+    const res = await fetch('/api/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: form.phone }) })
+    const data = await res.json()
+    if (data.ok) { setOtpSent(true) }
+    else setOtpError(data.error === 'not_configured' ? "Phone verification isn't switched on yet — please contact support." : 'Could not send the code. Check the number and try again.')
+  } catch { setOtpError('Could not send the code right now. Please try again.') }
+  setOtpSending(false)
+}
+const checkOtp = async () => {
+  setOtpChecking(true); setOtpError('')
+  try {
+    const res = await fetch('/api/otp/check', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: form.phone, code: otpCode }) })
+    const data = await res.json()
+    if (data.ok) { setPhoneVerified(true); setOtpError('') }
+    else setOtpError("That code didn't match. Double-check it, or resend a new one.")
+  } catch { setOtpError('Could not verify right now. Please try again.') }
+  setOtpChecking(false)
+}
 const calendarDatesPayload = Object.entries(dateSlots).flatMap(([date, meals]) => meals.map(meal_type => ({ date, meal_type })))
 const totalDateCount = Object.keys(dateSlots).length
 const totalSlotCount = calendarDatesPayload.length
 
 const addressValid = form.street.trim().length > 3 && form.city.trim() && form.zip.trim().length >= 5
-const profileValid = form.full_name.trim() && form.phone.trim() && form.sms_consent && !!form.use_case
+const phoneDigits = form.phone.replace(/\D/g, '')
+const phoneValid = (phoneDigits.length === 10 || (phoneDigits.length === 11 && phoneDigits.startsWith('1'))) && !/^(\d)\1+$/.test(phoneDigits)
+const profileValid = !!form.full_name.trim() && phoneValid && phoneVerified && form.sms_consent && !!form.use_case
 
 const allSelectedWindowKeys = [...breakfastWindows, ...lunchWindows, ...dinnerWindows]
 const hasWindows = allSelectedWindowKeys.length > 0
@@ -195,7 +239,7 @@ user_id: user.id,
 full_name: form.full_name.trim(),
 phone: form.phone,
 sms_consent: form.sms_consent,
-address,
+address: verifiedAddress || address,
 street: form.street, apt: form.apt, city: form.city, state: form.state, zip: form.zip,
 household_adults: form.household_adults,
 household_children: form.household_children,
@@ -294,8 +338,36 @@ Sign out
 <input value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="Megan Pete" style={inputSt} />
 
 <label style={lbl}>Phone number</label>
-<input type="tel" value={form.phone} onChange={e => update('phone', e.target.value)} placeholder="(713) 221-6000" style={inputSt} />
-<p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '-8px 0 16px' }}>Used only for Y/N meal confirmations via SMS.</p>
+<input type="tel" value={form.phone} onChange={e => { update('phone', e.target.value); setOtpSent(false); setPhoneVerified(false); setOtpError(''); setOtpCode('') }} placeholder="(713) 221-6000" style={inputSt} />
+<p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '-8px 0 4px' }}>Used only for Y/N meal confirmations via SMS.</p>
+{form.phone.trim() && !phoneValid && (<p style={{ fontSize: 11, color: '#B94040', fontWeight: 400, margin: '0 0 16px' }}>Enter a valid 10-digit US mobile number we can text.</p>)}
+{(!form.phone.trim() || phoneValid) && <div style={{ height: 12 }} />}
+{phoneValid && !phoneVerified && (
+<div style={{ background: S.sageLight, border: `1px solid #C8DDD0`, borderRadius: 12, padding: '14px 16px', margin: '0 0 16px' }}>
+{!otpSent ? (
+<button onClick={sendOtp} disabled={otpSending} style={{ width: '100%', padding: 11, background: otpSending ? S.border : S.white, color: S.sage, border: `1.5px solid ${S.sage}`, borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: otpSending ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+{otpSending ? 'Sending…' : '📲 Text me a verification code'}
+</button>
+) : (
+<>
+<p style={{ fontSize: 12.5, color: S.forest, fontWeight: 500, margin: '0 0 8px' }}>Enter the 6-digit code we texted to {form.phone}.</p>
+<div style={{ display: 'flex', gap: 8 }}>
+<input value={otpCode} onChange={e => setOtpCode(e.target.value.replace(/\D/g, '').slice(0, 6))} inputMode="numeric" placeholder="123456" maxLength={6} style={{ flex: 1, padding: '10px 12px', borderRadius: 10, border: `1px solid ${S.border}`, fontSize: 16, letterSpacing: '0.15em', fontFamily: "'DM Sans',sans-serif", color: S.forest, outline: 'none' }} />
+<button onClick={checkOtp} disabled={otpCode.length < 6 || otpChecking} style={{ padding: '10px 18px', background: (otpCode.length < 6 || otpChecking) ? S.border : S.sage, color: S.white, border: 'none', borderRadius: 10, fontSize: 13.5, fontWeight: 600, cursor: (otpCode.length < 6 || otpChecking) ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+{otpChecking ? '…' : 'Verify'}
+</button>
+</div>
+<button onClick={sendOtp} disabled={otpSending} style={{ background: 'none', border: 'none', color: S.sage, fontSize: 12, fontWeight: 600, cursor: 'pointer', padding: '8px 0 0', fontFamily: "'DM Sans',sans-serif" }}>{otpSending ? 'Resending…' : 'Resend code'}</button>
+</>
+)}
+{otpError && <p style={{ fontSize: 11.5, color: '#B94040', fontWeight: 400, margin: '8px 0 0' }}>{otpError}</p>}
+</div>
+)}
+{phoneVerified && (
+<div style={{ display: 'flex', alignItems: 'center', gap: 7, margin: '0 0 16px', color: S.sage, fontSize: 13, fontWeight: 600 }}>
+<span style={{ fontSize: 15 }}>✓</span> Phone verified
+</div>
+)}
 
 <div style={{ background: S.sageLight, border: `1.5px solid ${S.border}`, borderRadius: 10, padding: 16, marginBottom: 20 }}>
 <label style={{ display: 'flex', alignItems: 'flex-start', gap: 12, cursor: 'pointer' }}>
@@ -355,41 +427,51 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 <p style={sub}>Double-check it's right — we use it to find restaurants near you.</p>
 
 <label style={lbl}>Street address</label>
-<input value={form.street} onChange={e => update('street', e.target.value)} placeholder="414 Milam Street" style={inputSt} />
+<input value={form.street} onChange={e => updateAddr('street', e.target.value)} placeholder="414 Milam Street" style={inputSt} />
 
 <label style={lbl}>Apt / Suite <span style={{ fontWeight: 300, textTransform: 'none', letterSpacing: 0 }}>(optional)</span></label>
-<input value={form.apt} onChange={e => update('apt', e.target.value)} placeholder="Apt 4B" style={inputSt} />
+<input value={form.apt} onChange={e => updateAddr('apt', e.target.value)} placeholder="Apt 4B" style={inputSt} />
 
 <label style={lbl}>City</label>
-<input value={form.city} onChange={e => update('city', e.target.value)} placeholder="Houston" style={inputSt} />
+<input value={form.city} onChange={e => updateAddr('city', e.target.value)} placeholder="Houston" style={inputSt} />
 
 <div style={{ display: 'flex', gap: 12 }}>
 <div style={{ flex: 1 }}>
 <label style={lbl}>State</label>
-<select value={form.state} onChange={e => update('state', e.target.value)} style={inputSt}>
+<select value={form.state} onChange={e => updateAddr('state', e.target.value)} style={inputSt}>
 {US_STATES.map(s => <option key={s}>{s}</option>)}
 </select>
 </div>
 <div style={{ flex: 1 }}>
 <label style={lbl}>ZIP</label>
-<input value={form.zip} onChange={e => update('zip', e.target.value)} placeholder="77002" maxLength={5} style={inputSt} />
+<input value={form.zip} onChange={e => updateAddr('zip', e.target.value)} placeholder="77002" maxLength={5} style={inputSt} />
 </div>
 </div>
 
-{addressValid && (
+{addressValid && !addrVerified && (
+<button onClick={verifyAddress} disabled={verifying} style={{ width: '100%', padding: 13, marginBottom: 14, background: verifying ? S.border : S.sageLight, color: S.sage, border: `1.5px solid ${S.sage}`, borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: verifying ? 'default' : 'pointer', fontFamily: "'DM Sans',sans-serif" }}>
+{verifying ? 'Checking address…' : '📍 Verify delivery address'}
+</button>
+)}
+{verifyError && (
+<div style={{ background: '#FDE8E8', border: '1px solid #B94040', borderRadius: 12, padding: '12px 14px', marginBottom: 14 }}>
+<p style={{ fontSize: 13, color: '#B94040', margin: 0, lineHeight: 1.5 }}>⚠️ {verifyError}</p>
+</div>
+)}
+{addrVerified && (
 <div style={{ background: S.sageLight, border: `1px solid #C8DDD0`, borderRadius: 12, padding: '14px 16px', margin: '4px 0 20px' }}>
-<p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 6px' }}>We'll deliver to</p>
-<p style={{ fontSize: 14, color: S.forest, fontWeight: 500, margin: '0 0 10px', lineHeight: 1.5 }}>{address}</p>
+<p style={{ fontSize: 11, fontWeight: 700, color: S.sage, letterSpacing: '0.06em', textTransform: 'uppercase', margin: '0 0 6px' }}>✓ Verified — we'll deliver to</p>
+<p style={{ fontSize: 14, color: S.forest, fontWeight: 500, margin: '0 0 10px', lineHeight: 1.5 }}>{verifiedAddress}</p>
 <label style={{ display: 'flex', alignItems: 'center', gap: 8, cursor: 'pointer' }}>
 <input type="checkbox" checked={addressConfirmed} onChange={e => setAddressConfirmed(e.target.checked)} style={{ width: 16, height: 16, accentColor: S.sage }} />
-<span style={{ fontSize: 13, color: '#2D5240', fontWeight: 500 }}>Yes, this address is correct</span>
+<span style={{ fontSize: 13, color: '#2D5240', fontWeight: 500 }}>Yes, deliver here</span>
 </label>
 </div>
 )}
 
 <div style={{ display: 'flex', gap: 10 }}>
 <button onClick={() => setStep('profile')} style={btnBack}>← Back</button>
-<button onClick={() => setStep('calendar')} disabled={!addressValid || !addressConfirmed} style={{ ...btnPrimary(!addressValid || !addressConfirmed), flex: 1 }}>Next: Set My Calendar →</button>
+<button onClick={() => setStep('calendar')} disabled={!addrVerified || !addressConfirmed} style={{ ...btnPrimary(!addressValid || !addressConfirmed), flex: 1 }}>Next: Set My Calendar →</button>
 </div>
 </div>
 )}
@@ -667,21 +749,21 @@ Founding Membership is limited to the first 250 supporters. Pilot Accounts can b
 </div>
 
 <div style={{ background: S.white, border: `1.5px solid ${S.amber}`, borderRadius: 14, padding: '18px 20px', marginBottom: 20 }}>
-<p style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: S.forest, margin: '0 0 10px' }}>
-🏪 Before you continue — have these ready
+<p style={{ fontFamily: "'Lora', serif", fontSize: 15, fontWeight: 600, color: S.forest, margin: '0 0 8px' }}>
+🏪 Before you continue — how you'll add restaurants
 </p>
 <p style={{ fontSize: 13, color: S.stone, fontWeight: 300, margin: '0 0 14px', lineHeight: 1.7 }}>
-The next step is adding your favorite restaurants and the exact dishes your family loves. While we're in pilot, you'll enter this manually — so it helps to have your go-to menus open on your phone before you tap the button below.
+On the next screen you'll add the restaurants and dishes your family loves. There are four ways to do it — use whichever is easiest. It helps to have your go-to menus and current prices handy.
 </p>
-<div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+<div style={{ display: 'flex', flexDirection: 'column', gap: 9 }}>
 {[
-['🍽', '2–5 restaurants', 'Places you order from regularly — takeout or delivery-friendly.'],
-['📋', 'Exact dish names', 'As they appear on the menu — your village will see them.'],
-['💵', 'Current prices', 'Check the menu or app today — prices change.'],
-['👤🧒', 'Adult vs kids dishes', 'Know which meals are for the adults and which are for the kids.'],
-].map(([icon, label, desc]) => (
-<div key={label} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-<span style={{ fontSize: 16, lineHeight: 1.5, flexShrink: 0 }}>{icon}</span>
+['1', 'Search and add your favorite restaurant', '— depending on their web layout, the menu may populate automatically.'],
+['2', "Paste the restaurant's menu or online-ordering link", "— we'll fill the dishes in for you."],
+['3', 'Upload a photo or PDF of the menu', '— snap the takeout menu or attach a file.'],
+['4', 'Or type the dishes and prices in by hand', "— quick when it's just a few favorite meals."],
+].map(([n, label, desc]) => (
+<div key={n} style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
+<span style={{ flexShrink: 0, width: 20, height: 20, borderRadius: '50%', background: S.sageLight, color: S.sage, fontSize: 11, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: 1 }}>{n}</span>
 <div>
 <span style={{ fontSize: 13, fontWeight: 600, color: S.forest }}>{label} </span>
 <span style={{ fontSize: 13, color: S.stone, fontWeight: 300 }}>{desc}</span>
