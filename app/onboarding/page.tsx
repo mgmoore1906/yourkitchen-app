@@ -76,6 +76,9 @@ const [otpSending, setOtpSending] = useState(false)
 const [otpChecking, setOtpChecking] = useState(false)
 const [phoneVerified, setPhoneVerified] = useState(false)
 const [otpError, setOtpError] = useState('')
+const [pn, setPn] = useState({ a: '', b: '', c: '' })
+const pnB = useRef<HTMLInputElement>(null)
+const pnC = useRef<HTMLInputElement>(null)
 const [selectedTier, setSelectedTier] = useState('trial')
 
 const [dateSlots, setDateSlots] = useState<DateSlots>({})
@@ -189,13 +192,33 @@ const verifyAddress = async () => {
   } catch { setVerifyError('Could not check the address right now. Please try again.') }
   setVerifying(false)
 }
+const setPhonePart = (part: 'a' | 'b' | 'c', val: string) => {
+  let digits = (val || '').replace(/\D/g, '')
+  // Full-number paste into any box: distribute across all three so any format works.
+  if (digits.length >= 7) {
+    if (digits.length === 11 && digits.startsWith('1')) digits = digits.slice(1)
+    const a = digits.slice(0, 3), b = digits.slice(3, 6), c = digits.slice(6, 10)
+    setPn({ a, b, c }); update('phone', `${a}${b}${c}`)
+    setOtpSent(false); setPhoneVerified(false); setOtpError(''); setOtpCode('')
+    setTimeout(() => pnC.current?.focus(), 0)
+    return
+  }
+  const max = part === 'c' ? 4 : 3
+  digits = digits.slice(0, max)
+  const next = { ...pn, [part]: digits }
+  setPn(next); update('phone', `${next.a}${next.b}${next.c}`)
+  setOtpSent(false); setPhoneVerified(false); setOtpError(''); setOtpCode('')
+  if (part === 'a' && digits.length === 3) pnB.current?.focus()
+  if (part === 'b' && digits.length === 3) pnC.current?.focus()
+}
 const sendOtp = async () => {
   setOtpSending(true); setOtpError('')
   try {
     const res = await fetch('/api/otp/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: form.phone }) })
     const data = await res.json()
     if (data.ok) { setOtpSent(true) }
-    else setOtpError(data.error === 'not_configured' ? "Phone verification isn't switched on yet — please contact support." : 'Could not send the code. Check the number and try again.')
+    else if (data.error === 'not_configured') setOtpError("Phone verification isn't set up yet (Verify Service SID missing in the app's environment).")
+    else setOtpError(`Couldn't send a code${data.code ? ` \u2014 Twilio error ${data.code}` : ''}: ${data.error || 'unknown error'}`)
   } catch { setOtpError('Could not send the code right now. Please try again.') }
   setOtpSending(false)
 }
@@ -216,7 +239,9 @@ const totalSlotCount = calendarDatesPayload.length
 const addressValid = form.street.trim().length > 3 && form.city.trim() && form.zip.trim().length >= 5
 const phoneDigits = form.phone.replace(/\D/g, '')
 const phoneValid = (phoneDigits.length === 10 || (phoneDigits.length === 11 && phoneDigits.startsWith('1'))) && !/^(\d)\1+$/.test(phoneDigits)
-const profileValid = !!form.full_name.trim() && phoneValid && phoneVerified && form.sms_consent && !!form.use_case
+// Phone verification is optional by default; set NEXT_PUBLIC_OTP_REQUIRED=true to make it a hard gate.
+const otpRequired = process.env.NEXT_PUBLIC_OTP_REQUIRED === 'true'
+const profileValid = !!form.full_name.trim() && phoneValid && (otpRequired ? phoneVerified : true) && form.sms_consent && !!form.use_case
 
 const allSelectedWindowKeys = [...breakfastWindows, ...lunchWindows, ...dinnerWindows]
 const hasWindows = allSelectedWindowKeys.length > 0
@@ -338,7 +363,14 @@ Sign out
 <input value={form.full_name} onChange={e => update('full_name', e.target.value)} placeholder="Megan Pete" style={inputSt} />
 
 <label style={lbl}>Phone number</label>
-<input type="tel" value={form.phone} onChange={e => { update('phone', e.target.value); setOtpSent(false); setPhoneVerified(false); setOtpError(''); setOtpCode('') }} placeholder="(713) 221-6000" style={inputSt} />
+<div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+<span style={{ color: S.stone, fontSize: 16, fontWeight: 300 }}>(</span>
+<input inputMode="numeric" type="tel" value={pn.a} onChange={e => setPhonePart('a', e.target.value)} placeholder="713" maxLength={3} aria-label="Area code" style={phoneBox} />
+<span style={{ color: S.stone, fontSize: 16, fontWeight: 300 }}>)</span>
+<input ref={pnB} inputMode="numeric" type="tel" value={pn.b} onChange={e => setPhonePart('b', e.target.value)} placeholder="221" maxLength={3} aria-label="Prefix" style={phoneBox} />
+<span style={{ color: S.stone, fontSize: 16 }}>-</span>
+<input ref={pnC} inputMode="numeric" type="tel" value={pn.c} onChange={e => setPhonePart('c', e.target.value)} placeholder="6000" maxLength={4} aria-label="Line number" style={{ ...phoneBox, width: 86 }} />
+</div>
 <p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '-8px 0 4px' }}>Used only for Y/N meal confirmations via SMS.</p>
 {form.phone.trim() && !phoneValid && (<p style={{ fontSize: 11, color: '#B94040', fontWeight: 400, margin: '0 0 16px' }}>Enter a valid 10-digit US mobile number we can text.</p>)}
 {(!form.phone.trim() || phoneValid) && <div style={{ height: 12 }} />}
@@ -804,6 +836,7 @@ const lbl: React.CSSProperties = { fontSize: 11, fontWeight: 600, color: '#6B706
 const navBtn: React.CSSProperties = { background: '#EAF2ED', border: 'none', borderRadius: 8, width: 34, height: 34, cursor: 'pointer', fontSize: 18, color: '#3D6B4F', display: 'flex', alignItems: 'center', justifyContent: 'center' }
 const btnBack: React.CSSProperties = { padding: '14px 18px', background: 'transparent', color: '#6B7066', border: '1.5px solid #DDE8E0', borderRadius: 10, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }
 const inputSt: React.CSSProperties = { width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 14, fontFamily: "'DM Sans', sans-serif", color: '#1E2620', background: '#fff', outline: 'none', boxSizing: 'border-box', marginBottom: 16 }
+const phoneBox: React.CSSProperties = { width: 62, padding: '13px 10px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 16, fontFamily: "'DM Sans', sans-serif", color: '#1E2620', background: '#fff', outline: 'none', textAlign: 'center', boxSizing: 'border-box' }
 const btnPrimary = (disabled: boolean): React.CSSProperties => ({
 width: '100%', padding: '14px', background: disabled ? '#DDE8E0' : '#1E2620',
 color: disabled ? '#6B7066' : '#fff', border: 'none', borderRadius: 10,
