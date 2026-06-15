@@ -10,9 +10,7 @@ function e164(raw: string): string | null {
   return null
 }
 
-// Verifies the SMS code via Twilio Verify. Returns { ok: true } only when the
-// code is approved. Twilio throws after too many attempts / on expiry — we
-// surface that as a non-approved result so the UI can prompt a resend.
+// Verifies the SMS code via Twilio Verify. Returns { ok: true } only when approved.
 export async function POST(request: Request) {
   try {
     const { phone, code } = await request.json()
@@ -24,6 +22,7 @@ export async function POST(request: Request) {
     const check = await client.verify.v2.services(sid).verificationChecks.create({ to, code: String(code) })
     return NextResponse.json({ ok: check.status === 'approved' })
   } catch (e: any) {
-    return NextResponse.json({ ok: false, error: e?.message || 'check_failed' })
+    // Surface the real Twilio error (code + message) so failures are diagnosable.
+    return NextResponse.json({ ok: false, error: e?.message || 'request_failed', code: e?.code ?? null, twStatus: e?.status ?? null })
   }
 }
