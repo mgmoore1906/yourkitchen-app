@@ -161,7 +161,6 @@ const updated = await loadRestaurants(kitchenId)
 setListOpen(true)
 setSaveMsg(`${place.name} added!`)
 setTimeout(() => setSaveMsg(''), 3000)
-setSearchResults(prev => prev.filter(r => r.place_id !== place.place_id))
 // Auto-expand the newly added restaurant so meal entry is immediate
 const newRest = updated.find((r: any) => r.place_id === place.place_id)
 if (newRest) {
