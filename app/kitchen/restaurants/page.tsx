@@ -22,6 +22,11 @@ function parseMealTag(t: string): { emoji: string; label: string } {
   const [emoji, label] = (t || '').split('\t')
   return { emoji: emoji || '', label: label || '' }
 }
+// The "who's this for" emoji is now the single audience signal. A child/baby emoji
+// marks a meal as kids; everything else is adult. This drives favorite_meal_categories
+// under the hood so the village ordering flow keeps grouping meals correctly.
+const KID_ROLES = ['👧', '👦', '🧒', '👶']
+const isKidRole = (emoji: string) => !!emoji && KID_ROLES.some(k => emoji.startsWith(k))
 type Restaurant = {
 id: string; name: string; cuisine: string; is_active: boolean; pickup_preferred: boolean
 place_id: string | null; address: string | null
@@ -31,7 +36,7 @@ favorite_meals: string[]; favorite_meal_prices: number[]; favorite_meal_categori
 type PlaceResult = {
 place_id: string; name: string; address: string
 lat: number | null; lng: number | null
-rating: number | null; is_open: boolean | null
+rating: number | null; is_open: boolean | null; phone?: string | null
 }
 
 type ParsedItem = { name: string; price: number; category: 'adult' | 'kids'; note: string; market?: boolean }
@@ -273,9 +278,13 @@ const rest = restaurants.find(r => r.id === rId); if (!rest) return
 const tags = [...(rest.favorite_meal_tags || [])]
 while (tags.length <= idx) tags.push('')
 tags[idx] = value
-setRestaurants(prev => prev.map(r => r.id === rId ? { ...r, favorite_meal_tags: tags } : r))
+const cats = [...(rest.favorite_meal_categories || [])]
+while (cats.length <= idx) cats.push('adult')
+const pe = parseMealTag(value).emoji
+cats[idx] = (pe && isKidRole(pe)) ? 'kids' : 'adult'
+setRestaurants(prev => prev.map(r => r.id === rId ? { ...r, favorite_meal_tags: tags, favorite_meal_categories: cats } : r))
 setTagPicker(null)
-await fetch('/api/restaurants/favorites', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurant_id: rId, favorite_meal_tags: tags }) })
+await fetch('/api/restaurants/favorites', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurant_id: rId, favorite_meal_tags: tags, favorite_meal_categories: cats }) })
 }
 const saveMealTag = (rId: string, idx: number) => { if (!tagPicker) return; writeMealTag(rId, idx, `${tagPicker.role}${tagPicker.tone}\t${(tagPicker.label || '').trim()}`) }
 const clearMealTag = (rId: string, idx: number) => writeMealTag(rId, idx, '')
@@ -646,7 +655,6 @@ Delete selected ({reviewItems[r.id].filter(it => it.sel).length})
 {reviewItems[r.id].length > 1 && !reviewItems[r.id].some(it => it.sel) && (<p style={{ fontSize: 11, color: S.stone, fontWeight: 300, margin: '0 0 8px', lineHeight: 1.4 }}>Press a checkbox and drag to select several at once.</p>)}
 <div style={{ display: 'flex', flexDirection: 'column', gap: 7, margin: '11px 0', userSelect: 'none', WebkitUserSelect: 'none' }}>
 {reviewItems[r.id].map((it, idx) => {
-const k = it.category === 'kids'
 return (
 <div key={idx} data-review-idx={idx} style={{ display: 'flex', alignItems: 'center', gap: 8, background: it.sel ? S.sageLight : S.white, border: `1px solid ${it.sel ? S.sageMid : S.border}`, borderRadius: 11, padding: '8px 10px' }}>
 <button
@@ -656,8 +664,6 @@ onPointerUp={finishReviewPaint} onPointerCancel={finishReviewPaint}
 onClick={() => { if(reviewDragMovedRef.current){ reviewDragMovedRef.current=false; return } updateReviewItem(r.id, idx, { sel: !it.sel }) }}
 aria-label={it.sel ? 'Deselect' : 'Select'}
 style={{ flexShrink: 0, width: 22, height: 22, borderRadius: 6, border: `1.6px solid ${it.sel ? S.sage : '#C3CCC5'}`, background: it.sel ? S.sage : 'transparent', cursor: 'grab', display: 'flex', alignItems: 'center', justifyContent: 'center', color: S.white, fontSize: 12, fontWeight: 700, padding: 0, lineHeight: 1, touchAction: 'none' }}>{it.sel ? '✓' : ''}</button>
-<button onClick={() => updateReviewItem(r.id, idx, { category: k ? 'adult' : 'kids' })} title="Toggle adult / kids"
-style={{ background: 'none', border: 'none', cursor: 'pointer', fontSize: 14, padding: 0, flexShrink: 0, width: 18, textAlign: 'center' }}>{k ? '🧒' : '👤'}</button>
 <input value={it.name} onChange={e => updateReviewItem(r.id, idx, { name: e.target.value })}
 style={{ flex: 1, minWidth: 0, padding: '7px 9px', borderRadius: 8, border: `1px solid ${S.border}`, fontSize: 12.5, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
 <div style={{ position: 'relative', flexShrink: 0 }}>
@@ -722,20 +728,13 @@ Import
 <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
 {r.favorite_meals.map((meal, i) => {
 const cat = (r.favorite_meal_categories?.[i] || 'adult')
-const isKids = cat === 'kids'
+const rowTagEmoji = parseMealTag(r.favorite_meal_tags?.[i] || '').emoji
+const isKids = rowTagEmoji ? isKidRole(rowTagEmoji) : (cat === 'kids')
 const isEditing = !!editMeal && editMeal.rId === r.id && editMeal.idx === i
 return (
 <div key={i} style={{ background: isKids ? S.amberLight : S.sageLight, border: `1px solid ${isKids ? S.amber : S.sage}`, borderRadius: 10, padding: '8px 12px' }}>
 {isEditing ? (
 <div>
-<div style={{ display: 'flex', gap: 6, marginBottom: 8 }}>
-{(['adult','kids'] as const).map(c2 => (
-<button key={c2} onClick={() => setEditMeal(m => m ? { ...m, category: c2 } : m)}
-style={{ flex: 1, padding: '8px', borderRadius: 9, border: `1.5px solid ${editMeal!.category===c2?(c2==='adult'?S.sage:S.amber):S.border}`, background: editMeal!.category===c2?(c2==='adult'?S.sageLight:S.amberLight):S.white, color: editMeal!.category===c2?(c2==='adult'?S.sage:S.amber):S.stone, fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-{c2==='adult'?'👤 Adult':'🧒 Kids'}
-</button>
-))}
-</div>
 <div style={{ display: 'flex', gap: 8 }}>
 <input value={editMeal!.name} onChange={e => setEditMeal(m => m ? { ...m, name: e.target.value } : m)} onKeyDown={e => e.key==='Enter'&&saveEditMeal(r.id)} autoFocus
 style={{ flex: 1, padding: '9px 11px', borderRadius: 9, border: `1.5px solid ${S.border}`, fontSize: 13, fontFamily: "'DM Sans', sans-serif", color: S.forest, outline: 'none' }} />
@@ -762,7 +761,6 @@ Cancel
 ) : (<>
 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
 <button onClick={() => startEditMeal(r, i)} style={{ flex: 1, textAlign: 'left', background: 'none', border: 'none', padding: 0, cursor: 'pointer', fontSize: 13, color: S.forest, fontWeight: 500, fontFamily: "'DM Sans', sans-serif" }}>{meal}</button>
-<span style={{ fontSize: 11, fontWeight: 700, color: isKids ? S.amber : S.sage, background: S.white, borderRadius: 20, padding: '2px 7px' }}>{isKids ? 'KIDS' : 'ADULT'}</span>
 <span style={{ fontSize: 13, fontWeight: 700, color: isKids ? S.amber : S.sage }}>${(r.favorite_meal_prices[i] || 15).toFixed(2)}</span>
 <button onClick={() => startEditMeal(r, i)} aria-label="Edit this meal" style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 13, padding: '2px 5px' }}>✎</button>
 <button onClick={() => removeMeal(r.id, i)} aria-label="Remove this meal" style={{ background: 'none', border: 'none', cursor: 'pointer', color: isKids ? S.amber : S.sage, fontSize: 14, padding: '2px 6px' }}>✕</button>
@@ -813,16 +811,6 @@ Cancel
 })}
 </div>
 ) : null}
-
-{/* Adult / Kids toggle */}
-<div style={{ display: 'flex', gap: 7, margin: '14px 0 9px' }}>
-{(['adult','kids'] as const).map(cat => (
-<button key={cat} onClick={() => setNewMealCategory(p => ({ ...p, [r.id]: cat }))}
-style={{ flex: 1, padding: 10, borderRadius: 11, border: `1px solid ${mealCat===cat?(cat==='adult'?S.sage:S.amber):S.border}`, background: mealCat===cat?(cat==='adult'?S.sageLight:S.amberLight):S.white, color: mealCat===cat?(cat==='adult'?S.sage:S.amber):S.stone, fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-{cat==='adult'?'👤 Adult meal':'🧒 Kids meal'}
-</button>
-))}
-</div>
 
 <div style={{ display: 'flex', gap: 8 }}>
 <input value={newMealName[r.id] || ''} onChange={e => setNewMealName(p => ({ ...p, [r.id]: e.target.value }))} onKeyDown={e => e.key==='Enter'&&addMeal(r.id)}
@@ -928,6 +916,9 @@ return (
 {place.is_open === true && <span style={{ color: S.sage, marginLeft: 8, fontWeight: 500 }}>Open now</span>}
 {place.is_open === false && <span style={{ color: S.red, marginLeft: 8 }}>Closed</span>}
 </div>
+{place.phone && (
+<a href={`tel:${place.phone}`} onClick={e => e.stopPropagation()} style={{ display: 'inline-block', marginTop: 4, fontSize: 12.5, color: S.sage, fontWeight: 600, textDecoration: 'none' }}>📞 {place.phone}</a>
+)}
 </div>
 {saved ? (
 <span style={{ fontSize: 11, fontWeight: 700, color: S.sage, padding: '4px 12px', borderRadius: 20, background: S.sageLight }}>✓ Saved</span>
