@@ -9,6 +9,11 @@ function getSupabase() {
   )
 }
 function getTwilio() { return twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!) }
+// When false (default), orders are CREATED in Shipday but NOT auto-assigned, so you
+// pick DoorDash vs Uber (and see their quotes) in the Shipday dashboard, and Shipday
+// sends the customer the live tracking link once a courier is assigned. Set
+// SHIPDAY_AUTO_DISPATCH=true to auto-assign the cheapest fleet instead.
+const AUTO_DISPATCH = process.env.SHIPDAY_AUTO_DISPATCH === 'true'
 async function sendSMS(to: string, body: string) {
   try {
     const client = getTwilio()
@@ -70,7 +75,7 @@ async function dispatchShipday(proposal: any, kitchen: any, recipientPhone: stri
     orderSource:             'YourKitchen',
     tips:                    (proposal.tip_amount || 0) / 100,
     totalOrderCost:          buildItems(proposal).reduce((acc: number, it: any) => acc + (Number(it.unitPrice) || 0) * (Number(it.quantity) || 1), 0) + (proposal.tip_amount || 0) / 100,
-    requestOnDemandDelivery: true,
+    requestOnDemandDelivery: AUTO_DISPATCH,
   }
 
   // Coordinates MUST be numbers — Supabase numeric columns can deserialize as
@@ -190,7 +195,7 @@ export async function POST(request: Request) {
 
     // SMS coordinator
     const coordPhone = (proposal as any).claims?.guest_coordinators?.phone
-    if (coordPhone) {
+    if (AUTO_DISPATCH && coordPhone) {
       await sendSMS(
         coordPhone,
         `🚗 ${itemSummary} from ${restName} is on its way!` +
@@ -203,7 +208,7 @@ export async function POST(request: Request) {
     if (kitchen?.recipient_id) {
       const { data: recipientProfile } = await supabase
         .from('profiles').select('phone').eq('id', kitchen.recipient_id).single()
-      if (recipientProfile?.phone) {
+      if (AUTO_DISPATCH && recipientProfile?.phone) {
         await sendSMS(
           recipientProfile.phone,
           `🚗 ${itemSummary} from ${restName} is on its way!` +
