@@ -16,12 +16,17 @@ const MEAL_ORDER: Record<string, number> = { breakfast: 0, lunch: 1, dinner: 2 }
 type Filter = 'today' | 'tomorrow' | 'week' | 'all'
 type AdminView = 'dispatch' | 'analytics'
 
+const DD_STATUS_LABEL: Record<string, string> = {
+  received: 'Received by Shipday', assigned: 'Driver assigned', accepted: 'Driver accepted',
+  on_the_way: 'On the way to pickup', picked_up: 'Picked up — en route', delivered: 'Delivered',
+  failed: 'Delivery failed', unassigned: 'Unassigned — needs a courier',
+}
 type Order = {
   id: string; status: string; delivery_status: string | null
   meal_type: string; delivery_date: string; delivery_time: string | null
   delivery_preference: string | null; delivery_note: string | null
   coordinator_name: string; restaurant_name: string; meal_name: string
-  tip_amount: number | null; doordash_tracking_url: string | null
+  tip_amount: number | null; doordash_tracking_url: string | null; doordash_status: string | null
   doordash_delivery_id: string | null; kitchen_name: string; kitchen_address: string
   restaurant_address?: string; restaurant_phone?: string; is_pickup?: boolean
   meal_items?: any[]; stripe_amount?: number | null
@@ -683,6 +688,12 @@ function DispatchTab(props: any) {
                       </div>
                     )}
 
+                    {!isPickupOrder && order.doordash_status && order.doordash_status !== 'dispatched' && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10, padding: '8px 12px', borderRadius: 9, background: order.doordash_status === 'delivered' ? S.sageLight : order.doordash_status === 'failed' ? S.redLight : S.blueLight, border: `1px solid ${order.doordash_status === 'delivered' ? S.sage : order.doordash_status === 'failed' ? S.red : S.blue}` }}>
+                        <span style={{ fontSize: 10, fontWeight: 700, color: S.stone, letterSpacing: '0.07em', textTransform: 'uppercase' }}>Live status</span>
+                        <span style={{ fontSize: 13, fontWeight: 600, color: order.doordash_status === 'delivered' ? S.sage : order.doordash_status === 'failed' ? S.red : S.blue }}>{DD_STATUS_LABEL[order.doordash_status] || order.doordash_status}</span>
+                      </div>
+                    )}
                     {order.doordash_tracking_url && (
                       <a href={order.doordash_tracking_url} target="_blank" rel="noopener noreferrer"
                         style={{ display: 'block', background: S.blueLight, color: S.blue, borderRadius: 9, padding: '10px 14px', fontSize: 13, fontWeight: 600, textDecoration: 'none', marginBottom: 10, textAlign: 'center' }}>
