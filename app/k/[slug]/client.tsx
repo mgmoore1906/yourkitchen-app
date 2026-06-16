@@ -584,7 +584,7 @@ meal_type: slot.meal_type,
 try {
 const res=await fetch('/api/proposal',{
 method:'POST', headers:{'Content-Type':'application/json'},
-body:JSON.stringify({ name,email,phone,note,proposals,kitchen_slug:kitchen.slug,tip_amount:tipAmount,delivery_preference:'leave_at_door',delivery_note:deliveryNote.trim()||null,is_pickup:isPickup,use_places:true }),
+body:JSON.stringify({ name,email,phone,note,proposals,kitchen_slug:kitchen.slug,tip_amount:isPickup?0:tipAmount,delivery_preference:'leave_at_door',delivery_note:deliveryNote.trim()||null,is_pickup:isPickup,use_places:true }),
 })
 const data=await res.json()
 if(!res.ok){ setErrorMsg(data.error||'Something went wrong.');setLoading(false);return }
