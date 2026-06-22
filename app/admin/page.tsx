@@ -763,7 +763,7 @@ function DispatchTab(props: any) {
 
 
 // ── Main admin page ───────────────────────────────────────────────────────────
-function OrdersTable({ orders, loading, completing, dispatching, msgs, handleComplete, handleDispatch }: any) {
+function OrdersTable({ orders, loading, completing, dispatching, msgs, handleComplete, handleDispatch, handleExport }: any) {
   const fmtD = (d: string) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '—'
   const mealLabel = (o: any) => o.meal_name || (Array.isArray(o.meal_items) && o.meal_items.length ? o.meal_items.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : '—')
   const needsDispatch = (o: any) => (!o.delivery_status || o.delivery_status === 'awaiting_dispatch') && !o.is_pickup
@@ -776,10 +776,15 @@ function OrdersTable({ orders, loading, completing, dispatching, msgs, handleCom
     return 'Needs dispatch'
   }
   if (loading) return <div style={{ padding: 40, textAlign: 'center', color: S.stone }}>Loading…</div>
-  if (!orders.length) return <div style={{ padding: 40, textAlign: 'center', color: S.stone }}>No active orders.</div>
   return (
     <div style={{ padding: '16px 24px', overflowX: 'auto' }}>
-      <p style={{ fontSize: 12, color: S.stone, margin: '0 0 10px' }}>{orders.length} active order{orders.length === 1 ? '' : 's'} · scan, place, then mark complete</p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: 8, margin: '0 0 12px' }}>
+        <p style={{ fontSize: 12, color: S.stone, margin: 0 }}>{orders.length} active order{orders.length === 1 ? '' : 's'} · scan, place, then mark complete</p>
+        <button onClick={handleExport} style={{ fontSize: 12, fontWeight: 600, padding: '8px 14px', borderRadius: 8, border: `1px solid ${S.sage}`, background: S.white, color: S.sage, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif" }}>⬇ Export to Excel (full history)</button>
+      </div>
+      {orders.length === 0 ? (
+        <div style={{ padding: 30, textAlign: 'center', color: S.stone, fontSize: 13 }}>No active orders right now. Use “Export to Excel” for your full order history, including completed orders.</div>
+      ) : (
       <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: "'DM Sans',sans-serif" }}>
         <thead>
           <tr style={{ background: S.sageLight }}>
@@ -813,6 +818,7 @@ function OrdersTable({ orders, loading, completing, dispatching, msgs, handleCom
           ))}
         </tbody>
       </table>
+      )}
     </div>
   )
 }
@@ -898,6 +904,19 @@ export default function AdminPage() {
       else { setMsgs(m => ({ ...m, [orderId]: `\u274c ${data.error}` })) }
     } catch (err: any) { setMsgs(m => ({ ...m, [orderId]: `\u274c ${err.message}` })) }
     setCompleting(null)
+  }
+
+  const handleExport = async () => {
+    try {
+      const res = await fetch('/api/admin-export', { headers: { 'x-admin-secret': adminSecret } })
+      if (!res.ok) { alert('Export failed — check your admin session.'); return }
+      const blob = await res.blob()
+      const a = document.createElement('a')
+      a.href = URL.createObjectURL(blob)
+      a.download = `yourkitchen-orders-${new Date().toISOString().slice(0, 10)}.csv`
+      document.body.appendChild(a); a.click(); a.remove()
+      URL.revokeObjectURL(a.href)
+    } catch (err: any) { alert('Export failed: ' + err.message) }
   }
 
   const handleCancel = async (orderId: string) => {
@@ -1004,7 +1023,7 @@ export default function AdminPage() {
       {view === 'dispatch' && (
         <DispatchTab orders={orders} loading={loading} filter={filter} setFilter={setFilter} dispatching={dispatching} cancelling={cancelling} msgs={msgs} cancelReasons={cancelReasons} setCancelReasons={setCancelReasons} cancelType={cancelType} setCancelType={setCancelType} cancelListed={cancelListed} setCancelListed={setCancelListed} cancelCorrect={cancelCorrect} setCancelCorrect={setCancelCorrect} handleDispatch={handleDispatch} handleCancel={handleCancel} />
       )}
-      {view === 'orders' && <OrdersTable orders={orders} loading={loading} completing={completing} dispatching={dispatching} msgs={msgs} handleComplete={handleComplete} handleDispatch={handleDispatch} />}
+      {view === 'orders' && <OrdersTable orders={orders} loading={loading} completing={completing} dispatching={dispatching} msgs={msgs} handleComplete={handleComplete} handleDispatch={handleDispatch} handleExport={handleExport} />}
       {view === 'analytics' && <AnalyticsTab key={refreshTick} />}
     </div>
   )
