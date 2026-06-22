@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { haversineDistance, formatDistance } from '@/lib/distance'
+import { startFoundingBankCheckout, FOUNDING_CARD_LINK } from '@/lib/foundingCheckout'
 import InfoTip from '@/app/components/infotip'
 
 const S = {
@@ -70,6 +71,7 @@ const [kitchenId, setKitchenId] = useState('')
 const [kitchenLat, setKitchenLat] = useState<number | null>(null)
 const [kitchenLng, setKitchenLng] = useState<number | null>(null)
 const [userTier, setUserTier] = useState('free')
+const [foundingUid, setFoundingUid] = useState('')
 const [restaurants, setRestaurants] = useState<Restaurant[]>([])
 const [saveMsg, setSaveMsg] = useState('')
 const [expandedId, setExpandedId] = useState<string | null>(null)
@@ -101,6 +103,7 @@ const { data: { user } } = await supabase.auth.getUser()
 if (!user) { router.push('/login'); return }
 const { data: profile } = await supabase.from('profiles').select('tier').eq('id', user.id).single()
 setUserTier(profile?.tier || 'free')
+setFoundingUid(user.id)
 const { data: kitchen } = await supabase.from('kitchens')
 .select('id, latitude, longitude').eq('organizer_id', user.id)
 .order('created_at', { ascending: false }).limit(1)
@@ -521,7 +524,10 @@ style={{ background: S.sageLight, border: 'none', borderRadius: 10, width: 36, h
 <div style={{ flex: 1 }}>
 <p style={{ fontSize: 14, fontWeight: 600, color: '#7A4F10', margin: '0 0 3px' }}>Your founding checkout is open in another tab</p>
 <p style={{ fontSize: 12.5, color: '#7A4F10', fontWeight: 300, lineHeight: 1.55, margin: 0 }}>Finish your $200 payment there to lock in your Founding Member benefits — permanent badge, founder access, the Founders Gift Box, and 3 years of Care+ starting at beta launch. Set up your kitchen here in the meantime.</p>
-<a href="https://buy.stripe.com/5kQ00beDq9XD9BX5w5abK01" target="_blank" rel="noopener noreferrer" style={{ display: 'inline-block', marginTop: 8, fontSize: 12.5, fontWeight: 600, color: '#7A4F10', textDecoration: 'underline' }}>Reopen checkout →</a>
+<div style={{ display: 'flex', gap: 14, alignItems: 'center', marginTop: 10, flexWrap: 'wrap' }}>
+<button onClick={() => startFoundingBankCheckout(foundingUid)} style={{ background: '#7A4F10', border: 'none', borderRadius: 8, padding: '8px 14px', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>Reopen &mdash; pay by bank →</button>
+<button onClick={() => window.open(`${FOUNDING_CARD_LINK}?client_reference_id=${foundingUid}`, '_blank', 'noopener')} style={{ background: 'transparent', border: 'none', color: '#7A4F10', fontSize: 12, fontWeight: 500, textDecoration: 'underline', cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>or pay by card</button>
+</div>
 </div>
 </div>
 )}
