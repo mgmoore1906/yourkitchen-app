@@ -51,6 +51,24 @@ export async function POST(request: Request) {
   const body = (formData.get('Body') as string)?.trim().toUpperCase()
   const from  = formData.get('From') as string
 
+  // ── A2P compliance keywords — handled before anything else, for ANY sender ──
+  // If Twilio Advanced Opt-Out is enabled on your Messaging Service, Twilio
+  // intercepts STOP/HELP/START itself and these never reach us. This is the
+  // fallback for when it isn't, and it lets us brand the HELP reply. Carriers
+  // enforce the actual opt-out block on STOP regardless of this response.
+  const STOP_WORDS  = new Set(['STOP', 'STOPALL', 'UNSUBSCRIBE', 'CANCEL', 'END', 'QUIT'])
+  const HELP_WORDS  = new Set(['HELP', 'INFO'])
+  const START_WORDS = new Set(['START', 'UNSTOP'])
+  if (body && STOP_WORDS.has(body)) {
+    return twiml("You're unsubscribed from YourKitchen and won't receive more texts. Reply START to opt back in.")
+  }
+  if (body && HELP_WORDS.has(body)) {
+    return twiml("YourKitchen: meal coordination for loved ones in hard seasons. Reply Y to confirm a meal, N to decline. Help: marques@yourkitchen.app. Msg & data rates may apply. Reply STOP to opt out.")
+  }
+  if (body && START_WORDS.has(body)) {
+    return twiml("You're opted back in to YourKitchen. Reply Y to confirm a meal, N to decline, HELP for help, STOP to opt out.")
+  }
+
   // Identify the sender. Two authorized parties can reply Y/N:
   //   1. The recipient (matched via their profile phone), or
   //   2. A confirmation proxy the recipient delegated to (matched via the
