@@ -307,7 +307,7 @@ function FoundingRibbon() {
   )
 }
 
-function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, handleBulkAdd, handleClearDays, tier, router, userTier, onShare }: any) {
+function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, handleBulkAdd, handleClearDays, tier, router, userTier, foundingUid, onShare }: any) {
 
   const today     = new Date()
   const todayStr  = today.toISOString().split('T')[0]
@@ -1817,7 +1817,7 @@ export default function DashboardPage() {
                 </span>
               </div>
             )}
-            {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier} handleBulkAdd={handleBulkAdd} handleClearDays={handleClearDays} onShare={handleShare}/>}
+            {activeTab==='home'     && <HomeTab kitchen={kitchen} calDates={calDates} selectedDate={selectedDate} setSelectedDate={setSelectedDate} adding={adding} addError={addError} handleAddSlot={handleAddSlot} handleRemoveSlot={handleRemoveSlot} tier={tier} router={router} userTier={userTier} foundingUid={foundingUid} handleBulkAdd={handleBulkAdd} handleClearDays={handleClearDays} onShare={handleShare}/>}
             {activeTab==='activity' && <ActivityTab proposals={allProposals} router={router}/>}
             {activeTab==='insights' && <InsightsTab proposals={allProposals} kitchenName={kitchen.name}/>}
             {activeTab==='share'    && <ShareTab kitchenUrl={kitchenUrl} kitchen={kitchen} restaurantCount={restaurantCount} router={router} proposals={allProposals}/>}
