@@ -76,6 +76,10 @@ const FOUNDING_PERKS = [
 'Founders Gift Box (ships late summer) — T-shirt, kitchen magnets, stickers, marketing cards, plus 90-day premium gift access to give someone in need',
 ]
 
+// Pilot: hide the Care (free) and Care+ cards on the pricing page until the
+// tiers rework. Flip to true (or remove this gate) to bring them back.
+const SHOW_OTHER_TIERS = false
+
 export default function TiersPage() {
 const router = useRouter()
 const supabase = createClient()
@@ -184,6 +188,7 @@ Founding Membership is open to the first 250 supporters — your belief funds th
 
 <div className="tier-grid">
 
+{SHOW_OTHER_TIERS && (<>
 {/* FREE */}
 <div style={{ background: S.white, border: `0.5px solid ${S.border}`, borderRadius: 14, padding: '20px', position: 'relative' }}>
 <span style={{ display: 'inline-block', fontSize: 11, fontWeight: 600, padding: '3px 10px', borderRadius: 8, marginBottom: 10, background: S.sageLight, color: '#2D5240' }}>Care</span>
@@ -208,6 +213,7 @@ style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, bord
 Coming soon
 </button>
 </div>
+</>)}
 
 {/* FOUNDING — 3-YEAR */}
 <div style={{ background: S.forest, border: `2px solid ${S.forest}`, borderRadius: 14, padding: '20px', position: 'relative' }}>
