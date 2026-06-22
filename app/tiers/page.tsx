@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
+import { startFoundingBankCheckout, FOUNDING_CARD_LINK } from '@/lib/foundingCheckout'
 
 const S = {
 sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
@@ -102,7 +103,9 @@ setError('')
 // hosted Stripe Payment Link instead. Account stays as-is; founding status
 // is provisioned manually once the payment lands.
 if (tierKey === 'founding') {
-window.open('https://buy.stripe.com/5kQ00beDq9XD9BX5w5abK01', '_blank', 'noopener')
+setSwitching('founding')
+await startFoundingBankCheckout(userId)
+setSwitching(null)
 return
 }
 if (tierKey === 'free') {
@@ -221,8 +224,14 @@ Coming soon
 ))}
 <button onClick={() => handleSwitch('founding')} disabled={!!switching || currentTier === 'founding'}
 style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, border: 'none', background: S.amber, color: S.white, fontSize: 13, fontWeight: 600, cursor: 'pointer', marginTop: 16, fontFamily: "'DM Sans', sans-serif", opacity: switching ? 0.6 : 1 }}>
-{currentTier === 'founding' ? '✓ Current plan' : switching === 'founding' ? 'Loading…' : 'Claim founding membership'}
+{currentTier === 'founding' ? '✓ Current plan' : switching === 'founding' ? 'Loading…' : 'Claim founding — pay by bank'}
 </button>
+{currentTier !== 'founding' && (
+<>
+<p style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textAlign: 'center', margin: '8px 0 0', lineHeight: 1.5, fontWeight: 300 }}>Pay by bank &mdash; keeps fees near zero, so more of your $200 goes into the build.</p>
+<button onClick={() => window.open(`${FOUNDING_CARD_LINK}?client_reference_id=${userId}`, '_blank', 'noopener')} style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 500, textDecoration: 'underline', cursor: 'pointer', marginTop: 6, fontFamily: "'DM Sans', sans-serif" }}>Prefer to pay by card?</button>
+</>
+)}
 </div>
 
 </div>
