@@ -171,7 +171,7 @@ for(let d=1;d<=daysInMonth;d++)cells.push(d)
 return (
 <div style={{ background:S.warmWhite,border:`0.5px solid ${S.border}`,borderRadius:18,padding:'16px',marginBottom:8 }}>
 <div style={{ display:'flex',alignItems:'center',justifyContent:'space-between',marginBottom:12 }}>
-<div style={{ display:'flex',alignItems:'center' }}><p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>{recipientFirst}'s Calendar</p><InfoTip label="How to pick dates" text={`Highlighted dates are days ${recipientFirst} still needs covered. Tap an open date to claim it, or tap again to release it. Pick as many dates as you'd like, then choose the meals and how many to send at the next step.`}/></div>
+<div style={{ display:'flex',alignItems:'center' }}><p style={{ fontFamily:"'Lora',serif",fontSize:15,fontWeight:500,color:S.forest,margin:0 }}>{recipientFirst}'s Calendar</p><InfoTip label="How to pick dates" text={`Highlighted dates are days ${recipientFirst} still needs covered. Tap an open date to claim it, or tap again to release it. The soonest you can send is the next day — same-day isn't available, and after 6pm tomorrow closes too. Pick as many dates as you'd like, then choose the meals and how many to send at the next step.`}/></div>
 <div style={{ display:'flex',alignItems:'center',gap:6 }}>
 <button onClick={prev} style={{ background:S.amberLight,border:'none',borderRadius:7,width:28,height:28,cursor:'pointer',fontSize:14,color:S.amber,display:'flex',alignItems:'center',justifyContent:'center' }}>‹</button>
 <span style={{ fontSize:12,fontWeight:500,color:S.forest,minWidth:108,textAlign:'center' }}>{monthName}</span>
