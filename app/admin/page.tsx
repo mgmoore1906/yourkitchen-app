@@ -14,7 +14,7 @@ const MEAL_EMOJI: Record<string, string> = { breakfast: '🌅', lunch: '☀️',
 const MEAL_ORDER: Record<string, number> = { breakfast: 0, lunch: 1, dinner: 2 }
 
 type Filter = 'today' | 'tomorrow' | 'week' | 'all'
-type AdminView = 'dispatch' | 'analytics'
+type AdminView = 'dispatch' | 'orders' | 'analytics'
 
 const DD_STATUS_LABEL: Record<string, string> = {
   received: 'Received by Shipday', assigned: 'Driver assigned', accepted: 'Driver accepted',
@@ -763,11 +763,66 @@ function DispatchTab(props: any) {
 
 
 // ── Main admin page ───────────────────────────────────────────────────────────
+function OrdersTable({ orders, loading, completing, dispatching, msgs, handleComplete, handleDispatch }: any) {
+  const fmtD = (d: string) => d ? new Date(d + 'T12:00:00').toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' }) : '—'
+  const mealLabel = (o: any) => o.meal_name || (Array.isArray(o.meal_items) && o.meal_items.length ? o.meal_items.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : '—')
+  const needsDispatch = (o: any) => (!o.delivery_status || o.delivery_status === 'awaiting_dispatch') && !o.is_pickup
+  const isDone = (o: any) => o.status === 'delivered' || o.delivery_status === 'delivered'
+  const statusLabel = (o: any) => {
+    if (isDone(o)) return 'Delivered'
+    if (o.is_pickup) return o.delivery_status === 'dispatched' ? 'Pickup — in progress' : 'Pickup — to place'
+    if (o.doordash_status) return DD_STATUS_LABEL[o.doordash_status] || o.doordash_status
+    if (o.delivery_status === 'dispatched') return 'Dispatched'
+    return 'Needs dispatch'
+  }
+  if (loading) return <div style={{ padding: 40, textAlign: 'center', color: S.stone }}>Loading…</div>
+  if (!orders.length) return <div style={{ padding: 40, textAlign: 'center', color: S.stone }}>No active orders.</div>
+  return (
+    <div style={{ padding: '16px 24px', overflowX: 'auto' }}>
+      <p style={{ fontSize: 12, color: S.stone, margin: '0 0 10px' }}>{orders.length} active order{orders.length === 1 ? '' : 's'} · scan, place, then mark complete</p>
+      <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13, fontFamily: "'DM Sans',sans-serif" }}>
+        <thead>
+          <tr style={{ background: S.sageLight }}>
+            {['Date', 'Kitchen', 'Meal', 'Restaurant', 'Type', 'Status', 'Actions'].map(h => (
+              <th key={h} style={{ textAlign: 'left', padding: '10px', fontWeight: 700, fontSize: 11, color: S.forest, textTransform: 'uppercase', letterSpacing: '0.04em', borderBottom: `1px solid ${S.border}`, whiteSpace: 'nowrap' }}>{h}</th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {orders.map((o: any) => (
+            <tr key={o.id} style={{ borderBottom: `1px solid ${S.border}` }}>
+              <td style={{ padding: '9px 10px', whiteSpace: 'nowrap', fontWeight: 600, color: S.forest }}>{fmtD(o.delivery_date)}</td>
+              <td style={{ padding: '9px 10px', color: S.forest }}>{o.kitchen_name}</td>
+              <td style={{ padding: '9px 10px', color: S.stone }}>{mealLabel(o)}</td>
+              <td style={{ padding: '9px 10px', color: S.stone }}>{o.restaurant_name || '—'}</td>
+              <td style={{ padding: '9px 10px', whiteSpace: 'nowrap' }}>{o.is_pickup ? '🥡 Pickup' : '🚗 Delivery'}</td>
+              <td style={{ padding: '9px 10px', whiteSpace: 'nowrap' }}>
+                <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 20, background: isDone(o) ? S.sageLight : needsDispatch(o) ? S.amberLight : S.blueLight, color: isDone(o) ? S.sage : needsDispatch(o) ? S.amber : S.blue }}>{statusLabel(o)}</span>
+              </td>
+              <td style={{ padding: '9px 10px', whiteSpace: 'nowrap' }}>
+                <div style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+                  {needsDispatch(o) && (
+                    <button onClick={() => handleDispatch(o.id)} disabled={dispatching === o.id} style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 7, border: 'none', background: S.sage, color: S.white, cursor: dispatching === o.id ? 'default' : 'pointer', opacity: dispatching === o.id ? 0.6 : 1 }}>{dispatching === o.id ? '…' : 'Dispatch'}</button>
+                  )}
+                  <button onClick={() => handleComplete(o.id)} disabled={completing === o.id} style={{ fontSize: 11, fontWeight: 600, padding: '5px 10px', borderRadius: 7, border: `1px solid ${S.sage}`, background: S.white, color: S.sage, cursor: completing === o.id ? 'default' : 'pointer', opacity: completing === o.id ? 0.6 : 1 }}>{completing === o.id ? '…' : '✓ Complete'}</button>
+                  {o.doordash_tracking_url && <a href={o.doordash_tracking_url} target="_blank" rel="noreferrer" style={{ fontSize: 11, color: S.blue, textDecoration: 'none', fontWeight: 600 }}>Track</a>}
+                </div>
+                {msgs[o.id] && <div style={{ fontSize: 11, color: msgs[o.id].startsWith('❌') ? S.red : S.sage, marginTop: 3 }}>{msgs[o.id]}</div>}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  )
+}
+
 export default function AdminPage() {
   const supabase = createClient()
   const [loading, setLoading] = useState(true)
   const [orders, setOrders] = useState<Order[]>([])
   const [dispatching, setDispatching] = useState<string | null>(null)
+  const [completing, setCompleting] = useState<string | null>(null)
   const [cancelling, setCancelling] = useState<string | null>(null)
   const [msgs, setMsgs] = useState<Record<string, string>>({})
   const [adminSecret, setAdminSecret] = useState('')
@@ -831,6 +886,18 @@ export default function AdminPage() {
       else { setMsgs(m => ({ ...m, [orderId]: `❌ ${data.error}` })) }
     } catch (err: any) { setMsgs(m => ({ ...m, [orderId]: `❌ ${err.message}` })) }
     setDispatching(null)
+  }
+
+  const handleComplete = async (orderId: string) => {
+    if (!window.confirm('Mark this order complete? It moves out of the active list.')) return
+    setCompleting(orderId); setMsgs(m => ({ ...m, [orderId]: '' }))
+    try {
+      const res = await fetch('/api/admin-complete', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-secret': adminSecret }, body: JSON.stringify({ proposal_id: orderId }) })
+      const data = await res.json()
+      if (res.ok) { setOrders(prev => prev.filter(o => o.id !== orderId)); await loadOrders() }
+      else { setMsgs(m => ({ ...m, [orderId]: `\u274c ${data.error}` })) }
+    } catch (err: any) { setMsgs(m => ({ ...m, [orderId]: `\u274c ${err.message}` })) }
+    setCompleting(null)
   }
 
   const handleCancel = async (orderId: string) => {
@@ -919,7 +986,7 @@ export default function AdminPage() {
       </div>
 
       <div style={{ background: S.white, borderBottom: `1px solid ${S.border}`, padding: '0 24px', display: 'flex', gap: 0 }}>
-        {[{ key: 'dispatch', label: '🚀 Dispatch' }, { key: 'analytics', label: '📊 Analytics' }].map(({ key, label }) => (
+        {[{ key: 'dispatch', label: '🚀 Dispatch' }, { key: 'orders', label: '📋 Orders' }, { key: 'analytics', label: '📊 Analytics' }].map(({ key, label }) => (
           <button key={key} onClick={() => setView(key as AdminView)}
             style={{ padding: '14px 24px', background: 'none', border: 'none', borderBottom: `3px solid ${view === key ? S.sage : 'transparent'}`, cursor: 'pointer', fontFamily: "'DM Sans',sans-serif", color: view === key ? S.sage : S.stone, fontWeight: view === key ? 700 : 400, fontSize: 14 }}>
             {label}
@@ -937,6 +1004,7 @@ export default function AdminPage() {
       {view === 'dispatch' && (
         <DispatchTab orders={orders} loading={loading} filter={filter} setFilter={setFilter} dispatching={dispatching} cancelling={cancelling} msgs={msgs} cancelReasons={cancelReasons} setCancelReasons={setCancelReasons} cancelType={cancelType} setCancelType={setCancelType} cancelListed={cancelListed} setCancelListed={setCancelListed} cancelCorrect={cancelCorrect} setCancelCorrect={setCancelCorrect} handleDispatch={handleDispatch} handleCancel={handleCancel} />
       )}
+      {view === 'orders' && <OrdersTable orders={orders} loading={loading} completing={completing} dispatching={dispatching} msgs={msgs} handleComplete={handleComplete} handleDispatch={handleDispatch} />}
       {view === 'analytics' && <AnalyticsTab key={refreshTick} />}
     </div>
   )
