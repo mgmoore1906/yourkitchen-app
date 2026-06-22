@@ -310,7 +310,14 @@ function FoundingRibbon() {
 function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, addError, handleAddSlot, handleRemoveSlot, handleBulkAdd, handleClearDays, tier, router, userTier, foundingUid, onShare }: any) {
 
   const today     = new Date()
-  const todayStr  = today.toISOString().split('T')[0]
+  const ymdLocal  = (dt:Date) => `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+  const todayStr  = ymdLocal(today)
+  // Day-of gating (mirrors the coordinator calendar): no same-day; after the 6pm
+  // cutoff also block tomorrow, since the village can no longer claim those days.
+  // Earliest day the recipient can open = today + (now >= 18:00 ? 2 : 1).
+  const LEAD_CUTOFF_HOUR = 18
+  const _minDate  = new Date(today); _minDate.setDate(_minDate.getDate() + (today.getHours() >= LEAD_CUTOFF_HOUR ? 2 : 1))
+  const minDateStr = ymdLocal(_minDate)
   const [viewYear,  setViewYear]  = useState(today.getFullYear())
   const [viewMonth, setViewMonth] = useState(today.getMonth())
 
@@ -403,6 +410,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
       if (bulkDays==='weekdays' && (dow===0||dow===6)) continue
       if (bulkDays==='weekends' && !(dow===0||dow===6)) continue
       const ds = `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}`
+      if (ds < minDateStr) continue
       bulkMeals.forEach((mt:string) => slots.push({ date: ds, meal_type: mt }))
     }
     const r = await handleBulkAdd(slots)
@@ -463,7 +471,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           {cells.map((day,i) => {
             if(!day) return <div key={i}/>
             const dateStr = `${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-            const isPast  = dateStr < todayStr
+            const isPast  = dateStr < minDateStr
             const isToday = dateStr === todayStr
             const isSel   = selectedDate === dateStr
             const isPaint = paintSet.has(dateStr)
