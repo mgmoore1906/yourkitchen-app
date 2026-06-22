@@ -296,8 +296,21 @@ await new Promise(r => setTimeout(r, 800))
 // is already created as 'trial', so an unpaid founder still has a working pilot
 // account — we provision founding status once the payment lands.
 if (selectedTier === 'founding') {
-if (payTab && !payTab.closed) payTab.location.href = `${FOUNDING_PAYMENT_LINK}?client_reference_id=${user.id}`
-else window.open(`${FOUNDING_PAYMENT_LINK}?client_reference_id=${user.id}`, '_blank') // fallback if pre-open was blocked
+// Bank-only ($200 ACH) founding checkout. Fetch the session URL, then point the
+// pre-opened tab at it (the tab was opened synchronously on click to dodge popup
+// blockers). If it fails, close the tab and continue — the account is already a
+// working 'trial', so they can finish founding later from the restaurants banner.
+try {
+const fcRes = await fetch('/api/founding-checkout', {
+method: 'POST', headers: { 'Content-Type': 'application/json' },
+body: JSON.stringify({ user_id: user.id }),
+})
+const fcData = await fcRes.json()
+if (fcData?.url) {
+if (payTab && !payTab.closed) payTab.location.href = fcData.url
+else window.open(fcData.url, '_blank')
+} else if (payTab && !payTab.closed) { payTab.close() }
+} catch { if (payTab && !payTab.closed) payTab.close() }
 router.push('/kitchen/restaurants?welcome=1&founding=pending')
 return
 }
