@@ -4,6 +4,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import InfoTip from '@/app/components/infotip'
 import { PILOT_SURVEY_URL } from '@/lib/links'
+import { startFoundingBankCheckout, FOUNDING_CARD_LINK } from '@/lib/foundingCheckout'
 
 // ── Brand ─────────────────────────────────────────────────────────────────────
 const S = {
@@ -602,7 +603,7 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
         </button>
       </div>
 
-      <button onClick={()=>{ if(userTier==='free'||userTier==='trial'){ window.open('https://buy.stripe.com/5kQ00beDq9XD9BX5w5abK01','_blank','noopener') } else { router.push('/settings') } }}
+      <button onClick={()=>{ if(userTier==='free'||userTier==='trial'){ startFoundingBankCheckout(foundingUid) } else { router.push('/settings') } }}
         style={{ width:'100%',display:'flex',alignItems:'center',justifyContent:'space-between',background:tier.bg,border:`1px solid ${tier.color}22`,borderRadius:14,padding:'12px 16px',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>
         <div style={{ display:'flex',alignItems:'center',gap:8 }}>
           {tier.star&&<span style={{ fontSize:14,color:tier.color }}>★</span>}
@@ -613,6 +614,9 @@ function HomeTab({ kitchen, calDates, selectedDate, setSelectedDate, adding, add
           <span style={{ fontSize:11,fontWeight:700,color:tier.color }}>Become a Founder ›</span>
         )}
       </button>
+      {(userTier==='free'||userTier==='trial')&&(
+        <button onClick={()=>window.open(`${FOUNDING_CARD_LINK}?client_reference_id=${foundingUid}`,'_blank','noopener')} style={{ display:'block',margin:'8px auto 0',background:'transparent',border:'none',color:S.stone,fontSize:11,fontWeight:500,textDecoration:'underline',cursor:'pointer',fontFamily:"'DM Sans',sans-serif" }}>Prefer to pay by card?</button>
+      )}
 
       {addRestOpen && (
         <div onClick={()=>setAddRestOpen(false)} style={{ position:'fixed',inset:0,background:'rgba(30,38,32,0.45)',zIndex:1000,display:'flex',alignItems:'flex-end',justifyContent:'center' }}>
@@ -1533,6 +1537,7 @@ export default function DashboardPage() {
   const pulling = useRef(false)
   const [fullName,      setFullName]      = useState('')
   const [userTier,      setUserTier]      = useState('free')
+  const [foundingUid,   setFoundingUid]    = useState('')
   const [kitchen,       setKitchen]       = useState<Kitchen | null>(null)
   const [calDates,      setCalDates]      = useState<CalDate[]>([])
   const [allProposals,  setAllProposals]  = useState<Proposal[]>([])
@@ -1584,6 +1589,7 @@ export default function DashboardPage() {
         || (user.user_metadata?.name as string) || ''
       setFullName(name)
       setUserTier(profile?.tier || 'free')
+      setFoundingUid(user.id)
 
       const { data: kitchens } = await supabase.from('kitchens')
         .select('id, name, slug, address, household_size, latitude, longitude')
