@@ -152,6 +152,12 @@ const today=new Date()
 const [viewYear,setViewYear]=useState(today.getFullYear())
 const [viewMonth,setViewMonth]=useState(today.getMonth())
 const todayStr=today.toISOString().split('T')[0]
+  // Day-of gating: no same-day orders. After the evening cutoff, also block
+  // tomorrow so every order can be pre-scheduled the night before.
+  const ymdLocal=(d:Date)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+  const LEAD_CUTOFF_HOUR=18
+  const _min=new Date(today); _min.setDate(_min.getDate()+(today.getHours()>=LEAD_CUTOFF_HOUR?2:1))
+  const minDateStr=ymdLocal(_min)
 const monthName=new Date(viewYear,viewMonth,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})
 const firstDay=new Date(viewYear,viewMonth,1).getDay()
 const daysInMonth=new Date(viewYear,viewMonth+1,0).getDate()
@@ -179,7 +185,7 @@ return (
 {cells.map((day,i)=>{
 if(!day)return<div key={i}/>
 const ds=`${viewYear}-${String(viewMonth+1).padStart(2,'0')}-${String(day).padStart(2,'0')}`
-const isPast=ds<todayStr,isToday=ds===todayStr
+const isPast=ds<minDateStr,isToday=ds===todayStr
 const slots=dateMap[ds]||[],has=slots.length>0
 const isSel=slots.some((s:any)=>selectedIds.has(s.id))
 return (
