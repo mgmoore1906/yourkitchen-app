@@ -177,7 +177,7 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 <div style={{ padding: '28px 24px', maxWidth: 1320, margin: '0 auto' }}>
 <h1 style={{ fontFamily: "'Lora', serif", fontSize: 28, fontWeight: 500, color: S.forest, margin: '0 0 8px', letterSpacing: -0.5 }}>Plans &amp; pricing</h1>
 <p style={{ fontSize: 14, color: S.stone, fontWeight: 300, margin: '0 0 28px', lineHeight: 1.6 }}>
-Founding Membership is open to the first 250 supporters — your belief funds the build.
+Founding Membership is open to the first 250 supporters — your belief funds the YourKitchen.
 </p>
 
 {error && <div style={{ background: '#FDE8E8', border: `1.5px solid ${S.red}`, borderRadius: 12, padding: '12px 16px', marginBottom: 20 }}><p style={{ fontSize: 13, color: S.red, margin: 0 }}>⚠️ {error}</p></div>}
@@ -228,7 +228,7 @@ style={{ display: 'block', width: '100%', padding: '11px', borderRadius: 8, bord
 </button>
 {currentTier !== 'founding' && (
 <>
-<p style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textAlign: 'center', margin: '8px 0 0', lineHeight: 1.5, fontWeight: 300 }}>Pay by bank &mdash; keeps fees near zero, so more of your $200 goes into the build.</p>
+<p style={{ fontSize: 11, color: 'rgba(255,255,255,0.6)', textAlign: 'center', margin: '8px 0 0', lineHeight: 1.5, fontWeight: 300 }}>Pay by bank &mdash; keeps fees near zero, so more of your $200 goes into the founding development.</p>
 <button onClick={() => window.open(`${FOUNDING_CARD_LINK}?client_reference_id=${userId}`, '_blank', 'noopener')} style={{ display: 'block', width: '100%', padding: 0, border: 'none', background: 'transparent', color: 'rgba(255,255,255,0.55)', fontSize: 11, fontWeight: 500, textDecoration: 'underline', cursor: 'pointer', marginTop: 6, fontFamily: "'DM Sans', sans-serif" }}>Prefer to pay by card?</button>
 </>
 )}
