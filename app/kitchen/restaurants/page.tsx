@@ -704,7 +704,7 @@ Discard
 </circle>
 </svg>
 <p style={{ fontSize: 15, fontWeight: 600, color: S.forest, margin: '16px 0 0' }}>Reading the menu…</p>
-<p style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, margin: '3px 0 0' }}>Finding your favorites — about 20 seconds.</p>
+<p style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, margin: '3px 0 0' }}>Finding your favorites — usually about 30 seconds, up to a minute for some sites.</p>
 </div>
 ) : (
 <div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 14, padding: 14, marginBottom: 14 }}>
