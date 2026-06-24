@@ -66,7 +66,7 @@ async function extractMenu(args: {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-haiku-4-5', // ~1/3 the cost of Sonnet, strong at extraction; if accuracy dips, swap back to claude-sonnet-4-6
+      model: 'claude-sonnet-4-6', // stronger extractor while menu population is flaky; revert to 'claude-haiku-4-5' (~1/3 the cost) once it's reliable again
       max_tokens: 8000,
       system: SYSTEM,
       messages: [{ role: 'user', content }],
