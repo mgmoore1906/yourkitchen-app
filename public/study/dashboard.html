@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YourKitchen — Care Pool Dashboard</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sage:#3D6B4F; --sageMid:#6B9E7E; --sageLight:#EAF2ED; --cream:#FAFAF5;
+    --forest:#1E2620; --stone:#6B7066; --border:#DDE8E0; --white:#fff;
+    --amber:#C17F47; --amberLight:#FBF1E6;
+    --serif:'Lora',Georgia,serif; --sans:'DM Sans',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--sans);color:var(--forest);background:var(--cream);
+    -webkit-font-smoothing:antialiased;padding:26px 22px 34px}
+  .wrap{max-width:960px;margin:0 auto}
+  .head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:20px}
+  .kicker{font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--sageMid);text-transform:uppercase;margin-bottom:4px}
+  h1{font-family:var(--serif);font-size:25px;font-weight:600;margin:0;letter-spacing:-.5px}
+  .pills{display:flex;gap:8px;margin-top:8px;flex-wrap:wrap}
+  .pill{font-size:11.5px;font-weight:600;color:var(--sage);background:var(--sageLight);padding:3px 11px;border-radius:20px}
+  .pill.g{color:var(--stone);font-weight:400;background:#fff;border:.5px solid var(--border)}
+  .exp{display:flex;align-items:center;gap:7px;font-family:var(--sans);font-size:12.5px;font-weight:600;color:#fff;background:var(--sage);border:none;border-radius:11px;padding:10px 16px;cursor:pointer;transition:background .2s}
+  .exp.done{background:var(--sageMid)}
+  .row{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:12px}
+  .kpi{background:#fff;border:.5px solid var(--border);border-radius:16px;padding:16px 18px;flex:1;min-width:158px;box-shadow:0 1px 3px rgba(30,38,32,.04)}
+  .kpi .t{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px}
+  .ic{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center}
+  .delta{display:flex;align-items:center;gap:3px;font-size:11.5px;font-weight:600;color:var(--sage)}
+  .kpi .val{font-family:var(--serif);font-size:27px;font-weight:600;color:var(--forest);line-height:1}
+  .kpi .val .u{font-size:14px;color:var(--stone);font-weight:400;margin-left:3px}
+  .kpi .lab{font-size:11.5px;color:var(--stone);margin-top:7px}
+  .grid2{display:grid;grid-template-columns:1.45fr 1fr;gap:12px;margin-bottom:16px}
+  .card{background:#fff;border:.5px solid var(--border);border-radius:16px;box-shadow:0 1px 3px rgba(30,38,32,.04)}
+  .card.p{padding:18px 16px 8px}.card.q{padding:18px 18px 10px}
+  .card h3{font-size:13px;font-weight:600;margin-bottom:2px}
+  .csub{font-size:11.5px;color:var(--stone);margin-bottom:10px}
+  .kline{display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:.5px solid var(--border)}
+  .kline:last-child{border-bottom:none}
+  .kw{font-size:12.5px;font-weight:500;color:var(--forest)}
+  .kl{font-size:11px;color:var(--stone)}
+  .st{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
+  .st.a{color:var(--sage);background:var(--sageLight)} .st.w{color:var(--amber);background:var(--amberLight)}
+  .ctrl{background:#fff;border:.5px solid var(--border);border-radius:16px;padding:18px 22px}
+  .ctrlhead{display:flex;align-items:center;gap:8px;margin-bottom:16px}
+  .ctrlhead span{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--sage);text-transform:uppercase}
+  .cols{display:grid;grid-template-columns:1fr 1fr;gap:0 28px}
+  .sl{margin-bottom:14px}
+  .sl .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .sl .l{font-size:11.5px;font-weight:500;color:var(--stone)}
+  .sl .v{font-family:var(--serif);font-size:14px;font-weight:600;color:var(--sage)}
+  input[type=range]{width:100%;accent-color:var(--sage);cursor:pointer}
+  .summary{font-size:11px;color:var(--stone);line-height:1.55;margin-top:8px;padding-top:12px;border-top:.5px solid var(--border)}
+  .summary b{color:var(--forest)}
+  text{font-family:var(--sans)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="head">
+    <div>
+      <div class="kicker">Care Pool · Admin</div>
+      <h1>Cedar Hollow Hospice</h1>
+      <div class="pills">
+        <span class="pill">Growth Plan · <span id="p_slots">25</span> slots</span>
+        <span class="pill g">3 slots returning this week</span>
+      </div>
+    </div>
+    <button class="exp" id="exp" onclick="doExport()">
+      <span id="exp_ic"></span><span id="exp_tx">Export grant report</span>
+    </button>
+  </div>
+
+  <div class="row" id="kpis1"></div>
+  <div class="row" id="kpis2"></div>
+
+  <div class="grid2">
+    <div class="card p">
+      <h3>Meals delivered / month</h3>
+      <div class="csub">Across all active kitchens in your pool</div>
+      <svg id="chart" viewBox="0 0 560 196" width="100%" height="196" preserveAspectRatio="none" style="display:block">
+        <defs><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0%" stop-color="#3D6B4F" stop-opacity=".30"/>
+          <stop offset="100%" stop-color="#3D6B4F" stop-opacity=".02"/></linearGradient></defs>
+        <g id="yt"></g>
+        <path id="area" fill="url(#gd)"/>
+        <path id="line" fill="none" stroke="#3D6B4F" stroke-width="2.5"/>
+        <g id="xt"></g>
+      </svg>
+    </div>
+    <div class="card q">
+      <h3 style="margin-bottom:12px">Active kitchens</h3>
+      <div id="kitchens"></div>
+    </div>
+  </div>
+
+  <div class="ctrl">
+    <div class="ctrlhead">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#3D6B4F" stroke-width="2" stroke-linecap="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+      <span>Demo controls — reshape the org</span>
+    </div>
+    <div class="cols">
+      <div>
+        <div class="sl"><div class="top"><span class="l">Pool size (slots)</span><span class="v"><span id="v_slots">25</span></span></div><input type="range" id="slots" min="5" max="100" step="5" value="25"></div>
+        <div class="sl"><div class="top"><span class="l">Slot utilization</span><span class="v"><span id="v_util">84</span>%</span></div><input type="range" id="util" min="20" max="100" step="1" value="84"></div>
+        <div class="sl"><div class="top"><span class="l">Avg activation length</span><span class="v"><span id="v_days">90</span> days</span></div><input type="range" id="days" min="30" max="120" step="5" value="90"></div>
+        <div class="sl"><div class="top"><span class="l">Plan price (annual)</span><span class="v">$<span id="v_acv">15000</span></span></div><input type="range" id="acv" min="6000" max="40000" step="1000" value="15000"></div>
+      </div>
+      <div>
+        <div class="sl"><div class="top"><span class="l">Meals per family / episode</span><span class="v"><span id="v_meals">24</span></span></div><input type="range" id="meals" min="6" max="60" step="1" value="24"></div>
+        <div class="sl"><div class="top"><span class="l">Avg supporters per village</span><span class="v"><span id="v_sup">9</span></span></div><input type="range" id="sup" min="3" max="25" step="1" value="9"></div>
+        <div class="sl"><div class="top"><span class="l">Average meal value</span><span class="v">$<span id="v_aov">45</span></span></div><input type="range" id="aov" min="20" max="90" step="1" value="45"></div>
+        <div class="sl"><div class="top"><span class="l">On-time delivery rate</span><span class="v"><span id="v_ontime">96</span>%</span></div><input type="range" id="ontime" min="85" max="100" step="1" value="96"></div>
+      </div>
+    </div>
+    <div class="summary" id="summary"></div>
+  </div>
+</div>
+
+<script>
+  var ICON = {
+    activity:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
+    users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/>',
+    utensils:'<path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"/><path d="M5 2v20"/><path d="M21 15V2a5 5 0 0 0-3 5v6c0 1.1.9 2 2 2h1zm0 0v7"/>',
+    clock:'<circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/>',
+    check:'<path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/>',
+    heart:'<path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78L12 21l8.84-8.61a5.5 5.5 0 0 0 0-7.78z"/>',
+    trending:'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
+    download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'
+  };
+  function svg(name,color){return '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICON[name]+'</svg>';}
+  function fmt(n){return Math.round(n).toLocaleString('en-US');}
+  function dollars(n){return '$'+Math.round(n).toLocaleString('en-US');}
+  function val(id){return parseFloat(document.getElementById(id).value);}
+
+  function kpi(icon,label,value,unit,delta,accent){
+    var a=accent||'#3D6B4F';
+    return '<div class="kpi"><div class="t"><div class="ic" style="background:'+a+'18">'+svg(icon,a)+'</div>'+
+      (delta!=null?'<div class="delta">'+svg('trending','#3D6B4F')+'+'+delta+'%</div>':'')+'</div>'+
+      '<div class="val">'+value+(unit?'<span class="u">'+unit+'</span>':'')+'</div>'+
+      '<div class="lab">'+label+'</div></div>';
+  }
+
+  var KITCHENS=[
+    {who:'New baby',where:'Waller, TX',status:'a',days:41,meals:18},
+    {who:'Chemo recovery',where:'Cibolo, TX',status:'a',days:12,meals:26},
+    {who:'Post-surgery',where:'Katy, TX',status:'a',days:67,meals:9},
+    {who:'Bereavement',where:'Houston, TX',status:'w',days:4,meals:31},
+    {who:'Deployment',where:'Fort Cavazos',status:'a',days:88,meals:14}
+  ];
+
+  function drawChart(series){
+    var W=560,H=196,padL=38,padR=10,padT=8,padB=22;
+    var plotW=W-padL-padR, plotH=H-padT-padB;
+    var maxY=Math.max.apply(null,series)*1.12 || 1;
+    var x=function(i){return padL+(i/11)*plotW;};
+    var y=function(v){return padT+plotH-(v/maxY)*plotH;};
+    var line='M'+x(0).toFixed(1)+' '+y(series[0]).toFixed(1);
+    for(var i=1;i<12;i++) line+=' L'+x(i).toFixed(1)+' '+y(series[i]).toFixed(1);
+    var base=(padT+plotH).toFixed(1);
+    document.getElementById('line').setAttribute('d',line);
+    document.getElementById('area').setAttribute('d',line+' L'+x(11).toFixed(1)+' '+base+' L'+x(0).toFixed(1)+' '+base+' Z');
+    var yt=document.getElementById('yt'); yt.innerHTML='';
+    for(var g=0;g<=3;g++){var vv=maxY*g/3;var yy=y(vv);yt.innerHTML+='<text x="'+(padL-5)+'" y="'+(yy+3)+'" fill="#6B7066" font-size="10" text-anchor="end">'+Math.round(vv)+'</text>';}
+    var months=['Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb','Mar','Apr','May','Jun'];
+    var xt=document.getElementById('xt'); xt.innerHTML='';
+    for(var m=0;m<12;m+=2){xt.innerHTML+='<text x="'+x(m)+'" y="'+(H-7)+'" fill="#6B7066" font-size="10" text-anchor="middle">'+months[m]+'</text>';}
+  }
+
+  function render(){
+    [['slots','slots'],['util','util'],['days','days'],['acv','acv'],['meals','meals'],['sup','sup'],['aov','aov'],['ontime','ontime']].forEach(function(p){
+      document.getElementById('v_'+p[0]).textContent=val(p[1]).toLocaleString('en-US');
+    });
+    var slots=val('slots'),util=val('util'),days=val('days'),acv=val('acv'),
+        meals=val('meals'),sup=val('sup'),aov=val('aov'),ontime=val('ontime');
+    document.getElementById('p_slots').textContent=slots;
+
+    var activeSlots=Math.round(slots*(util/100));
+    var turns=365/days;
+    var families=Math.round(activeSlots*turns);
+    var mealsYear=families*meals;
+    var supporters=families*sup;
+    var hours=Math.round(mealsYear*1.5);
+    var spend=mealsYear*aov;
+    var costFamily=families?acv/families:0;
+    var costMeal=mealsYear?acv/mealsYear:0;
+
+    document.getElementById('kpis1').innerHTML=
+      kpi('activity','Pool utilization',util,'%',6,'#3D6B4F')+
+      kpi('users','Families served this year',fmt(families),null,14,'#C17F47')+
+      kpi('utensils','Meals delivered',fmt(mealsYear),null,11,'#3D6B4F')+
+      kpi('clock','Caregiver hours saved (est.)',fmt(hours),null,11,'#6B9E7E');
+    document.getElementById('kpis2').innerHTML=
+      kpi('check','On-time delivery rate',ontime,'%',null,'#3D6B4F')+
+      kpi('heart','Supporters mobilized',fmt(supporters),null,18,'#C17F47')+
+      kpi('trending','Community meal spend mobilized',dollars(spend),null,null,'#6B9E7E')+
+      kpi('users','Your cost per family · 90 days',dollars(costFamily),null,null,'#C17F47');
+
+    var ramp=[0.34,0.44,0.54,0.61,0.69,0.77,0.82,0.87,0.91,0.95,0.98,1.0];
+    var monthly=mealsYear/12;
+    drawChart(ramp.map(function(r){return Math.round(monthly*r);}));
+
+    document.getElementById('kitchens').innerHTML=KITCHENS.map(function(k){
+      return '<div class="kline"><div><div class="kw">'+k.who+'</div><div class="kl">'+k.where+' · '+k.meals+' meals</div></div>'+
+        '<span class="st '+k.status+'">'+k.days+'d left</span></div>';
+    }).join('');
+
+    document.getElementById('summary').innerHTML=
+      'Throughput is the story: '+activeSlots+' active slots recycling every '+days+' days &asymp; <b>'+families+
+      ' families</b> served this year — at <b>'+dollars(costFamily)+'/family</b> and <b>'+dollars(costMeal)+
+      '/meal coordinated</b>. That\'s the renewal case, on one screen.';
+  }
+
+  var exported=false;
+  function doExport(){
+    var b=document.getElementById('exp');
+    document.getElementById('exp_ic').innerHTML=svg('check','#fff');
+    document.getElementById('exp_tx').textContent='Report exported';
+    b.classList.add('done');
+    setTimeout(function(){
+      document.getElementById('exp_ic').innerHTML=svg('download','#fff');
+      document.getElementById('exp_tx').textContent='Export grant report';
+      b.classList.remove('done');
+    },1800);
+  }
+
+  ['slots','util','days','acv','meals','sup','aov','ontime'].forEach(function(id){
+    document.getElementById(id).addEventListener('input',render);
+  });
+  document.getElementById('exp_ic').innerHTML=svg('download','#fff');
+  render();
+</script>
+</body>
+</html>
