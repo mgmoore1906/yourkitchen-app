@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YourKitchen — Plans</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sage:#3D6B4F; --sage-mid:#6B9E7E; --sage-light:#EAF2ED;
+    --cream:#FAFAF5; --forest:#1E2620; --stone:#6B7066;
+    --border:#DDE8E0; --white:#FFFFFF;
+    --gold:#B88B4A; --gold-deep:#C17F47; --gold-light:#F5EBDD;
+    --heart:#C0463B;
+    --serif:'Lora',Georgia,serif; --sans:'DM Sans',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{
+    font-family:var(--sans); color:var(--forest); background:#EDEDE6;
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+    padding:32px 16px;
+  }
+  .sheet{
+    max-width:1040px; margin:0 auto; background:var(--cream);
+    border-radius:20px; overflow:hidden;
+    box-shadow:0 24px 60px rgba(30,38,32,0.16);
+  }
+
+  /* ── Masthead ── */
+  .masthead{
+    background:var(--forest); color:var(--cream);
+    padding:42px 48px 38px; position:relative; overflow:hidden;
+  }
+  .masthead::after{
+    content:''; position:absolute; right:-80px; top:-80px;
+    width:320px; height:320px; border-radius:50%;
+    background:radial-gradient(circle, rgba(107,158,126,0.22), transparent 70%);
+  }
+  .brand-eyebrow{
+    font-size:11px; font-weight:500; letter-spacing:0.42em;
+    text-transform:uppercase; color:var(--sage-mid); margin-bottom:2px;
+  }
+  .brand-word{ font-family:var(--serif); font-size:38px; font-weight:500; letter-spacing:-0.01em; }
+  .brand-tag{ font-family:var(--serif); font-style:italic; font-size:16px; color:rgba(250,250,245,0.66); margin-top:6px; }
+  .masthead h1{
+    font-family:var(--serif); font-weight:500; font-size:22px;
+    margin-top:22px; color:var(--cream); position:relative; z-index:1;
+  }
+  .masthead p.sub{ font-size:13.5px; color:rgba(250,250,245,0.7); margin-top:4px; max-width:560px; }
+
+  .pilot-flag{
+    display:inline-flex; align-items:center; gap:8px; margin-top:18px;
+    background:rgba(107,158,126,0.16); border:1px solid rgba(107,158,126,0.4);
+    color:#CDE3D5; font-size:12px; font-weight:500;
+    padding:7px 14px; border-radius:30px; position:relative; z-index:1;
+  }
+  .pilot-flag .heart{ color:var(--heart); }
+
+  /* ── Tier cards ── */
+  .tiers{
+    display:grid; grid-template-columns:1fr 1fr 1fr; gap:0;
+    background:var(--border);
+  }
+  .tier{ background:var(--cream); padding:30px 26px 28px; position:relative; }
+  .tier.care{ background:var(--white); }
+  .tier.founding{
+    background:linear-gradient(170deg,#2A3326 0%, var(--forest) 100%);
+    color:var(--cream);
+  }
+  .tier-name{ font-family:var(--serif); font-size:23px; font-weight:600; letter-spacing:-0.01em; }
+  .tier.founding .tier-name{ color:#F0E2C9; }
+  .tier-for{ font-size:12px; color:var(--stone); margin-top:3px; min-height:32px; }
+  .tier.founding .tier-for{ color:rgba(240,226,201,0.75); }
+
+  .price{ margin-top:16px; display:flex; align-items:baseline; gap:4px; }
+  .price .amt{ font-family:var(--serif); font-size:34px; font-weight:600; color:var(--forest); }
+  .tier.founding .price .amt{ color:#E9CF9B; }
+  .price .per{ font-size:13px; color:var(--stone); font-weight:500; }
+  .tier.founding .price .per{ color:rgba(240,226,201,0.7); }
+  .price-note{ font-size:11.5px; color:var(--stone); margin-top:4px; }
+  .tier.founding .price-note{ color:rgba(240,226,201,0.65); }
+
+  .ribbon{
+    position:absolute; top:20px; right:-2px;
+    background:linear-gradient(95deg,var(--gold),var(--gold-deep));
+    color:#fff; font-size:10px; font-weight:700; letter-spacing:0.08em;
+    text-transform:uppercase; padding:5px 12px 5px 14px;
+    border-radius:20px 0 0 20px; box-shadow:0 3px 10px rgba(184,139,74,0.4);
+  }
+
+  .tier-lead{
+    font-size:12px; font-weight:600; letter-spacing:0.04em; text-transform:uppercase;
+    color:var(--sage); margin:22px 0 10px;
+  }
+  .tier.founding .tier-lead{ color:#D8B878; }
+  .tier.care .tier-lead{ color:var(--sage); }
+
+  .feat{ list-style:none; }
+  .feat li{
+    font-size:12.5px; line-height:1.45; color:var(--forest);
+    padding:6px 0 6px 24px; position:relative; border-bottom:0.5px solid rgba(0,0,0,0.05);
+  }
+  .tier.founding .feat li{ color:rgba(250,250,245,0.92); border-bottom-color:rgba(255,255,255,0.08); }
+  .feat li:last-child{ border-bottom:none; }
+  .feat li::before{
+    content:''; position:absolute; left:2px; top:9px;
+    width:13px; height:13px; border-radius:50%;
+    background:var(--sage-light);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D6B4F' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-size:9px; background-repeat:no-repeat; background-position:center;
+  }
+  .tier.founding .feat li::before{
+    background-color:rgba(216,184,120,0.2);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23D8B878' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+  }
+  .feat li.heart-feat::before{
+    background-color:rgba(192,70,59,0.12);
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='%23C0463B' stroke='none'%3E%3Cpath d='M12 21s-7-4.35-9.5-8.5C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 7-2.5 4.15-9.5 8.5-9.5 8.5z'/%3E%3C/svg%3E");
+  }
+  .feat li b{ font-weight:600; }
+  .inherits{
+    font-size:11.5px; font-style:italic; color:var(--stone);
+    padding:8px 0 2px; margin-bottom:4px;
+  }
+  .tier.founding .inherits{ color:rgba(240,226,201,0.7); }
+
+  /* ── Comparison matrix ── */
+  .matrix-wrap{ padding:40px 48px 20px; background:var(--cream); }
+  .matrix-title{
+    font-family:var(--serif); font-size:22px; font-weight:600; text-align:center;
+    margin-bottom:4px;
+  }
+  .matrix-sub{ text-align:center; font-size:12.5px; color:var(--stone); margin-bottom:24px; }
+  table{ width:100%; border-collapse:collapse; }
+  thead th{
+    font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase;
+    padding:10px 8px; text-align:center; color:var(--forest);
+    border-bottom:2px solid var(--sage);
+  }
+  thead th.feat-col{ text-align:left; color:var(--stone); width:42%; }
+  thead th.f-col{ color:var(--gold-deep); }
+  tbody td{ padding:9px 8px; font-size:12.5px; border-bottom:0.5px solid var(--border); text-align:center; }
+  tbody td.feat-col{ text-align:left; color:var(--forest); font-weight:500; }
+  tbody td.feat-col small{ display:block; font-weight:400; color:var(--stone); font-size:11px; margin-top:1px; }
+  tbody tr.section-row td{
+    background:var(--sage-light); font-size:10.5px; font-weight:700; letter-spacing:0.08em;
+    text-transform:uppercase; color:var(--sage); text-align:left; padding:7px 8px;
+  }
+  .yes{ color:var(--sage); font-weight:700; }
+  .no{ color:#C4CCC6; }
+  .val{ color:var(--forest); font-weight:600; }
+  .val.f{ color:var(--gold-deep); }
+  .f-cell{ background:rgba(184,139,74,0.06); }
+
+  /* ── Founding strip ── */
+  .founding-strip{
+    margin:8px 48px 0; padding:24px 28px;
+    background:linear-gradient(165deg,#2A3326,var(--forest));
+    border-radius:16px; color:var(--cream); position:relative; overflow:hidden;
+  }
+  .founding-strip::after{
+    content:''; position:absolute; right:-60px; bottom:-60px; width:220px; height:220px;
+    border-radius:50%; background:radial-gradient(circle,rgba(184,139,74,0.22),transparent 70%);
+  }
+  .founding-strip h3{ font-family:var(--serif); font-size:18px; color:#E9CF9B; margin-bottom:4px; position:relative; }
+  .founding-strip p{ font-size:12.5px; color:rgba(250,250,245,0.78); max-width:640px; position:relative; }
+  .fs-grid{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; margin-top:18px; position:relative; }
+  .fs-item{ background:rgba(255,255,255,0.05); border:1px solid rgba(216,184,120,0.22); border-radius:10px; padding:12px 13px; }
+  .fs-item .k{ font-size:10px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:#D8B878; margin-bottom:3px; }
+  .fs-item .v{ font-size:12px; color:rgba(250,250,245,0.9); line-height:1.4; }
+
+  /* ── Footer ── */
+  .foot{
+    padding:26px 48px 34px; text-align:center; background:var(--cream);
+  }
+  .foot .line{ width:46px; height:2px; background:var(--gold); margin:0 auto 16px; border-radius:2px; }
+  .foot .tag{ font-family:var(--serif); font-style:italic; font-size:17px; color:var(--sage); }
+  .foot .meta{ font-size:11.5px; color:var(--stone); margin-top:8px; }
+  .foot .heart{ color:var(--heart); }
+
+  /* ── Print ── */
+  @media print{
+    @page{ size:Letter; margin:0.4in; }
+    body{ background:#fff; padding:0; }
+    .sheet{ box-shadow:none; border-radius:0; max-width:100%; }
+    .founding-strip{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .tier.founding,.masthead,thead th,tbody tr.section-row td,.f-cell{ -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+    .matrix-wrap{ page-break-before:auto; }
+  }
+  @media (max-width:780px){
+    .tiers{ grid-template-columns:1fr; }
+    .fs-grid{ grid-template-columns:1fr 1fr; }
+    .matrix-wrap,.founding-strip,.foot,.masthead{ padding-left:24px; padding-right:24px; }
+    table{ font-size:11px; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <!-- Masthead -->
+  <div class="masthead">
+    <div class="brand-eyebrow">Your</div>
+    <div class="brand-word">Kitchen</div>
+    <div class="brand-tag">Your kitchen, covered.</div>
+    <h1>Three ways to gather a village around someone who needs one.</h1>
+    <p class="sub">Every plan sends real, home-delivered restaurant meals — confirmed by the recipient before anything is charged. The difference is how deeply the village can gather, and how much of it you get to keep.</p>
+    <div class="pilot-flag"><span class="heart">&#10084;</span> During the pilot, every member enjoys full Care+ — no charge.</div>
+  </div>
+
+  <!-- Tier cards -->
+  <div class="tiers">
+
+    <!-- FREE -->
+    <div class="tier free">
+      <div class="tier-name">Free</div>
+      <div class="tier-for">For anyone organizing meals for someone they love.</div>
+      <div class="price"><span class="amt">$0</span><span class="per">/ forever</span></div>
+      <div class="price-note">No card required to start.</div>
+
+      <div class="tier-lead">What&rsquo;s included</div>
+      <ul class="feat">
+        <li><b>1 kitchen</b> for your recipient</li>
+        <li><b>Unlimited calendar</b> — claim any date, any time out</li>
+        <li><b>3 restaurants</b>, up to <b>4 meals</b> each</li>
+        <li>Home delivery by courier (DoorDash &amp; Uber network)</li>
+        <li>Y/N text confirmation before any charge</li>
+        <li>Live delivery tracking for the recipient</li>
+        <li><b>Delivery confirmation text</b> to the coordinator</li>
+        <li>Shareable kitchen link &amp; invite buttons</li>
+        <li class="heart-feat"><b>Village board</b> — text notes &amp; viewing</li>
+        <li><b>Insights</b> — meals received, hours saved, top supporters</li>
+      </ul>
+    </div>
+
+    <!-- CARE+ -->
+    <div class="tier care">
+      <div class="ribbon">Most loved</div>
+      <div class="tier-name">Care+</div>
+      <div class="tier-for">For families who want the village to feel like a keepsake.</div>
+      <div class="price"><span class="amt">$9.99</span><span class="per">/ month</span></div>
+      <div class="price-note"><b>or $90/year</b> &mdash; save 25%. Cancel anytime; your village is kept, not deleted.</div>
+
+      <div class="tier-lead">Everything in Free, plus</div>
+      <ul class="feat">
+        <li class="heart-feat"><b>The full village</b> — photos, reactions &amp; replies</li>
+        <li class="heart-feat"><b>Village keepsake</b> — your record, saved &amp; archived</li>
+        <li>A <b>larger village</b> — invite more supporters</li>
+        <li><b>Personal thank-you message</b> to the coordinator on delivery</li>
+        <li>Live tracking link shared with the coordinator</li>
+        <li><b>3 kitchens</b> — cover more than one person</li>
+        <li><b>10 restaurants</b>, up to <b>12 meals</b> each</li>
+        <li>Custom kitchen web address</li>
+        <li>Home-cooked &amp; personal drop-off option</li>
+        <li>Priority support</li>
+      </ul>
+    </div>
+
+    <!-- FOUNDING -->
+    <div class="tier founding">
+      <div class="ribbon">First 250 only</div>
+      <div class="tier-name">Founding Member</div>
+      <div class="tier-for">For the first believers who help build this.</div>
+      <div class="price"><span class="amt">$200</span><span class="per">one time</span></div>
+      <div class="price-note">Includes <b>3 full years</b> of Care+ &mdash; then keep the badge for life.</div>
+
+      <div class="tier-lead">Everything in Care+, plus</div>
+      <ul class="feat">
+        <li><b>Permanent Founding badge</b> on your kitchen</li>
+        <li>A <b>direct line</b> to the founder</li>
+        <li><b>Early beta access</b> to new features first</li>
+        <li>Your name in the <b>Founding story</b></li>
+        <li>First access to marketplace partners as they open</li>
+        <li>Private <b>founders&rsquo; community</b></li>
+        <li class="heart-feat"><b>Gift 90 days of Care+</b> to a friend — a one-time code to share</li>
+        <li class="heart-feat"><b>Founders Gift Box</b> — shipped to your door</li>
+      </ul>
+      <div class="inherits">Only 250 will ever exist.</div>
+    </div>
+
+  </div>
+
+  <!-- Comparison matrix -->
+  <div class="matrix-wrap">
+    <div class="matrix-title">Every feature, side by side</div>
+    <div class="matrix-sub">So nothing falls through the cracks.</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="feat-col">Feature</th>
+          <th>Free</th>
+          <th>Care+</th>
+          <th class="f-col">Founding</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr class="section-row"><td colspan="4">The essentials</td></tr>
+        <tr><td class="feat-col">Price</td><td class="val">$0</td><td class="val">$9.99/mo<small>or $90/year</small></td><td class="f-cell val f">$200 once</td></tr>
+        <tr><td class="feat-col">Kitchens<small>Distinct recipients you can cover</small></td><td class="val">1</td><td class="val">3</td><td class="f-cell val f">3</td></tr>
+        <tr><td class="feat-col">Calendar window</td><td class="val">Unlimited</td><td class="val">Unlimited</td><td class="f-cell val f">Unlimited</td></tr>
+        <tr><td class="feat-col">Restaurants per kitchen</td><td class="val">3</td><td class="val">10</td><td class="f-cell val f">10</td></tr>
+        <tr><td class="feat-col">Meals saved per restaurant</td><td class="val">4</td><td class="val">12</td><td class="f-cell val f">12</td></tr>
+
+        <tr class="section-row"><td colspan="4">Sending a meal</td></tr>
+        <tr><td class="feat-col">Home delivery (courier network)</td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Y/N text confirmation before charge</td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Live delivery tracking (recipient)</td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Delivery confirmation to coordinator<small>So no one has to ask &ldquo;did it arrive?&rdquo;</small></td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Personal thank-you message to coordinator</td><td class="no">&mdash;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Live tracking link shared with coordinator</td><td class="no">&mdash;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Home-cooked &amp; personal drop-off option</td><td class="no">&mdash;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+
+        <tr class="section-row"><td colspan="4">The village</td></tr>
+        <tr><td class="feat-col">Text notes &amp; viewing</td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Photos, reactions &amp; threaded replies</td><td class="no">&mdash;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Village size</td><td class="val">Standard</td><td class="val">Larger</td><td class="f-cell val f">Larger</td></tr>
+        <tr><td class="feat-col">Keepsake &amp; archive<small>Your village is kept, not deleted</small></td><td class="no">&mdash;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+
+        <tr class="section-row"><td colspan="4">Growing &amp; sharing</td></tr>
+        <tr><td class="feat-col">Shareable kitchen link</td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Custom kitchen web address</td><td class="no">&mdash;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Insights dashboard</td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Priority support</td><td class="no">&mdash;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+
+        <tr class="section-row"><td colspan="4">Founding privileges</td></tr>
+        <tr><td class="feat-col">Permanent Founding badge</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Direct line to the founder</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Early beta access</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Name in the Founding story</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">First access to marketplace partners</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Private founders&rsquo; community</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Gift 90 days of Care+ to a friend<small>A one-time code to share &mdash; a $30 value to give</small></td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Founders Gift Box</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Founding strip -->
+  <div class="founding-strip">
+    <h3>About the Founding Member tier</h3>
+    <p>One payment of $200 covers three full years of Care+ — and the badge, the access, and the gift box are yours regardless of what comes after. It&rsquo;s for the first 250 people who believe in this enough to help it stand up.</p>
+    <div class="fs-grid">
+      <div class="fs-item"><div class="k">Price</div><div class="v">$200 one time</div></div>
+      <div class="fs-item"><div class="k">Includes</div><div class="v">3 years of Care+</div></div>
+      <div class="fs-item"><div class="k">Badge</div><div class="v">Kept for life</div></div>
+      <div class="fs-item"><div class="k">Availability</div><div class="v">First 250 only</div></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="foot">
+    <div class="line"></div>
+    <div class="tag">Your kitchen, covered.</div>
+    <div class="meta">yourkitchen.app &nbsp;&middot;&nbsp; Made with <span class="heart">&#10084;</span> for the people who show up.</div>
+  </div>
+
+</div>
+</body>
+</html>
