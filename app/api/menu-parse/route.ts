@@ -66,7 +66,7 @@ async function extractMenu(args: {
     method: 'POST',
     headers: { 'content-type': 'application/json', 'x-api-key': key, 'anthropic-version': '2023-06-01' },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-6', // stronger extractor while menu population is flaky; revert to 'claude-haiku-4-5' (~1/3 the cost) once it's reliable again
+      model: 'claude-haiku-4-5', // back to Haiku (~1/3 Sonnet's cost) now the search fix addressed the real failures; swap to 'claude-sonnet-4-6' if extraction quality dips
       max_tokens: 8000,
       system: SYSTEM,
       messages: [{ role: 'user', content }],
@@ -232,44 +232,53 @@ function isUberHost(u: string): boolean {
 async function renderWithScrapingBee(url: string, scroll: boolean, timeoutMs = 40000): Promise<string> {
   const key = process.env.SCRAPINGBEE_API_KEY
   if (!key) return ''
-  try {
-    const api = new URL('https://app.scrapingbee.com/api/v1/')
-    api.searchParams.set('api_key', key)
-    api.searchParams.set('url', url)
-    api.searchParams.set('render_js', 'true')
-    // Many restaurant sites (Cloudflare / bot-walled) now block ScrapingBee's standard
-    // datacenter proxies — a 500 that we'd otherwise swallow into an empty menu. Premium
-    // (residential) proxies get past those blocks. Costs more credits, but the render only
-    // fires on hard JS sites, so the volume is bounded.
-    api.searchParams.set('premium_proxy', 'true')
-    if (scroll) {
-      // Open JS sites (Popmenu, Wix): scroll in steps so lazy-loaded sections render before capture.
-      api.searchParams.set('js_scenario', JSON.stringify({
-        instructions: [
-          { wait: 2500 },
-          { scroll_y: 3000 }, { wait: 1200 },
-          { scroll_y: 3000 }, { wait: 1200 },
-          { scroll_y: 3000 }, { wait: 1200 },
-          { scroll_y: 3000 }, { wait: 1200 },
-          { scroll_y: 3000 }, { wait: 1500 },
-        ],
-      }))
-    } else {
-      // Bot-walled SPAs (e.g. DoorDash Storefront): the scroll scenario stalls; a plain render works.
-      api.searchParams.set('wait', '4500')
-    }
-    const ctrl = new AbortController()
-    const timer = setTimeout(() => ctrl.abort(), timeoutMs) // never let a slow render hang the function
+  const apiKey = key // narrowed to string so the nested closure below stays type-safe
+
+  // One render pass. premium=false = standard datacenter proxy (5 credits);
+  // premium=true = residential proxy (25 credits) that gets past Cloudflare / bot walls.
+  const attempt = async (premium: boolean): Promise<string> => {
     try {
-      const r = await fetch(api.toString(), { signal: ctrl.signal })
-      if (!r.ok) return ''
-      return await r.text()
-    } finally {
-      clearTimeout(timer)
+      const api = new URL('https://app.scrapingbee.com/api/v1/')
+      api.searchParams.set('api_key', apiKey)
+      api.searchParams.set('url', url)
+      api.searchParams.set('render_js', 'true')
+      if (premium) api.searchParams.set('premium_proxy', 'true')
+      if (scroll) {
+        // Open JS sites (Popmenu, Wix): scroll in steps so lazy-loaded sections render before capture.
+        api.searchParams.set('js_scenario', JSON.stringify({
+          instructions: [
+            { wait: 2500 },
+            { scroll_y: 3000 }, { wait: 1200 },
+            { scroll_y: 3000 }, { wait: 1200 },
+            { scroll_y: 3000 }, { wait: 1200 },
+            { scroll_y: 3000 }, { wait: 1200 },
+            { scroll_y: 3000 }, { wait: 1500 },
+          ],
+        }))
+      } else {
+        // Bot-walled SPAs (e.g. DoorDash Storefront): the scroll scenario stalls; a plain render works.
+        api.searchParams.set('wait', '4500')
+      }
+      const ctrl = new AbortController()
+      const timer = setTimeout(() => ctrl.abort(), timeoutMs) // never let a slow render hang the function
+      try {
+        const r = await fetch(api.toString(), { signal: ctrl.signal })
+        if (!r.ok) return ''
+        return await r.text()
+      } finally {
+        clearTimeout(timer)
+      }
+    } catch {
+      return ''
     }
-  } catch {
-    return ''
   }
+
+  // Standard proxy first (cheap). Only escalate to a premium residential proxy when the
+  // standard render comes back empty/blocked — so premium credits burn only on the
+  // genuinely Cloudflare-walled sites, not on every render.
+  const standard = await attempt(false)
+  if (standard) return standard
+  return attempt(true)
 }
 
 async function fetchRich(url: string): Promise<string> {
