@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>YourKitchen — tutorial mockup</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;0,700;1,500&family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sage:#3D6B4F; --sageMid:#6B9E7E; --sageLight:#EAF2ED;
+    --cream:#FAFAF5; --forest:#1E2620; --amber:#C17F47; --amberLight:#FBF0E4;
+    --stone:#6B7066; --border:#DDE8E0; --red:#B94040; --redLight:#FDE8E8; --white:#fff;
+    --serif:'Lora',Georgia,'Times New Roman',serif;
+    --sans:'DM Sans',-apple-system,BlinkMacSystemFont,system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{
+    font-family:var(--sans); background:#EDEAE0;
+    min-height:100vh; display:flex; align-items:center; justify-content:center;
+    padding:28px 14px; color:var(--forest);
+    background-image:radial-gradient(circle at 20% 10%, #F2EFE6, #E6E2D6);
+  }
+  /* phone frame */
+  .phone{
+    width:392px; max-width:100%; height:812px; background:var(--cream);
+    border-radius:40px; overflow:hidden; position:relative;
+    box-shadow:0 2px 6px rgba(30,38,32,.10), 0 30px 70px rgba(30,38,32,.22);
+    display:flex; flex-direction:column;
+    border:8px solid #15201A;
+  }
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:120px;height:24px;background:#15201A;border-radius:0 0 16px 16px;z-index:40}
+
+  /* app bar */
+  .appbar{
+    flex:0 0 auto; padding:26px 18px 12px; background:var(--cream);
+    display:flex; align-items:center; justify-content:space-between;
+    border-bottom:1px solid var(--border); z-index:20;
+  }
+  .brand{display:flex;align-items:center;gap:8px}
+  .brand .mark{width:30px;height:30px;border-radius:9px;background:var(--sage);display:flex;align-items:center;justify-content:center;font-size:16px}
+  .brand .name{font-family:var(--serif);font-weight:600;font-size:17px;color:var(--forest);letter-spacing:-.2px}
+  .brand .name span{color:var(--sage)}
+  .bell{width:34px;height:34px;border-radius:50%;background:var(--sageLight);display:flex;align-items:center;justify-content:center;font-size:15px;position:relative}
+  .bell::after{content:'';position:absolute;top:8px;right:9px;width:7px;height:7px;border-radius:50%;background:var(--amber);border:2px solid var(--sageLight)}
+
+  /* scroll area */
+  .scroll{flex:1 1 auto;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+  .scroll::-webkit-scrollbar{width:0}
+  .view{display:none;padding:0 0 22px}
+  .view.active{display:block}
+
+  /* ---------- VILLAGE ---------- */
+  .cover{padding:20px 18px 18px;color:#fff;position:relative;overflow:hidden}
+  .cover .emoji{font-size:30px;line-height:1}
+  .cover h1{font-family:var(--serif);font-weight:600;font-size:23px;margin-top:10px;letter-spacing:-.3px}
+  .cover p{font-size:13px;opacity:.92;margin-top:4px;font-weight:500}
+  .cover .glow{position:absolute;width:200px;height:200px;border-radius:50%;background:rgba(255,255,255,.16);top:-70px;right:-40px}
+
+  .scen{display:flex;gap:7px;padding:13px 18px 4px;overflow-x:auto}
+  .scen::-webkit-scrollbar{height:0}
+  .pill{flex:0 0 auto;border:1px solid var(--border);background:var(--white);color:var(--stone);
+    font-family:var(--sans);font-size:12px;font-weight:600;padding:7px 13px;border-radius:999px;cursor:pointer;white-space:nowrap;transition:.16s}
+  .pill.on{background:var(--sage);border-color:var(--sage);color:#fff}
+
+  .sec{padding:16px 18px 4px}
+  .sec h2{font-family:var(--serif);font-weight:600;font-size:15px;color:var(--forest);margin-bottom:2px}
+  .sec .cap{font-size:11.5px;color:var(--stone);margin-bottom:11px}
+
+  .meal{display:flex;align-items:center;gap:11px;background:var(--white);border:1px solid var(--border);border-radius:15px;padding:11px 12px;margin-bottom:9px}
+  .meal .ico{flex:0 0 auto;width:42px;height:42px;border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:20px;background:var(--sageLight)}
+  .meal .body{flex:1;min-width:0}
+  .meal .r{font-weight:600;font-size:13.5px;color:var(--forest)}
+  .meal .w{font-size:11.5px;color:var(--stone);margin-top:1px}
+  .meal .tag{flex:0 0 auto;font-size:10px;font-weight:700;padding:3px 9px;border-radius:999px}
+  .tag.done{background:var(--sageLight);color:var(--sage)}
+  .tag.sched{background:var(--amberLight);color:var(--amber)}
+  .meal.open{border-style:dashed;background:transparent;justify-content:center;color:var(--sage);font-weight:600;font-size:13px;cursor:pointer}
+  .meal.open .plus{font-size:18px;margin-right:7px}
+
+  .villagebar{display:flex;align-items:center;gap:10px;padding:6px 18px 2px}
+  .stack{display:flex}
+  .stack .av{width:30px;height:30px;border-radius:50%;border:2px solid var(--cream);margin-left:-9px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700;color:#fff}
+  .stack .av:first-child{margin-left:0}
+  .villagebar .vt{font-size:12px;color:var(--stone);font-weight:500}
+  .villagebar .vt b{color:var(--forest)}
+
+  .feed{padding:8px 18px 0}
+  .post{background:var(--white);border:1px solid var(--border);border-radius:17px;padding:13px 14px;margin-bottom:11px}
+  .post .top{display:flex;align-items:center;gap:9px;margin-bottom:8px}
+  .post .av{width:34px;height:34px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;color:#fff;flex:0 0 auto}
+  .post .who{font-weight:600;font-size:13px;color:var(--forest)}
+  .post .meta{font-size:11px;color:var(--stone);margin-top:1px}
+  .post .txt{font-size:13.5px;line-height:1.5;color:#2C352D}
+  .photo{margin-top:10px;border-radius:13px;height:128px;display:flex;align-items:center;justify-content:center;font-size:46px;position:relative;overflow:hidden}
+  .photo .cap{position:absolute;left:10px;bottom:9px;font-size:11px;font-weight:600;color:#fff;background:rgba(20,30,24,.42);padding:3px 9px;border-radius:999px;backdrop-filter:blur(2px)}
+  .react{display:flex;gap:6px;margin-top:10px;flex-wrap:wrap}
+  .react .r{display:flex;align-items:center;gap:4px;background:var(--sageLight);border-radius:999px;padding:4px 9px;font-size:11.5px;font-weight:600;color:var(--sage)}
+
+  /* ---------- INSIGHTS ---------- */
+  .ihead{padding:22px 18px 6px}
+  .ihead .eyebrow{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--sageMid)}
+  .ihead h1{font-family:var(--serif);font-weight:600;font-size:21px;margin-top:5px;letter-spacing:-.3px}
+  .ihead p{font-size:12.5px;color:var(--stone);margin-top:4px}
+  .grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 18px 4px}
+  .stat{background:var(--white);border:1px solid var(--border);border-radius:16px;padding:14px}
+  .stat .n{font-family:var(--serif);font-weight:700;font-size:27px;color:var(--sage);letter-spacing:-.5px;line-height:1}
+  .stat .l{font-size:11.5px;color:var(--stone);margin-top:6px;font-weight:500}
+  .stat.amberStat .n{color:var(--amber)}
+
+  .card{background:var(--white);border:1px solid var(--border);border-radius:17px;padding:15px 15px 16px;margin:12px 18px 0}
+  .card h3{font-family:var(--serif);font-weight:600;font-size:14.5px;margin-bottom:13px}
+  .bars{display:flex;align-items:flex-end;gap:9px;height:96px}
+  .bars .col{flex:1;display:flex;flex-direction:column;align-items:center;gap:6px;height:100%;justify-content:flex-end}
+  .bars .bar{width:100%;background:var(--sageLight);border-radius:6px 6px 3px 3px;position:relative;transition:height .5s ease}
+  .bars .bar.cur{background:var(--sage)}
+  .bars .bl{font-size:10px;color:var(--stone);font-weight:600}
+  .bars .bv{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:700;color:var(--sage)}
+
+  .toprow{display:flex;align-items:center;gap:10px;margin-bottom:11px}
+  .toprow:last-child{margin-bottom:0}
+  .toprow .nm{font-size:12.5px;font-weight:600;color:var(--forest);width:118px;flex:0 0 auto;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .toprow .track{flex:1;height:8px;background:var(--sageLight);border-radius:6px;overflow:hidden}
+  .toprow .fill{height:100%;background:var(--sageMid);border-radius:6px}
+  .toprow .ct{font-size:11.5px;font-weight:700;color:var(--stone);width:24px;text-align:right}
+
+  .loved{display:flex;gap:11px;align-items:center;margin:12px 18px 0;background:var(--amberLight);border:1px solid #F0DEC6;border-radius:16px;padding:13px 14px}
+  .loved .e{font-size:26px}
+  .loved .t{font-size:12.5px;line-height:1.45;color:#7A5326}
+  .loved .t b{color:var(--amber)}
+
+  .cov{display:flex;gap:5px;flex-wrap:wrap;margin-top:6px}
+  .cov .d{width:26px;height:26px;border-radius:7px;background:var(--sageLight);display:flex;align-items:center;justify-content:center;font-size:9.5px;font-weight:700;color:var(--sageMid)}
+  .cov .d.f{background:var(--sage);color:#fff}
+  .closing{text-align:center;font-family:var(--serif);font-size:14px;color:var(--sage);padding:20px 30px 8px;line-height:1.5}
+
+  /* ---------- ACTIVITY ---------- */
+  .ahead{padding:22px 18px 4px}
+  .ahead h1{font-family:var(--serif);font-weight:600;font-size:21px;letter-spacing:-.3px}
+  .ahead p{font-size:12.5px;color:var(--stone);margin-top:4px}
+  .daygroup{padding:14px 18px 0}
+  .dlabel{font-size:11px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;color:var(--sageMid);margin-bottom:10px}
+  .line{display:flex;gap:12px;position:relative;padding-bottom:15px}
+  .line::before{content:'';position:absolute;left:16px;top:32px;bottom:-1px;width:2px;background:var(--border)}
+  .line:last-child::before{display:none}
+  .line .dot{flex:0 0 auto;width:34px;height:34px;border-radius:50%;background:var(--sageLight);display:flex;align-items:center;justify-content:center;font-size:15px;z-index:2}
+  .line .ac{flex:1;padding-top:2px}
+  .line .at{font-size:13px;line-height:1.4;color:#2C352D}
+  .line .at b{font-weight:600;color:var(--forest)}
+  .line .am{font-size:11px;color:var(--stone);margin-top:3px}
+  .week-sum{background:var(--white);border:1px solid var(--border);border-radius:14px;padding:11px 13px;margin-bottom:13px;display:flex;align-items:center;gap:10px}
+  .week-sum .e{font-size:19px}
+  .week-sum .s{font-size:12px;color:var(--forest);font-weight:500}
+  .week-sum .s b{color:var(--sage);font-weight:700}
+
+  /* ---------- TAB BAR ---------- */
+  .tabbar{flex:0 0 auto;display:flex;background:var(--white);border-top:1px solid var(--border);padding:9px 6px 16px}
+  .tab{flex:1;background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:3px;color:var(--stone);font-family:var(--sans);padding:4px 0}
+  .tab .ti{font-size:19px;filter:grayscale(.55);opacity:.65;transition:.16s}
+  .tab .tl{font-size:10.5px;font-weight:600}
+  .tab.on{color:var(--sage)}
+  .tab.on .ti{filter:none;opacity:1;transform:translateY(-1px)}
+
+  @media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+<div class="phone">
+  <div class="notch"></div>
+  <div class="appbar">
+    <div class="brand">
+      <div class="mark">🍽️</div>
+      <div class="name">Your<span>Kitchen</span></div>
+    </div>
+    <div class="bell">🔔</div>
+  </div>
+
+  <div class="scroll">
+    <!-- VILLAGE -->
+    <section class="view active" id="village">
+      <div class="cover" id="cover">
+        <div class="glow"></div>
+        <div class="emoji" id="covEmoji">🍼</div>
+        <h1 id="covTitle">The Rivera family</h1>
+        <p id="covSub">Welcome, baby Theo 💚 · Cedar Park, TX</p>
+      </div>
+
+      <div class="scen" id="scen"></div>
+
+      <div class="villagebar">
+        <div class="stack" id="stack"></div>
+        <div class="vt"><b id="vcount">12</b> in the village</div>
+      </div>
+
+      <div class="sec">
+        <h2>This week</h2>
+        <div class="cap">Meals your people have on the calendar</div>
+        <div id="week"></div>
+      </div>
+
+      <div class="sec" style="padding-bottom:2px">
+        <h2>From the village</h2>
+        <div class="cap">Notes, photos, and a little love</div>
+      </div>
+      <div class="feed" id="feed"></div>
+    </section>
+
+    <!-- INSIGHTS -->
+    <section class="view" id="insights">
+      <div class="ihead">
+        <div class="eyebrow">Insights</div>
+        <h1>Your village, by the numbers</h1>
+        <p>Since Maya's kitchen opened · 5 weeks ago</p>
+      </div>
+      <div class="grid">
+        <div class="stat"><div class="n">38</div><div class="l">Meals delivered</div></div>
+        <div class="stat"><div class="n">12</div><div class="l">People in the village</div></div>
+        <div class="stat amberStat"><div class="n">$742</div><div class="l">Gifted toward meals</div></div>
+        <div class="stat"><div class="n">5</div><div class="l">Weeks covered</div></div>
+      </div>
+
+      <div class="card">
+        <h3>Meals per week</h3>
+        <div class="bars" id="bars"></div>
+      </div>
+
+      <div class="card">
+        <h3>Where the village orders</h3>
+        <div id="tops"></div>
+      </div>
+
+      <div class="loved">
+        <div class="e">❤️</div>
+        <div class="t">Most-loved meal: <b>Chicken parm from Mia's Table</b> — sent 4 times. The village knows what comforts.</div>
+      </div>
+
+      <div class="card">
+        <h3>Coverage ahead</h3>
+        <div class="cov" id="cov"></div>
+        <p style="font-size:11.5px;color:var(--stone);margin-top:11px">Next 14 days · <b style="color:var(--sage)">9 covered</b>, 5 open</p>
+      </div>
+
+      <div class="closing">Your people have shown up 38 times. 💚</div>
+    </section>
+
+    <!-- ACTIVITY -->
+    <section class="view" id="activity">
+      <div class="ahead">
+        <h1>Activity</h1>
+        <p>Everything happening across the village</p>
+      </div>
+      <div id="acts"></div>
+    </section>
+  </div>
+
+  <nav class="tabbar">
+    <button class="tab on" data-v="village"><span class="ti">🏡</span><span class="tl">Village</span></button>
+    <button class="tab" data-v="insights"><span class="ti">📊</span><span class="tl">Insights</span></button>
+    <button class="tab" data-v="activity"><span class="ti">🗓️</span><span class="tl">Activity</span></button>
+  </nav>
+</div>
+
+<script>
+/* ---------- palette helpers ---------- */
+const AV = ['#3D6B4F','#6B9E7E','#C17F47','#7E8B9E','#9E7E8B','#5E8C7C','#B08A55','#6B7066'];
+const avatar = (i)=>AV[i%AV.length];
+
+/* ---------- village scenarios ---------- */
+const SCEN = {
+  newbaby:{
+    label:'🍼 New baby', cover:'linear-gradient(135deg,#3D6B4F,#6B9E7E)',
+    emoji:'🍼', title:'The Rivera family', sub:'Welcome, baby Theo 💚 · Cedar Park, TX',
+    count:12,
+    members:[['RM',0],['JP',1],['LM',2],['MA',3],['DG',4]],
+    week:[
+      {ico:'🍝',icobg:'#EFE3D6',r:"Mia's Table",w:'Sent by Aunt Rae',tag:'done',tagL:'Delivered'},
+      {ico:'🍳',icobg:'#EAF2ED',r:'The Breakfast Klub',w:'Sent by Jess · Thu 6:30pm',tag:'sched',tagL:'Scheduled'},
+      {open:true}
+    ],
+    feed:[
+      {who:'Rae M.',i:0,meta:'Delivered Tue · 6:42pm',txt:"Dinner's on the way — extra garlic bread because you've earned it 🍞❤️",photo:{e:'🍝',g:'linear-gradient(135deg,#C17F47,#E0A766)',cap:"Mia's Table"},react:[['❤️',14],['🙏',5]]},
+      {who:'Jess P.',i:1,meta:'2h ago',txt:"Sending so much love. Don't lift a finger this week 💕",react:[['💕',9]]},
+      {who:'Grandpa Lou',i:2,meta:'Yesterday',txt:'Pitched in $40 toward Thursday 💚 go team!',react:[['💚',11],['🙌',4]]},
+      {who:'Maya',i:4,meta:'Yesterday · 7:10pm',txt:'Theo says thank you, village 🥹 we are so full (literally and emotionally)',photo:{e:'🍼',g:'linear-gradient(135deg,#6B9E7E,#A9CBB8)',cap:'Theo, 6 days new'},react:[['🥹',22],['😍',8]]},
+      {who:'Maria A.',i:3,meta:'2 days ago',txt:'Got Saturday covered — Trill Burgers, new parents deserve a treat 🍔🎉',react:[['🍔',7]]}
+    ]
+  },
+  surgery:{
+    label:'🩹 Recovery', cover:'linear-gradient(135deg,#5E8C7C,#9CC1B4)',
+    emoji:'🩹', title:"Adrian's recovery", sub:'Knee surgery · meals through June · Cibolo, TX',
+    count:9,
+    members:[['TC',5],['CD',0],['MR',2],['BK',6]],
+    week:[
+      {ico:'🥣',icobg:'#EAF2ED',r:'Panera',w:'Sent by the work crew',tag:'done',tagL:'Delivered'},
+      {ico:'🥩',icobg:'#EFE3D6',r:'Saltgrass',w:'Sent by Coach D · Wed',tag:'sched',tagL:'Scheduled'},
+      {open:true}
+    ],
+    feed:[
+      {who:'The work crew',i:5,meta:'Delivered Mon · 12:15pm',txt:'Whole team chipped in for Monday — heal up, we need you back 🏈💪',photo:{e:'🥣',g:'linear-gradient(135deg,#6B9E7E,#B7D2C6)',cap:'Soup + sourdough'},react:[['💪',13],['🙏',6]]},
+      {who:'Coach D',i:0,meta:'3h ago',txt:'No spicy stuff, doctor’s orders 🥣😅 Wednesday is on me',react:[['😂',5],['👍',4]]},
+      {who:'Adrian',i:2,meta:'Yesterday',txt:'Round one down. Couldn’t cook if I tried right now — thank you all 🙏',photo:{e:'🍲',g:'linear-gradient(135deg,#C17F47,#DCA873)',cap:'Recovery dinner'},react:[['❤️',12],['💚',7]]},
+      {who:'Aunt Bren',i:6,meta:'2 days ago',txt:'Dropping a smoothie run Friday so you’ve got easy mornings 🍓',react:[['🍓',6]]}
+    ]
+  },
+  deployment:{
+    label:'✈️ Deployment', cover:'linear-gradient(135deg,#7E8B9E,#B6C0CE)',
+    emoji:'🇺🇸', title:'The Reyes home', sub:'While Sgt. Reyes is deployed · meals for Ana & the kids',
+    count:15,
+    members:[['HF',7],['BC',1],['AR',3],['TM',5]],
+    week:[
+      {ico:'🍗',icobg:'#EFE3D6',r:'Chick-fil-A',w:'Sent by the Hendersons',tag:'done',tagL:'Delivered'},
+      {ico:'🌮',icobg:'#EAF2ED',r:'La Hacienda',w:'Sent by Book Club · Fri',tag:'sched',tagL:'Scheduled'},
+      {open:true}
+    ],
+    feed:[
+      {who:'The Hendersons',i:7,meta:'Delivered Tue · 6:05pm',txt:'Kids voted nuggets. Democracy works 🍗🗳️ love you Ana',photo:{e:'🍗',g:'linear-gradient(135deg,#C17F47,#E0A766)',cap:'Kid-approved'},react:[['🍗',16],['❤️',9]]},
+      {who:'Book Club',i:1,meta:'5h ago',txt:'Counting down with you. 86 days. We’ve got dinner 💛',react:[['💛',14],['🙌',5]]},
+      {who:'Ana',i:3,meta:'Yesterday',txt:'You all make the hard weeks softer. The kids felt celebrated tonight 🥹',react:[['🥹',19],['💛',8]]},
+      {who:'Coach Tara',i:5,meta:'2 days ago',txt:'Taco night sorted for Friday 🌮🎉 extra guac, obviously',photo:{e:'🌮',g:'linear-gradient(135deg,#6B9E7E,#A9CBB8)',cap:'Friday taco night'},react:[['🌮',8]]}
+    ]
+  }
+};
+
+/* ---------- render village ---------- */
+function renderVillage(key){
+  const s = SCEN[key];
+  document.getElementById('cover').style.background = s.cover;
+  document.getElementById('covEmoji').textContent = s.emoji;
+  document.getElementById('covTitle').textContent = s.title;
+  document.getElementById('covSub').textContent = s.sub;
+  document.getElementById('vcount').textContent = s.count;
+
+  document.getElementById('stack').innerHTML = s.members.map(m=>
+    `<div class="av" style="background:${avatar(m[1])}">${m[0]}</div>`).join('');
+
+  document.getElementById('week').innerHTML = s.week.map(w=>{
+    if(w.open) return `<div class="meal open"><span class="plus">＋</span>Send a meal — pick any open day</div>`;
+    return `<div class="meal">
+      <div class="ico" style="background:${w.icobg}">${w.ico}</div>
+      <div class="body"><div class="r">${w.r}</div><div class="w">${w.w}</div></div>
+      <div class="tag ${w.tag}">${w.tagL}</div></div>`;
+  }).join('');
+
+  document.getElementById('feed').innerHTML = s.feed.map(f=>{
+    const photo = f.photo ? `<div class="photo" style="background:${f.photo.g}">${f.photo.e}<span class="cap">${f.photo.cap}</span></div>`:'';
+    const react = `<div class="react">${f.react.map(r=>`<span class="r">${r[0]} ${r[1]}</span>`).join('')}</div>`;
+    return `<div class="post">
+      <div class="top">
+        <div class="av" style="background:${avatar(f.i)}">${initials(f.who)}</div>
+        <div><div class="who">${f.who}</div><div class="meta">${f.meta}</div></div>
+      </div>
+      <div class="txt">${f.txt}</div>${photo}${react}
+    </div>`;
+  }).join('');
+}
+function initials(name){
+  const p = name.replace(/[^A-Za-z ]/g,'').trim().split(/\s+/);
+  return ((p[0]?.[0]||'')+(p[1]?.[0]||'')).toUpperCase() || name.slice(0,2).toUpperCase();
+}
+
+/* scenario pills */
+const scenWrap = document.getElementById('scen');
+Object.keys(SCEN).forEach((k,idx)=>{
+  const b=document.createElement('button');
+  b.className='pill'+(idx===0?' on':''); b.textContent=SCEN[k].label; b.dataset.k=k;
+  b.onclick=()=>{document.querySelectorAll('.pill').forEach(p=>p.classList.remove('on'));b.classList.add('on');renderVillage(k);document.querySelector('.scroll').scrollTop=0;};
+  scenWrap.appendChild(b);
+});
+renderVillage('newbaby');
+
+/* ---------- insights: bars + tops + coverage ---------- */
+const WEEKS=[['W1',6],['W2',8],['W3',9],['W4',7],['W5',8],['Now',4]];
+const maxW=Math.max(...WEEKS.map(w=>w[1]));
+document.getElementById('bars').innerHTML=WEEKS.map((w,i)=>{
+  const h=Math.round((w[1]/maxW)*82)+8;
+  return `<div class="col"><div class="bar ${i===WEEKS.length-1?'cur':''}" style="height:${h}px"><span class="bv">${w[1]}</span></div><div class="bl">${w[0]}</div></div>`;
+}).join('');
+
+const TOPS=[["Mia's Table",9],['The Breakfast Klub',7],['Trill Burgers',5],['Panera',4]];
+const maxT=TOPS[0][1];
+document.getElementById('tops').innerHTML=TOPS.map(t=>
+  `<div class="toprow"><div class="nm">${t[0]}</div><div class="track"><div class="fill" style="width:${(t[1]/maxT)*100}%"></div></div><div class="ct">${t[1]}</div></div>`
+).join('');
+
+const COVER=[1,1,0,1,1,1,0,1,1,0,1,0,1,0];
+const DLBL=['M','T','W','T','F','S','S','M','T','W','T','F','S','S'];
+document.getElementById('cov').innerHTML=COVER.map((c,i)=>
+  `<div class="d ${c?'f':''}">${DLBL[i]}</div>`).join('');
+
+/* ---------- activity ---------- */
+const ACT=[
+  {label:'Today',items:[
+    {e:'🗓️',t:'<b>Jess</b> scheduled dinner for Thursday — The Breakfast Klub',m:'2h ago'},
+    {e:'💳',t:'<b>Grandpa Lou</b> sent $40 toward this week',m:'4h ago'},
+  ]},
+  {label:'Yesterday',items:[
+    {e:'🍝',t:'Meal delivered — <b>Mia\'s Table</b> · garlic bread included',m:'6:42pm'},
+    {e:'💬',t:'<b>Rae</b> left a note on the delivery',m:'6:50pm'},
+    {e:'👋',t:'<b>Maria</b> joined the village',m:'3:10pm'},
+  ]},
+  {sum:true,e:'🎉',s:'This week · <b>5 meals</b> delivered, $130 gifted'},
+  {label:'This week',items:[
+    {e:'🍽️',t:'<b>Maya</b> added 3 favorite meals to her kitchen',m:'Mon'},
+    {e:'🍼',t:'<b>Theo</b> arrived — the kitchen opened for meals',m:'Mon'},
+    {e:'🌮',t:'<b>Maria</b> claimed Saturday — Trill Burgers',m:'Tue'},
+  ]},
+  {sum:true,e:'💚',s:'Last week · village grew to <b>12 people</b>'},
+  {label:'Last week',items:[
+    {e:'📦',t:'<b>8 meals</b> delivered across the week',m:'Mon–Sun'},
+    {e:'💳',t:'<b>$210</b> gifted toward meals',m:'Fri'},
+    {e:'🥧',t:'Most-sent: chicken parm from Mia\'s Table',m:'Wed'},
+  ]},
+  {label:'2 weeks ago',items:[
+    {e:'✨',t:'<b>Maya</b> created the kitchen',m:'Tue'},
+    {e:'🔗',t:'Kitchen link shared with the village',m:'Tue'},
+  ]},
+];
+document.getElementById('acts').innerHTML=ACT.map(g=>{
+  if(g.sum) return `<div class="daygroup" style="padding-bottom:0"><div class="week-sum"><span class="e">${g.e}</span><span class="s">${g.s}</span></div></div>`;
+  const lines=g.items.map(it=>
+    `<div class="line"><div class="dot">${it.e}</div><div class="ac"><div class="at">${it.t}</div><div class="am">${it.m}</div></div></div>`
+  ).join('');
+  return `<div class="daygroup"><div class="dlabel">${g.label}</div>${lines}</div>`;
+}).join('');
+
+/* ---------- tab switching ---------- */
+document.querySelectorAll('.tab').forEach(t=>{
+  t.onclick=()=>{
+    document.querySelectorAll('.tab').forEach(x=>x.classList.remove('on'));
+    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+    t.classList.add('on');
+    document.getElementById(t.dataset.v).classList.add('active');
+    document.querySelector('.scroll').scrollTop=0;
+  };
+});
+</script>
+</body>
+</html>
