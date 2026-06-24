@@ -237,6 +237,11 @@ async function renderWithScrapingBee(url: string, scroll: boolean, timeoutMs = 4
     api.searchParams.set('api_key', key)
     api.searchParams.set('url', url)
     api.searchParams.set('render_js', 'true')
+    // Many restaurant sites (Cloudflare / bot-walled) now block ScrapingBee's standard
+    // datacenter proxies — a 500 that we'd otherwise swallow into an empty menu. Premium
+    // (residential) proxies get past those blocks. Costs more credits, but the render only
+    // fires on hard JS sites, so the volume is bounded.
+    api.searchParams.set('premium_proxy', 'true')
     if (scroll) {
       // Open JS sites (Popmenu, Wix): scroll in steps so lazy-loaded sections render before capture.
       api.searchParams.set('js_scenario', JSON.stringify({
