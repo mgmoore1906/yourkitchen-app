@@ -44,6 +44,7 @@
   <div class="stage" id="stage"></div>
   <footer><div class="rule"></div><p>yourkitchen.app &middot; Made for the people who show up.</p></footer>
   <script>
+    var BASE = '/study/';  // if you ever move the folder, change this one line
     var PAGES = [
       { id:'overview',    label:'Overview',     src:'brochure.html' },
       { id:'how',         label:'How it works', src:'tiers-features.html' },
@@ -89,7 +90,7 @@
         tab.classList.toggle('active', on);
         panel.classList.toggle('show', on);
         if(on){
-          if(!frame.getAttribute('src')) frame.setAttribute('src', frame.getAttribute('data-src'));
+          if(!frame.getAttribute('src')) frame.setAttribute('src', BASE + frame.getAttribute('data-src'));
           setTimeout(function(){ fit(frame); }, 60);
           setTimeout(function(){ fit(frame); }, 500);
         }
