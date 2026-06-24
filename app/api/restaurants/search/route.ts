@@ -34,7 +34,20 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: data.error_message || data.status }, { status: 500 })
     }
 
-    const restaurants = (data.results || []).slice(0, 20).map((place: any) => ({
+    // Keep only food places. Text Search with no type filter also returns non-food
+    // matches (e.g. "federal american grill" surfaced the Federal Courthouse). We filter
+    // on Google's place types instead of a hard type=restaurant query param — this set is
+    // broad on purpose so it KEEPS bakeries, taquerias, delis, donut shops, cafes, and taco
+    // trucks (which type=restaurant would drop) while excluding offices, courthouses, parks.
+    const FOOD_TYPES = new Set([
+      'restaurant', 'food', 'cafe', 'bakery', 'bar',
+      'meal_takeaway', 'meal_delivery', 'coffee_shop',
+      'ice_cream_shop', 'sandwich_shop',
+    ])
+    const restaurants = (data.results || [])
+      .filter((place: any) => (place.types || []).some((t: string) => FOOD_TYPES.has(t)))
+      .slice(0, 20)
+      .map((place: any) => ({
       place_id:    place.place_id,
       name:        place.name,
       address:     place.formatted_address || place.vicinity || '',  // textsearch returns formatted_address
