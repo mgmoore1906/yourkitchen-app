@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YourKitchen — Positioning &amp; Metrics Brief</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sage:#3D6B4F; --sageMid:#6B9E7E; --sageLight:#EAF2ED;
+    --cream:#FAFAF5; --forest:#1E2620; --amber:#C17F47; --amberLight:#F5E9DC;
+    --stone:#6B7066; --border:#DDE8E0; --white:#FFFFFF;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+  body{
+    background:var(--cream); color:var(--forest);
+    font-family:'DM Sans',sans-serif; font-weight:400; line-height:1.6;
+    padding:48px 20px;
+  }
+  .page{max-width:820px;margin:0 auto}
+
+  /* ── Masthead ───────────────────────────────────────────── */
+  .mast{display:flex;align-items:flex-end;justify-content:space-between;
+    border-bottom:2px solid var(--forest);padding-bottom:18px;margin-bottom:36px;gap:24px}
+  .wordmark{display:flex;align-items:center;gap:11px}
+  .wordmark svg{flex-shrink:0}
+  .wm-text{line-height:0.92}
+  .wm-your{font-family:'Lora',serif;font-style:italic;font-weight:500;font-size:18px;color:var(--sage)}
+  .wm-kitchen{font-family:'Lora',serif;font-weight:600;font-size:26px;color:var(--forest);letter-spacing:-0.4px}
+  .mast-meta{text-align:right}
+  .mast-title{font-family:'Lora',serif;font-size:15px;font-weight:500;color:var(--forest)}
+  .mast-sub{font-size:10.5px;color:var(--stone);text-transform:uppercase;letter-spacing:0.14em;font-weight:600;margin-top:3px}
+
+  .eyebrow{font-size:10.5px;font-weight:700;color:var(--sage);text-transform:uppercase;
+    letter-spacing:0.16em;margin-bottom:12px}
+  section{margin-bottom:40px}
+  h2{font-family:'Lora',serif;font-size:21px;font-weight:600;color:var(--forest);
+    letter-spacing:-0.3px;margin-bottom:14px}
+  p{font-size:13.5px;line-height:1.68;margin-bottom:11px}
+  .lead{color:var(--stone)}
+  strong{font-weight:600;color:var(--forest)}
+
+  /* ── Hero positioning statement ─────────────────────────── */
+  .hero{background:var(--white);border:1px solid var(--border);border-left:4px solid var(--amber);
+    border-radius:4px;padding:26px 30px;margin-bottom:18px}
+  .hero p{font-family:'Lora',serif;font-size:18px;line-height:1.6;font-weight:400;color:var(--forest);margin:0}
+  .hero .open{font-weight:600}
+
+  .variant{background:var(--sageLight);border-radius:10px;padding:16px 20px;margin-bottom:12px}
+  .variant .vlabel{font-size:10px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:0.13em;margin-bottom:7px}
+  .variant p{font-size:13px;line-height:1.62;margin:0;color:var(--forest)}
+  .variant.payer{background:var(--amberLight)}
+  .variant.payer .vlabel{color:#9A5E2E}
+
+  /* ── Acronym table ──────────────────────────────────────── */
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th{text-align:left;font-size:10px;font-weight:700;color:var(--stone);text-transform:uppercase;
+    letter-spacing:0.1em;padding:0 10px 9px;border-bottom:1.5px solid var(--border)}
+  td{padding:10px;border-bottom:0.5px solid var(--border);vertical-align:top;line-height:1.5}
+  td.term{white-space:nowrap;font-weight:700;color:var(--sage);font-size:12.5px;width:1%}
+  td.term .full{display:block;font-weight:500;color:var(--stone);font-size:10.5px;white-space:nowrap}
+  tr:nth-child(even) td{background:rgba(234,242,237,0.4)}
+
+  /* ── Strategy lists ─────────────────────────────────────── */
+  .lever{display:flex;gap:13px;padding:12px 0;border-bottom:0.5px solid var(--border)}
+  .lever:last-child{border-bottom:none}
+  .lever-key{flex-shrink:0;width:150px;font-weight:600;font-size:12.5px;color:var(--forest);line-height:1.45}
+  .lever-key .tag{display:block;font-size:9.5px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:0.1em;margin-top:2px}
+  .lever-body{font-size:12.5px;color:var(--stone);line-height:1.55}
+  .lever-body b{color:var(--forest);font-weight:600}
+
+  .callout{background:var(--white);border:1px solid var(--border);border-radius:10px;padding:15px 18px;margin-top:14px}
+  .callout .c-label{font-size:10px;font-weight:700;color:var(--amber);text-transform:uppercase;letter-spacing:0.12em;margin-bottom:6px}
+  .callout p{font-size:12.5px;color:var(--stone);margin:0;line-height:1.6}
+  .callout p b{color:var(--forest)}
+
+  .foot{border-top:1px solid var(--border);margin-top:8px;padding-top:16px;
+    display:flex;justify-content:space-between;align-items:center;font-size:10.5px;color:var(--stone)}
+  .foot .tag{font-family:'Lora',serif;font-style:italic;color:var(--sage);font-size:13px}
+
+  @media print{
+    body{padding:0;background:var(--white)}
+    .page{max-width:none}
+    section{page-break-inside:avoid}
+    .hero,.variant,.callout{page-break-inside:avoid}
+    table{page-break-inside:auto}
+    tr{page-break-inside:avoid}
+  }
+  @media (max-width:600px){
+    body{padding:28px 16px}
+    .lever{flex-direction:column;gap:4px}
+    .lever-key{width:auto}
+    .mast{flex-direction:column;align-items:flex-start;gap:12px}
+    .mast-meta{text-align:left}
+    .hero p{font-size:16px}
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <div class="mast">
+    <div class="wordmark">
+      <svg width="30" height="30" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M5 10h16M8 10V7a5 5 0 0110 0v3" stroke="#3D6B4F" stroke-width="1.6" stroke-linecap="round"/>
+        <path d="M6 10l1.5 9h11L20 10" stroke="#3D6B4F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M10 15h6" stroke="#3D6B4F" stroke-width="1.4" stroke-linecap="round"/>
+      </svg>
+      <div class="wm-text">
+        <div class="wm-your">Your</div>
+        <div class="wm-kitchen">Kitchen</div>
+      </div>
+    </div>
+    <div class="mast-meta">
+      <div class="mast-title">Positioning &amp; Metrics Brief</div>
+      <div class="mast-sub">Founder reference · Investor &amp; BD</div>
+    </div>
+  </div>
+
+  <!-- POSITIONING -->
+  <section>
+    <div class="eyebrow">What we are</div>
+    <div class="hero">
+      <p><span class="open">YourKitchen is a care-coordination platform that mobilizes a person's community to put meals on the table during life's hardest seasons</span> — a new baby, an illness, a deployment, a loss. The recipient creates a "kitchen"; the people who love them claim dates, choose restaurant meals, and pay, with delivery through the DoorDash and Uber networks and a one-tap text confirmation before any card is charged. Meal-train tools have existed for years, but they stop at a sign-up sheet — YourKitchen moves the money and the food, earning a take rate on every meal plus an optional family membership. It compounds the way marketplaces do: the more of someone's village shows up, the stickier the kitchen, and the hard seasons that drive demand recur across a lifetime. The meal is the visible transaction; coordinating the village is the moat.</p>
+    </div>
+
+    <div class="variant">
+      <div class="vlabel">Investor / category line</div>
+      <p>YourKitchen turns a community into a care team — and earns a take rate on every meal it delivers. It's the transactional layer the old meal-train sign-up sheets never built.</p>
+    </div>
+    <div class="variant payer">
+      <div class="vlabel">Payer / VA / Food-as-Medicine</div>
+      <p>For health plans and the VA, YourKitchen is a Food-as-Medicine and SDOH benefit that activates a member's own support network to deliver nutritious meals during the highest-risk windows — postpartum, post-discharge, active treatment, bereavement. Because the meals come from people the member loves rather than a vendor, engagement and average order value run well above standard meal-delivery benefits — turning a covered benefit into one members actually use.</p>
+    </div>
+  </section>
+
+  <!-- ACRONYM GUIDE -->
+  <section>
+    <div class="eyebrow">The vocabulary</div>
+    <h2>Acronym &amp; metric guide</h2>
+    <p class="lead">The shorthand that shows up in decks and BD rooms — and what each one actually means for this specific business.</p>
+    <table>
+      <thead><tr><th>Term</th><th>What it means for YourKitchen</th></tr></thead>
+      <tbody>
+        <tr><td class="term">GMV<span class="full">Gross Merchandise Value</span></td><td>Total dollars of meals paid through the platform. The top of your funnel — your revenue is a slice of it, so GMV growth is the headline number.</td></tr>
+        <tr><td class="term">Take rate</td><td>The share of GMV you keep — your <b>5% + $0.99</b> per meal. This is marketplace revenue and your primary engine, separate from subscriptions.</td></tr>
+        <tr><td class="term">AOV<span class="full">Avg Order Value</span></td><td>Average dollars per meal. Yours runs <b>~40% above standard delivery</b> because meals come from loved ones — a moat stat and a payer-pitch stat.</td></tr>
+        <tr><td class="term">MRR / ARR<span class="full">Recurring Revenue</span></td><td>Subscription income (Care+, Founding Member), monthly or annualized. A predictable layer on top of transactions.</td></tr>
+        <tr><td class="term">ARPU<span class="full">Avg Revenue / User</span></td><td>Blended revenue per kitchen across take-rate + subscription. Rises as villages deepen and calendars lengthen.</td></tr>
+        <tr><td class="term">LTV<span class="full">Lifetime Value</span></td><td>Total revenue a kitchen or member generates over its life — both meals and membership. The number CAC must stay well below.</td></tr>
+        <tr><td class="term">CAC<span class="full">Acquisition Cost</span></td><td>What it costs to acquire a paying kitchen. Your invite loop should keep this low — that's the whole organic thesis.</td></tr>
+        <tr><td class="term">LTV : CAC</td><td>Efficiency ratio. <b>Above 3:1</b> signals a fundable, scalable engine. The lever investors scrutinize first.</td></tr>
+        <tr><td class="term">Churn</td><td>Share that stops in a period. For you it has two distinct flavors (see Retention) — don't let a kitchen winding down read as failure.</td></tr>
+        <tr><td class="term">NRR<span class="full">Net Revenue Retention</span></td><td>Revenue from an existing cohort over time, including expansion. <b>Above 100%</b> means you grow even with zero new kitchens.</td></tr>
+        <tr><td class="term">Activation</td><td>Share of created kitchens that send a real, paid first meal. Your true "it worked" moment — and the highest-leverage funnel step.</td></tr>
+        <tr><td class="term">Repeat rate</td><td>Share of kitchens or coordinators who send more than once. Proof the experience is good enough to come back to.</td></tr>
+        <tr><td class="term">K-factor<span class="full">Viral coefficient</span></td><td>New users each existing user brings. Your village invite is a built-in K-factor — one recipient surfaces a whole network.</td></tr>
+        <tr><td class="term">B2B2C<span class="full">Biz-to-Biz-to-Consumer</span></td><td>Selling to an enterprise (payer, VA, employer) that sponsors the end member. Your enterprise motion — a different sale than either consumer side.</td></tr>
+        <tr><td class="term">SDOH<span class="full">Social Determinants of Health</span></td><td>Non-medical drivers of health like food access. The budget line your enterprise pitch taps.</td></tr>
+        <tr><td class="term">FAM<span class="full">Food as Medicine</span></td><td>Clinically-oriented food benefits payers will reimburse. Your framing for medically-tailored, life-event meal support.</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <!-- WHY THEY MATTER -->
+  <section>
+    <div class="eyebrow">Why they matter</div>
+    <h2>Read the business like a marketplace, not an app</h2>
+    <p>Your instinct to ask "SaaS or app?" matters here: the answer dictates which numbers you live by. YourKitchen is a <strong>transactional platform</strong>, so the scoreboard is marketplace-shaped, not subscription-shaped.</p>
+    <div class="lever">
+      <div class="lever-key">GMV × take rate<span class="tag">The engine</span></div>
+      <div class="lever-body">Revenue scales with <b>meals delivered</b>, not seats sold. Track GMV as the north star and take-rate dollars as what you keep. Care+ MRR is real but secondary — leading with it would undersell the larger lever.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">AOV<span class="tag">The differentiator</span></div>
+      <div class="lever-body">A <b>~40%-above-market</b> order value is rare and defensible — it means more take-rate dollars per order and a stronger payer story (better benefit utilization). Protect it; it's a headline, not a footnote.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Activation · repeat · village depth<span class="tag">The moat signal</span></div>
+      <div class="lever-body">Supporters per kitchen, activation, and repeat are how you <b>prove network effects</b> are real. They turn "nice idea" into "compounding platform" in a diligence conversation.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">LTV : CAC · NRR<span class="tag">The efficiency</span></div>
+      <div class="lever-body">These show the model is <b>capital-efficient and compounding</b> across recurring life events — exactly what makes a marketplace (and a covered benefit) fundable.</div>
+    </div>
+  </section>
+
+  <!-- IMPROVE -->
+  <section>
+    <div class="eyebrow">The playbook</div>
+    <h2>Moving the numbers</h2>
+    <div class="lever">
+      <div class="lever-key">Grow GMV</div>
+      <div class="lever-body">Four independent dials: more <b>activated kitchens</b>, more <b>supporters per kitchen</b> (village depth), more <b>meals per kitchen</b> (longer calendars), and higher <b>AOV</b>. Each can move without the others.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Lift activation</div>
+      <div class="lever-body">Make the <b>first paid send effortless</b> and make sure it actually arrives — reliable dispatch and a tip that gets picked up <i>is</i> activation work. Celebrate the first delivery; it's the moment a kitchen becomes real.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Raise AOV</div>
+      <div class="lever-body">Multi-meal and family-size sends, "gift a week," premium restaurants, and add-ons. Nudge the village toward generosity at the moment of giving, when intent is highest.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Protect margin</div>
+      <div class="lever-body">Make sure the courier + service fee you collect fully covers your real fulfillment cost (incl. the courier markup). A take rate that quietly leaks on every delivery caps the whole model.</div>
+    </div>
+  </section>
+
+  <!-- CHURN -->
+  <section>
+    <div class="eyebrow">Retention</div>
+    <h2>Minimizing churn (the honest version)</h2>
+    <p>Churn is the metric most likely to mislead you here, because a kitchen <strong>ending is not the same as a customer leaving</strong>. Separate the two:</p>
+    <div class="lever">
+      <div class="lever-key">Subscription churn<span class="tag">Reduce</span></div>
+      <div class="lever-body">Care+ cancels. Counter it with <b>lasting value beyond the event</b> — the keepsake/archive, the annual plan, and the Founding Member 3-year term all extend the relationship past the hard season.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Kitchen lifecycle<span class="tag">Expected</span></div>
+      <div class="lever-body">A kitchen winding down when the baby's older or treatment ends is <b>natural, not failure</b>. The goal isn't to keep it open forever — it's to bring that family and village <b>back into the network</b> for the next season.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Involuntary churn<span class="tag">Eliminate</span></div>
+      <div class="lever-body">Failed payments and undelivered texts churn people <b>silently</b>. Fixing card retries and SMS deliverability is retention work disguised as plumbing — every dropped confirmation is a lost order and a frustrated family.</div>
+    </div>
+    <div class="callout">
+      <div class="c-label">The metric that actually matters</div>
+      <p>Not "did this kitchen stay open forever" but <b>"does this person re-enter the network"</b> — as a recipient again, or as an organizer who starts a kitchen for someone else. Track <b>network re-entry</b>, and every ended kitchen becomes a seed rather than a loss.</p>
+    </div>
+  </section>
+
+  <!-- GROWTH -->
+  <section>
+    <div class="eyebrow">Distribution</div>
+    <h2>Growing organically</h2>
+    <p>Your single biggest structural advantage: <strong>every kitchen is an invite loop</strong>. One recipient surfaces an entire village; each supporter experiences the product first-hand; some become organizers for the next person who needs it. That's your viral coefficient — built into the core action, not bolted on.</p>
+    <div class="lever">
+      <div class="lever-key">Coordinator → Organizer</div>
+      <div class="lever-body">The flywheel's center. Instrument it, prompt it ("Know someone whose village is ready?"), and make starting a kitchen <b>one tap</b> from inside the coordinator experience, right after a delivery lands well.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Share surface</div>
+      <div class="lever-body">Kitchen links and share cards already turn every send into distribution. Keep the shared artifact <b>beautiful and personal</b> — it's your most credible ad, made by the people who use you.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Community channels</div>
+      <div class="lever-body">Highest-leverage organic: <b>postpartum, military-spouse, caregiver, and college-parent groups</b>, plus referrers who sit at the moment of need — hospital social workers, doulas, lactation consultants, faith care ministries.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Build-in-public</div>
+      <div class="lever-body">The founder narrative compounds an audience that converts warm and cheap. Keep documenting real traction; it's CAC you only pay once.</div>
+    </div>
+    <div class="lever">
+      <div class="lever-key">Gifting &amp; partners</div>
+      <div class="lever-body">"Gift Care+" turns members into acquirers. Restaurant, doula, and employer partnerships seed new villages — and the employer door is also the on-ramp to your B2B2C payer motion.</div>
+    </div>
+    <div class="callout">
+      <div class="c-label">Measure it</div>
+      <p>Watch your <b>K-factor</b> and the <b>share of new kitchens sourced from prior villages</b>. When that share climbs, growth is compounding on its own — and your CAC story writes itself.</p>
+    </div>
+  </section>
+
+  <div class="foot">
+    <span class="tag">"Your kitchen, covered."</span>
+    <span>YourKitchen LLC · yourkitchen.app</span>
+  </div>
+
+</div>
+</body>
+</html>
