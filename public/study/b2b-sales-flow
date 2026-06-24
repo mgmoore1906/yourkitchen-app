@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YourKitchen — B2B Sales Process & Attack Plan</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --sage: #3D6B4F;
+    --sage-mid: #6B9E7E;
+    --sage-light: #EAF2ED;
+    --cream: #FAFAF5;
+    --forest: #1E2620;
+    --amber: #C17F47;
+    --amber-light: #F5EBDD;
+    --stone: #6B7066;
+    --border: #DDE8E0;
+    --white: #FFFFFF;
+    --serif: 'Lora', Georgia, serif;
+    --sans: 'DM Sans', system-ui, sans-serif;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: var(--sans);
+    background: #EDEDE6;
+    color: var(--forest);
+    -webkit-font-smoothing: antialiased;
+    padding: 32px 16px 64px;
+  }
+
+  .page {
+    max-width: 960px;
+    margin: 0 auto;
+  }
+
+  /* ── HEADER ── */
+  .header {
+    background: var(--forest);
+    border-radius: 18px 18px 0 0;
+    padding: 44px 52px 40px;
+    position: relative;
+    overflow: hidden;
+  }
+  .header::after {
+    content: '';
+    position: absolute;
+    right: -60px; top: -60px;
+    width: 280px; height: 280px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(107,158,126,0.18), transparent 70%);
+  }
+  .header-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.42em;
+    text-transform: uppercase;
+    color: var(--sage-mid);
+    margin-bottom: 4px;
+  }
+  .header-brand {
+    font-family: var(--serif);
+    font-size: 32px;
+    font-weight: 500;
+    color: var(--cream);
+    letter-spacing: -0.01em;
+  }
+  .header-title {
+    font-family: var(--serif);
+    font-size: 20px;
+    font-weight: 400;
+    font-style: italic;
+    color: rgba(250,250,245,0.65);
+    margin-top: 4px;
+  }
+  .header-meta {
+    display: flex;
+    gap: 24px;
+    margin-top: 22px;
+    position: relative;
+    z-index: 1;
+  }
+  .header-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(107,158,126,0.15);
+    border: 1px solid rgba(107,158,126,0.35);
+    color: #CDE3D5;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 6px 13px;
+    border-radius: 30px;
+  }
+
+  /* ── SHEET ── */
+  .sheet {
+    background: var(--cream);
+    border-radius: 0 0 18px 18px;
+    box-shadow: 0 24px 60px rgba(30,38,32,0.14);
+    overflow: hidden;
+  }
+
+  /* ── SECTION WRAPPER ── */
+  .section {
+    padding: 44px 52px;
+    border-bottom: 1px solid var(--border);
+  }
+  .section:last-child { border-bottom: none; }
+
+  .eyebrow {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.38em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 8px;
+  }
+
+  .section-title {
+    font-family: var(--serif);
+    font-size: 22px;
+    font-weight: 500;
+    color: var(--forest);
+    letter-spacing: -0.3px;
+    margin-bottom: 6px;
+  }
+
+  .section-sub {
+    font-size: 13px;
+    color: var(--stone);
+    line-height: 1.65;
+    max-width: 640px;
+    margin-bottom: 32px;
+  }
+
+  /* ── FLOWCHART ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    position: relative;
+  }
+
+  .flow-stage {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+    position: relative;
+  }
+
+  .flow-left {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+    width: 48px;
+  }
+
+  .flow-node {
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    background: var(--sage);
+    color: var(--white);
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 600;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    position: relative;
+    z-index: 1;
+  }
+
+  .flow-node.amber { background: var(--amber); }
+  .flow-node.forest { background: var(--forest); }
+  .flow-node.sage-mid { background: var(--sage-mid); }
+
+  .flow-line {
+    width: 2px;
+    flex: 1;
+    min-height: 32px;
+    background: var(--border);
+    margin: 0 auto;
+  }
+
+  .flow-content {
+    flex: 1;
+    padding-bottom: 32px;
+  }
+
+  .flow-label {
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 4px;
+  }
+  .flow-label.amber { color: var(--amber); }
+  .flow-label.forest { color: var(--forest); }
+
+  .flow-title {
+    font-family: var(--serif);
+    font-size: 17px;
+    font-weight: 500;
+    color: var(--forest);
+    margin-bottom: 8px;
+  }
+
+  .flow-body {
+    font-size: 13px;
+    color: var(--stone);
+    line-height: 1.65;
+    margin-bottom: 12px;
+  }
+
+  .flow-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .action-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    background: var(--sage-light);
+    border: 1px solid var(--border);
+    color: var(--sage);
+    font-size: 11.5px;
+    font-weight: 500;
+    padding: 5px 11px;
+    border-radius: 20px;
+  }
+  .action-chip.amber {
+    background: var(--amber-light);
+    border-color: rgba(193,127,71,0.25);
+    color: var(--amber);
+  }
+  .action-chip.forest {
+    background: var(--forest);
+    border-color: var(--forest);
+    color: var(--cream);
+  }
+
+  /* Branch box */
+  .branch-box {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-top: 12px;
+  }
+
+  .branch {
+    border-radius: 10px;
+    padding: 14px 16px;
+  }
+  .branch.yes {
+    background: var(--sage-light);
+    border: 1px solid var(--border);
+  }
+  .branch.no {
+    background: var(--amber-light);
+    border: 1px solid rgba(193,127,71,0.22);
+  }
+  .branch-label {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    margin-bottom: 5px;
+  }
+  .branch.yes .branch-label { color: var(--sage); }
+  .branch.no .branch-label { color: var(--amber); }
+  .branch p {
+    font-size: 12px;
+    color: var(--stone);
+    line-height: 1.6;
+  }
+
+  /* ── ATTACK PLAN GRID ── */
+  .attack-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+
+  .attack-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    position: relative;
+  }
+
+  .attack-card.priority {
+    border-color: var(--sage);
+    border-left: 3px solid var(--sage);
+  }
+
+  .attack-week {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    color: var(--sage-mid);
+    margin-bottom: 5px;
+  }
+
+  .attack-title {
+    font-family: var(--serif);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--forest);
+    margin-bottom: 8px;
+  }
+
+  .attack-body {
+    font-size: 12.5px;
+    color: var(--stone);
+    line-height: 1.62;
+  }
+
+  .attack-target {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-top: 10px;
+    background: var(--sage-light);
+    border-radius: 6px;
+    padding: 4px 9px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--sage);
+  }
+
+  .goal-tag {
+    position: absolute;
+    top: 16px;
+    right: 16px;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    background: var(--forest);
+    color: var(--cream);
+    padding: 3px 8px;
+    border-radius: 20px;
+  }
+
+  /* ── SCRIPT BOX ── */
+  .script-box {
+    background: var(--forest);
+    border-radius: 12px;
+    padding: 26px 28px;
+    margin-top: 24px;
+  }
+  .script-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--sage-mid);
+    margin-bottom: 12px;
+  }
+  .script-line {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 14px;
+    align-items: flex-start;
+  }
+  .script-line:last-child { margin-bottom: 0; }
+  .script-tag {
+    flex-shrink: 0;
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--sage-mid);
+    width: 64px;
+    padding-top: 2px;
+  }
+  .script-text {
+    font-family: var(--serif);
+    font-size: 13.5px;
+    font-style: italic;
+    color: rgba(250,250,245,0.88);
+    line-height: 1.65;
+  }
+
+  /* ── SEGMENT TABLE ── */
+  .seg-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+  }
+  .seg-table th {
+    text-align: left;
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--stone);
+    padding: 0 12px 10px;
+    border-bottom: 1.5px solid var(--border);
+  }
+  .seg-table td {
+    padding: 11px 12px;
+    border-bottom: 0.5px solid var(--border);
+    vertical-align: top;
+    line-height: 1.5;
+    color: var(--stone);
+  }
+  .seg-table td:first-child {
+    font-weight: 600;
+    color: var(--forest);
+    white-space: nowrap;
+  }
+  .seg-table tr:last-child td { border-bottom: none; }
+  .seg-table tr:nth-child(even) td { background: rgba(234,242,237,0.3); }
+
+  .channel-dot {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .ch-visit { background: var(--sage-light); color: var(--sage); }
+  .ch-call { background: var(--amber-light); color: var(--amber); }
+  .ch-email { background: #EEF0F8; color: #4A5080; }
+  .ch-linkedin { background: #E8F1FB; color: #2D6FA8; }
+
+  /* ── METRICS STRIP ── */
+  .metrics {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0;
+    background: var(--border);
+    border-top: 1px solid var(--border);
+  }
+  .metric {
+    background: var(--white);
+    padding: 20px 22px;
+    text-align: center;
+  }
+  .metric-num {
+    font-family: var(--serif);
+    font-size: 28px;
+    font-weight: 600;
+    color: var(--sage);
+    display: block;
+    letter-spacing: -0.5px;
+  }
+  .metric-label {
+    font-size: 10.5px;
+    color: var(--stone);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+
+  /* ── FOOTER ── */
+  .footer {
+    padding: 26px 52px 32px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-top: 1px solid var(--border);
+    background: var(--cream);
+  }
+  .footer-brand {
+    font-family: var(--serif);
+    font-style: italic;
+    font-size: 15px;
+    color: var(--sage);
+  }
+  .footer-meta {
+    font-size: 11px;
+    color: var(--stone);
+  }
+
+  /* ── PREMISE BOX ── */
+  .premise-box {
+    background: var(--forest);
+    border-radius: 14px;
+    padding: 28px 32px;
+    margin-bottom: 28px;
+  }
+  .premise-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.32em;
+    text-transform: uppercase;
+    color: var(--sage-mid);
+    margin-bottom: 10px;
+  }
+  .premise-statement {
+    font-family: var(--serif);
+    font-size: 18px;
+    font-style: italic;
+    font-weight: 500;
+    color: var(--cream);
+    line-height: 1.6;
+    margin-bottom: 14px;
+    border-left: 3px solid var(--sage-mid);
+    padding-left: 18px;
+  }
+  .premise-sub {
+    font-size: 12.5px;
+    color: rgba(250,250,245,0.68);
+    line-height: 1.7;
+  }
+
+  /* ── REVENUE GRID ── */
+  .rev-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 36px;
+  }
+  .rev-card {
+    background: var(--white);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 20px 18px;
+  }
+  .rev-card.highlight {
+    border-color: var(--amber);
+    background: var(--amber-light);
+  }
+  .rev-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--stone);
+    margin-bottom: 6px;
+  }
+  .rev-card.highlight .rev-label { color: var(--amber); }
+  .rev-num {
+    font-family: var(--serif);
+    font-size: 34px;
+    font-weight: 600;
+    color: var(--sage);
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+    display: block;
+  }
+  .rev-card.highlight .rev-num { color: var(--amber); }
+  .rev-body {
+    font-size: 12px;
+    color: var(--stone);
+    line-height: 1.62;
+  }
+
+  /* ── OBJECTIONS ── */
+  .obj-title {
+    font-family: var(--serif);
+    font-size: 16px;
+    font-weight: 500;
+    color: var(--forest);
+    margin-bottom: 20px;
+  }
+  .obj-list { display: flex; flex-direction: column; gap: 0; }
+  .obj-item { border-bottom: 1px solid var(--border); padding: 24px 0; }
+  .obj-q {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--forest);
+    line-height: 1.5;
+    margin-bottom: 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .obj-tag {
+    font-size: 9px;
+    font-weight: 800;
+    letter-spacing: 0.26em;
+    text-transform: uppercase;
+    color: var(--amber);
+  }
+  .obj-a {
+    background: var(--sage-light);
+    border-radius: 10px;
+    padding: 18px 20px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .obj-a-label {
+    font-size: 9.5px;
+    font-weight: 700;
+    letter-spacing: 0.22em;
+    text-transform: uppercase;
+    color: var(--sage);
+    margin-bottom: 2px;
+  }
+  .obj-a p { font-size: 12.5px; color: var(--stone); line-height: 1.68; margin: 0; }
+  .obj-a p strong { color: var(--forest); font-weight: 600; }
+
+  @media (max-width: 680px) {
+    .section, .header, .footer { padding-left: 24px; padding-right: 24px; }
+    .attack-grid { grid-template-columns: 1fr; }
+    .branch-box { grid-template-columns: 1fr; }
+    .metrics { grid-template-columns: 1fr 1fr; }
+    .header-meta { flex-wrap: wrap; }
+    .rev-grid { grid-template-columns: 1fr; }
+  }
+
+  @media print {
+    @page { size: Letter; margin: 0.4in; }
+    body { background: #fff; padding: 0; }
+    .page { max-width: 100%; }
+    .header { border-radius: 0; }
+    .sheet { border-radius: 0; box-shadow: none; }
+    .flow-node, .script-box, .metrics .metric, .footer { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+  }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="header">
+    <div class="header-eyebrow">YourKitchen LLC</div>
+    <div class="header-brand">B2B Sales Process & Partner Attack Plan</div>
+    <div class="header-title">From first contact to signed Kitchen Pool — every step mapped.</div>
+    <div class="header-meta">
+      <div class="header-pill">🎯 100 Outreach Targets</div>
+      <div class="header-pill">🏢 7 Partner Segments</div>
+      <div class="header-pill">💼 Enterprise Kitchen Pool Model</div>
+    </div>
+  </div>
+
+  <div class="sheet">
+
+    <!-- SECTION 1: FLOWCHART -->
+    <div class="section">
+      <div class="eyebrow">Sales Process</div>
+      <div class="section-title">From cold contact to contracted partner</div>
+      <div class="section-sub">Every B2B conversation follows this path. The goal of each stage is only to earn the next one — not to close the deal prematurely.</div>
+
+      <div class="flow">
+
+        <!-- Stage 1 -->
+        <div class="flow-stage">
+          <div class="flow-left">
+            <div class="flow-node">1</div>
+            <div class="flow-line"></div>
+          </div>
+          <div class="flow-content">
+            <div class="flow-label">Identify</div>
+            <div class="flow-title">Find the right person, not just the org</div>
+            <div class="flow-body">Research who handles community partnerships, social work referrals, or client care coordination. This is never the front desk. It's the doula owner, the hospice social worker, the church benevolence pastor, the clinic care coordinator.</div>
+            <div class="flow-actions">
+              <span class="action-chip">🔍 LinkedIn search</span>
+              <span class="action-chip">📞 Call to ask "who handles care partnerships?"</span>
+              <span class="action-chip">🌐 Website staff page</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 2 -->
+        <div class="flow-stage">
+          <div class="flow-left">
+            <div class="flow-node sage-mid">2</div>
+            <div class="flow-line"></div>
+          </div>
+          <div class="flow-content">
+            <div class="flow-label">First Contact</div>
+            <div class="flow-title">Lead with their world — not your product</div>
+            <div class="flow-body">Make contact through the right channel for the segment. Open with a question about their clients, not a pitch about YK. The goal is one thing: a 15-minute conversation.</div>
+            <div class="flow-actions">
+              <span class="action-chip">🚪 In-person visit</span>
+              <span class="action-chip amber">📧 Short 2-paragraph email</span>
+              <span class="action-chip">💼 LinkedIn personal message</span>
+              <span class="action-chip amber">📞 Warm phone call</span>
+            </div>
+            <div class="branch-box">
+              <div class="branch yes">
+                <div class="branch-label">✓ They respond</div>
+                <p>Schedule the 15-minute intro call. Send a calendar link same day — don't let momentum die.</p>
+              </div>
+              <div class="branch no">
+                <div class="branch-label">↻ No response</div>
+                <p>Follow up once at 5 days with a different angle. If still nothing, move on — don't burn goodwill. Return in 60 days.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 3 -->
+        <div class="flow-stage">
+          <div class="flow-left">
+            <div class="flow-node amber">3</div>
+            <div class="flow-line"></div>
+          </div>
+          <div class="flow-content">
+            <div class="flow-label amber">Discovery Call — 15 min</div>
+            <div class="flow-title">Ask more than you tell</div>
+            <div class="flow-body">This is not a demo. Ask 3 questions, listen hard, connect what you heard to what YK does. Close by asking if a walkthrough would be useful.</div>
+            <div class="script-box">
+              <div class="script-label">Conversation Guide</div>
+              <div class="script-line">
+                <div class="script-tag">Open</div>
+                <div class="script-text">"Do families you work with ever struggle to coordinate meals during [the recovery / grief / deployment / postpartum] period?"</div>
+              </div>
+              <div class="script-line">
+                <div class="script-tag">Deepen</div>
+                <div class="script-text">"What does that usually look like — is it friends asking how to help, or families just going without?"</div>
+              </div>
+              <div class="script-line">
+                <div class="script-tag">Bridge</div>
+                <div class="script-text">"That's exactly what YourKitchen solves. A family's village claims dates, picks a restaurant meal, and pays — the family just confirms by text. Nothing is charged until they say yes."</div>
+              </div>
+              <div class="script-line">
+                <div class="script-tag">Ask</div>
+                <div class="script-text">"Would it be helpful to see how it works? I can walk you through a live kitchen in about 20 minutes."</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 4 -->
+        <div class="flow-stage">
+          <div class="flow-left">
+            <div class="flow-node">4</div>
+            <div class="flow-line"></div>
+          </div>
+          <div class="flow-content">
+            <div class="flow-label">Demo — 20 min</div>
+            <div class="flow-title">Show Danielle's kitchen. Make it real.</div>
+            <div class="flow-body">Walk them through a live kitchen end to end. Show the coordinator page, the calendar claim, the SMS confirmation, the delivery. Then show the org dashboard concept — the Kitchen Pool, activation, expiration, and the one-click to serve a client.</div>
+            <div class="flow-actions">
+              <span class="action-chip">📱 Show live coordinator flow</span>
+              <span class="action-chip">💬 Show SMS confirmation</span>
+              <span class="action-chip amber">🏢 Show org pool dashboard concept</span>
+              <span class="action-chip">📊 Show 90-day slot lifecycle</span>
+            </div>
+            <div class="branch-box">
+              <div class="branch yes">
+                <div class="branch-label">✓ Strong interest</div>
+                <p>Propose the pilot: "Let me give you 2 trial slots for 30 days. Activate them for two real clients. Zero cost, no commitment."</p>
+              </div>
+              <div class="branch no">
+                <div class="branch-label">◎ Hesitant</div>
+                <p>Ask what's missing. Leave the one-pager. Follow up in 2 weeks with a relevant story or stat. Don't push — plant.</p>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 5 -->
+        <div class="flow-stage">
+          <div class="flow-left">
+            <div class="flow-node sage-mid">5</div>
+            <div class="flow-line"></div>
+          </div>
+          <div class="flow-content">
+            <div class="flow-label">Pilot — 30 days</div>
+            <div class="flow-title">Two real clients. You watch every order.</div>
+            <div class="flow-body">You personally onboard their point of contact. They activate 2 kitchen slots for real clients. You check in weekly. At day 25, you ask for a debrief — what worked, what didn't, what their clients said.</div>
+            <div class="flow-actions">
+              <span class="action-chip">👤 Personal onboarding call</span>
+              <span class="action-chip">📅 Weekly check-in text</span>
+              <span class="action-chip amber">📊 Day 25 debrief</span>
+              <span class="action-chip">💬 Collect client feedback</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 6 -->
+        <div class="flow-stage">
+          <div class="flow-left">
+            <div class="flow-node amber">6</div>
+            <div class="flow-line"></div>
+          </div>
+          <div class="flow-content">
+            <div class="flow-label amber">Proposal</div>
+            <div class="flow-title">Present the Kitchen Pool. Name the number.</div>
+            <div class="flow-body">After a successful pilot, present one clean proposal. One package, one price, one ask. Keep it simple enough to approve in a single conversation.</div>
+            <div class="flow-actions">
+              <span class="action-chip forest">10-slot pool · $999/yr</span>
+              <span class="action-chip">Additional 5-slot add-on: $450</span>
+              <span class="action-chip">Slots rotate every 90 days</span>
+              <span class="action-chip amber">Renewal auto-prompt at month 10</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Stage 7 -->
+        <div class="flow-stage">
+          <div class="flow-left">
+            <div class="flow-node forest">✓</div>
+          </div>
+          <div class="flow-content" style="padding-bottom: 0;">
+            <div class="flow-label forest">Close & Activate</div>
+            <div class="flow-title">Contract signed. Pool provisioned. First client activated.</div>
+            <div class="flow-body">Send a simple 1-page service agreement. Collect payment via Stripe ACH. Manually provision the org and 10 slots in Supabase. Schedule a 30-minute onboarding call with their team. First client kitchen should go live within 2 weeks of signing.</div>
+            <div class="flow-actions">
+              <span class="action-chip forest">📄 1-page agreement</span>
+              <span class="action-chip forest">💳 Stripe ACH payment</span>
+              <span class="action-chip forest">🗄️ Manual Supabase provisioning</span>
+              <span class="action-chip forest">📞 Team onboarding call</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 2: SEGMENT + CHANNEL TABLE -->
+    <div class="section">
+      <div class="eyebrow">Partner Segments</div>
+      <div class="section-title">Right channel for each segment</div>
+      <div class="section-sub">Different orgs respond to different entry points. Match your first touch to how they work — not how you prefer to work.</div>
+
+      <table class="seg-table">
+        <thead>
+          <tr>
+            <th>Segment</th>
+            <th>Decision Maker</th>
+            <th>Best First Channel</th>
+            <th>Why They Say Yes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Doulas & Midwives</td>
+            <td>Owner / Solo practitioner</td>
+            <td><span class="channel-dot ch-visit">🚪 Visit in person</span></td>
+            <td>They're already fielding "how can I help?" from clients' villages. YK is the answer they didn't have.</td>
+          </tr>
+          <tr>
+            <td>Hospice Agencies</td>
+            <td>Social Work Director</td>
+            <td><span class="channel-dot ch-call">📞 Call → visit</span></td>
+            <td>Families in grief are overwhelmed. A managed meal resource elevates their whole-person care model.</td>
+          </tr>
+          <tr>
+            <td>Home Health Agencies</td>
+            <td>Care Coordinator / Director</td>
+            <td><span class="channel-dot ch-call">📞 Call → visit</span></td>
+            <td>Aides see nutrition gaps firsthand. YK gives them a referral that actually works.</td>
+          </tr>
+          <tr>
+            <td>Assisted Living / Memory Care</td>
+            <td>Social Director / Discharge Planner</td>
+            <td><span class="channel-dot ch-visit">🚪 Visit in person</span></td>
+            <td>Family members want to do something tangible from a distance. YK is that something.</td>
+          </tr>
+          <tr>
+            <td>Faith Communities</td>
+            <td>Benevolence Pastor / Women's Ministry</td>
+            <td><span class="channel-dot ch-visit">🚪 Visit in person</span></td>
+            <td>They already run informal meal trains. YK gives structure and removes the coordination burden from volunteers.</td>
+          </tr>
+          <tr>
+            <td>Military Support Orgs</td>
+            <td>FRG Leader / Chaplain / Program Director</td>
+            <td><span class="channel-dot ch-email">📧 Email + flyer</span></td>
+            <td>Deployment spouses are solo parenting. A village that can send meals remotely is exactly what they need.</td>
+          </tr>
+          <tr>
+            <td>Oncology Navigators</td>
+            <td>Patient Navigator / Social Worker</td>
+            <td><span class="channel-dot ch-email">📧 Email → call</span></td>
+            <td>They have a referral sheet habit. YK belongs on the list alongside transportation and financial assistance.</td>
+          </tr>
+          <tr>
+            <td>Funeral Homes</td>
+            <td>Owner / Family Services Director</td>
+            <td><span class="channel-dot ch-visit">🚪 Visit in person</span></td>
+            <td>They're already counseling families about the weeks ahead. One resource card takes 10 seconds.</td>
+          </tr>
+          <tr>
+            <td>Hospital Social Workers</td>
+            <td>Social Work Manager / Discharge Planner</td>
+            <td><span class="channel-dot ch-email">📧 Email</span></td>
+            <td>They write referral lists for everything. Getting on that list is the entire play.</td>
+          </tr>
+          <tr>
+            <td>OB-GYN / Pediatric Practices</td>
+            <td>Practice Manager / NP</td>
+            <td><span class="channel-dot ch-call">📞 Call → visit</span></td>
+            <td>Postpartum support is top of mind at every well visit. YK in the discharge packet = warm referral.</td>
+          </tr>
+          <tr>
+            <td>Employer EAP / HR Benefits</td>
+            <td>HR Director / Benefits Manager</td>
+            <td><span class="channel-dot ch-linkedin">💼 LinkedIn</span></td>
+            <td>Parental leave, bereavement, serious illness — these are existing benefit triggers. YK fills a real gap.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 3: ATTACK PLAN -->
+    <div class="section">
+      <div class="eyebrow">Attack Plan</div>
+      <div class="section-title">100 outreach contacts — 8 week sprint</div>
+      <div class="section-sub">Front-load your highest-conversion segments. Build momentum early so you have real pilot stories before you approach harder-to-reach orgs like hospitals and EAPs.</div>
+
+      <div class="attack-grid">
+
+        <div class="attack-card priority">
+          <div class="goal-tag">Week 1–2</div>
+          <div class="attack-week">Priority Segment · 25 contacts</div>
+          <div class="attack-title">Doulas, Midwives & Postpartum Providers</div>
+          <div class="attack-body">Highest emotional resonance. Solo practitioners who make referral decisions immediately. Show up in person with flyer + phone demo. You have a personal origin story that lands here.</div>
+          <div class="attack-target">🎯 Goal: 3 pilots committed</div>
+        </div>
+
+        <div class="attack-card priority">
+          <div class="goal-tag">Week 1–2</div>
+          <div class="attack-week">Priority Segment · 15 contacts</div>
+          <div class="attack-title">Faith Communities — Houston Area</div>
+          <div class="attack-body">One pastor = hundreds of families. Start with churches that already run benevolence ministries or meal ministries. Ask for 15 minutes with the care pastor. Leave the flyer. Follow up with a demo link.</div>
+          <div class="attack-target">🎯 Goal: 2 church champions</div>
+        </div>
+
+        <div class="attack-card">
+          <div class="goal-tag">Week 3–4</div>
+          <div class="attack-week">Core Segment · 20 contacts</div>
+          <div class="attack-title">Hospice & Home Health Agencies</div>
+          <div class="attack-body">Call first to identify the social work director. Visit with your one-pager. These orgs have more process but higher contract value and longer relationships. Plant now, close in week 6–8.</div>
+          <div class="attack-target">🎯 Goal: 2 discovery calls booked</div>
+        </div>
+
+        <div class="attack-card">
+          <div class="goal-tag">Week 3–4</div>
+          <div class="attack-week">Core Segment · 15 contacts</div>
+          <div class="attack-title">Funeral Homes</div>
+          <div class="attack-body">Walk in. Ask for the owner or family services director. This segment is radically underserved and has zero competition. Your ask is simple: "Be the resource you give families for the weeks after." No contract needed to start.</div>
+          <div class="attack-target">🎯 Goal: 5 referral agreements</div>
+        </div>
+
+        <div class="attack-card">
+          <div class="goal-tag">Week 5–6</div>
+          <div class="attack-week">Outreach Segment · 15 contacts</div>
+          <div class="attack-title">Oncology Navigators & Hospital Social Work</div>
+          <div class="attack-body">Email the department director with a 2-paragraph note. Include the live app link. Subject line: "A resource for families managing meals during treatment." Follow up once by phone. Getting on their referral list is the win here.</div>
+          <div class="attack-target">🎯 Goal: 3 on referral list</div>
+        </div>
+
+        <div class="attack-card">
+          <div class="goal-tag">Week 5–6</div>
+          <div class="attack-week">Outreach Segment · 10 contacts</div>
+          <div class="attack-title">Military Support Orgs & FRGs</div>
+          <div class="attack-body">Email + flyer to FRG leaders and Blue Star Families chapter coordinators. Deployment spouse use case is distinct and underserved. If you know anyone connected to military communities in Texas, ask for a warm intro first.</div>
+          <div class="attack-target">🎯 Goal: 2 org partnerships</div>
+        </div>
+
+        <div class="attack-card">
+          <div class="goal-tag">Week 7–8</div>
+          <div class="attack-week">Long Game · 10 contacts</div>
+          <div class="attack-title">OB-GYN Practices & Pediatricians</div>
+          <div class="attack-body">Call the practice manager. Ask if they have a resource handout for new parents — position YK as an addition to what they already give. Getting into a discharge packet takes relationship time; plant these now for 60–90 day closes.</div>
+          <div class="attack-target">🎯 Goal: 2 discharge packet placements</div>
+        </div>
+
+        <div class="attack-card">
+          <div class="goal-tag">Week 7–8</div>
+          <div class="attack-week">Long Game · Ongoing</div>
+          <div class="attack-title">Employer EAP & HR Benefits</div>
+          <div class="attack-body">LinkedIn outreach to HR Directors and Benefits Managers at mid-size Houston companies. Connect, share a post about YK, then DM once familiar. This is the longest sales cycle but highest contract value. Build the pipeline now, close Q4.</div>
+          <div class="attack-target">🎯 Goal: 3 discovery calls booked</div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- SECTION 4: SALES PREMISE + OBJECTION HANDLING -->
+    <div class="section">
+      <div class="eyebrow">Sales Premise & Objection Handling</div>
+      <div class="section-title">What you're really selling — and every "no" answered</div>
+      <div class="section-sub">The premise is the foundation of every conversation. Internalize it first. Then use the objection responses to keep momentum when a partner pushes back.</div>
+
+      <!-- PREMISE BOX -->
+      <div class="premise-box">
+        <div class="premise-label">The Core Premise</div>
+        <div class="premise-statement">"We don't manufacture the village — we give the village a way to act. If someone loves your client, YourKitchen is how they show it."</div>
+        <div class="premise-sub">You are not a meal delivery service. You are not a subscription app. You are a care platform that activates existing relationships at the exact moment a family needs support most. The org is not promising meals — they're offering access to a tool. That distinction matters in every sales conversation.</div>
+      </div>
+
+      <!-- REVENUE PICTURE -->
+      <div class="rev-grid">
+        <div class="rev-card">
+          <div class="rev-label">Year 1 · 20 Orgs</div>
+          <div class="rev-num">$45K</div>
+          <div class="rev-body">$24K contract base + $21K GMV take rate. Entry price is $1,200/yr per org. Transaction revenue compounds on top with zero additional sales effort.</div>
+        </div>
+        <div class="rev-card">
+          <div class="rev-label">Year 2 · Expansion</div>
+          <div class="rev-num">$110K</div>
+          <div class="rev-body">Orgs upgrade to larger pools. 20 new orgs added. GMV doubles as active kitchens grow. Renewal conversations replace cold outreach.</div>
+        </div>
+        <div class="rev-card highlight">
+          <div class="rev-label">Year 3 · Enterprise Unlock</div>
+          <div class="rev-num">$300K+</div>
+          <div class="rev-body">One health system or employer EAP signs a 100-slot enterprise contract at $8K–$12K. Consumer GMV running in parallel. Org contract is the floor — transaction volume is the ceiling.</div>
+        </div>
+      </div>
+
+      <!-- OBJECTIONS -->
+      <div class="obj-title">Common Objections — What to Say</div>
+
+      <div class="obj-list">
+
+        <div class="obj-item">
+          <div class="obj-q">
+            <span class="obj-tag">Objection 1</span>
+            "Will anyone actually send meals? What if my client sets this up and nothing happens?"
+          </div>
+          <div class="obj-a">
+            <div class="obj-a-label">Your Response</div>
+            <p>This is the most important objection to neutralize — because the value of YK lives entirely in coordinator activation.</p>
+            <p><strong>Reframe the promise first:</strong> You're not selling "meals will show up." You're offering a tool the client's village can use when they want to help. The platform exists for people who already want to act — it gives them a specific, easy way to do it. Whether that village shows up depends on the relationships that already exist, not the platform.</p>
+            <p><strong>Then give them the warm-start protocol:</strong> "For every client you activate, we recommend your own team member — the social worker, the doula, the care coordinator — claims the first date. One action primes the whole network. When someone sees one date is taken, they take another."</p>
+            <p><strong>Then close with data:</strong> "In our pilot, the average kitchen had 4 coordinators claim dates within the first week of activation. We'll track that for every client you serve and report it back to you monthly."</p>
+          </div>
+        </div>
+
+        <div class="obj-item">
+          <div class="obj-q">
+            <span class="obj-tag">Objection 2</span>
+            "Why would we pay for this when we could just tell families about MealTrain for free?"
+          </div>
+          <div class="obj-a">
+            <div class="obj-a-label">Your Response</div>
+            <p>MealTrain is a scheduling calendar. Someone still has to cook, shop, or coordinate a restaurant order manually. There's no payment, no delivery, no confirmation — just a sign-up sheet.</p>
+            <p>YourKitchen is end-to-end. A coordinator picks a restaurant your client already loves, pays right there, and a meal shows up at their door. The client confirms by a single text reply before anything is charged. Nothing falls through the cracks.</p>
+            <p><strong>The one-liner:</strong> "MealTrain tells people when to bring food. YourKitchen handles everything so they actually can — no matter where they live."</p>
+          </div>
+        </div>
+
+        <div class="obj-item">
+          <div class="obj-q">
+            <span class="obj-tag">Objection 3</span>
+            "We don't have a budget for this right now."
+          </div>
+          <div class="obj-a">
+            <div class="obj-a-label">Your Response</div>
+            <p>Two options depending on the relationship:</p>
+            <p><strong>Option A — Pilot first:</strong> "Then let's not talk about budget yet. Give me two clients for 30 days at no cost. If it improves their experience and you hear it from them directly, the budget conversation becomes easy. If it doesn't, you've lost nothing."</p>
+            <p><strong>Option B — Reframe the cost:</strong> "Ten accounts for a year is under $1,200 — that's $100 a month to offer a differentiated care service to every client you serve in a life transition. Most orgs spend more than that on printed materials." Then stop talking. Let the number sit.</p>
+          </div>
+        </div>
+
+        <div class="obj-item">
+          <div class="obj-q">
+            <span class="obj-tag">Objection 4</span>
+            "Our clients are going through something really hard. We don't want to add anything to their plate."
+          </div>
+          <div class="obj-a">
+            <div class="obj-a-label">Your Response</div>
+            <p>This objection usually comes from hospice, bereavement, or oncology partners — and it's coming from a genuinely good place. Honor it before you answer it.</p>
+            <p>"That's exactly why we built the confirmation step the way we did. The recipient gets a single text: 'Your village sent you dinner Tuesday at 6pm — reply Y to confirm or N to skip.' One letter. That's all they have to do. If they don't reply, nothing is charged and nothing is sent. They're never obligated. They're never surprised."</p>
+            <p>"The coordinators carry the burden. The client just says yes or no."</p>
+          </div>
+        </div>
+
+        <div class="obj-item">
+          <div class="obj-q">
+            <span class="obj-tag">Objection 5</span>
+            "What happens when the 90 days expire and the client still needs support?"
+          </div>
+          <div class="obj-a">
+            <div class="obj-a-label">Your Response</div>
+            <p>"Two options. First, you can reactivate a new slot for that client if their need continues — your pool just assigns them a fresh 90-day window. Second, if they want to continue independently, they can move to a personal Care+ account at $19.99/month. Either way, they're never stranded."</p>
+            <p>"The 90-day window is designed to match the most acute phase of most life transitions. But the platform stays flexible for clients whose situations run longer."</p>
+          </div>
+        </div>
+
+        <div class="obj-item">
+          <div class="obj-q">
+            <span class="obj-tag">Objection 6</span>
+            "How do we know your platform will still be around in a year?"
+          </div>
+          <div class="obj-a">
+            <div class="obj-a-label">Your Response</div>
+            <p>This one requires confidence, not defensiveness. Don't over-explain. Don't apologize for being early.</p>
+            <p>"I'm the founder. I built this for my own family — my wife used it after our third child was born. This isn't a side project. The platform is live, payments are processing, and deliveries are happening today. I'm not going anywhere."</p>
+            <p>"And honestly — that's an advantage for you right now. You're working directly with me, not a support ticket. If something doesn't work for your clients, I fix it. That's a level of responsiveness you won't get from any established platform."</p>
+          </div>
+        </div>
+
+        <div class="obj-item" style="border-bottom: none;">
+          <div class="obj-q">
+            <span class="obj-tag">Objection 7</span>
+            "Can we just refer clients to the app directly without buying a pool?"
+          </div>
+          <div class="obj-a">
+            <div class="obj-a-label">Your Response</div>
+            <p>"Absolutely — and I'd love that. If you want to be a referral partner first, let's start there. You share the link, your clients try it, and you see how it lands. No contract, no cost."</p>
+            <p>"The Kitchen Pool model is for orgs that want to gift access to clients directly — so the client never has to pull out a credit card. It's a different level of care. But referral is a great place to start, and if it works, the conversation about the pool happens naturally."</p>
+            <p>This keeps the door open. A referral partner who sees real results becomes a pool buyer. Don't force the close.</p>
+          </div>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- METRICS STRIP -->
+    <div class="metrics">
+      <div class="metric">
+        <span class="metric-num">100</span>
+        <div class="metric-label">Total outreach contacts over 8 weeks</div>
+      </div>
+      <div class="metric">
+        <span class="metric-num">20%</span>
+        <div class="metric-label">Target response rate · 20 conversations</div>
+      </div>
+      <div class="metric">
+        <span class="metric-num">5–7</span>
+        <div class="metric-label">Pilot orgs from first sprint</div>
+      </div>
+      <div class="metric">
+        <span class="metric-num">2–3</span>
+        <div class="metric-label">Contracted Kitchen Pools · first close</div>
+      </div>
+    </div>
+
+    <!-- FOOTER -->
+    <div class="footer">
+      <div class="footer-brand">"Your kitchen, covered."</div>
+      <div class="footer-meta">YourKitchen LLC · yourkitchen.app · marques@yourkitchen.app</div>
+    </div>
+
+  </div>
+</div>
+</body>
+</html>
