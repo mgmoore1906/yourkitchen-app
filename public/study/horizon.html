@@ -1,0 +1,262 @@
+
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap');
+  .hz { font-family:'DM Sans',sans-serif; padding:20px 0 8px; }
+  .hz-header { display:flex; align-items:baseline; gap:12px; margin-bottom:20px; }
+  .hz-title { font-family:'Lora',serif; font-size:20px; font-weight:500; color:var(--color-text-primary); margin:0; }
+  .hz-sub { font-size:12px; color:var(--color-text-secondary); font-weight:300; }
+  .phase { margin-bottom:20px; }
+  .phase-header { display:flex; align-items:center; gap:10px; margin-bottom:10px; padding-bottom:8px; border-bottom:0.5px solid var(--color-border-tertiary); }
+  .phase-dot { width:10px; height:10px; border-radius:50%; flex-shrink:0; }
+  .phase-label { font-size:11px; font-weight:600; letter-spacing:0.08em; text-transform:uppercase; color:var(--color-text-secondary); }
+  .phase-date { font-size:11px; color:var(--color-text-secondary); font-weight:300; margin-left:auto; }
+  .item { display:flex; align-items:flex-start; gap:10px; padding:9px 12px; border-radius:var(--border-radius-md); margin-bottom:6px; border:0.5px solid var(--color-border-tertiary); background:var(--color-background-primary); }
+  .item-icon { font-size:14px; flex-shrink:0; margin-top:1px; }
+  .item-text { flex:1; }
+  .item-title { font-size:13px; font-weight:500; color:var(--color-text-primary); margin:0 0 2px; }
+  .item-sub { font-size:11px; color:var(--color-text-secondary); font-weight:300; line-height:1.5; margin:0; }
+  .tag { border-radius:20px; font-size:9px; font-weight:700; padding:2px 8px; letter-spacing:0.05em; display:inline-block; margin-left:auto; flex-shrink:0; white-space:nowrap; }
+  .tag-now { background:#EAF2ED; color:#2D5240; }
+  .tag-code { background:#E4F0FF; color:#1A4A8A; }
+  .tag-data { background:#FFF0D4; color:#8A5A00; }
+  .tag-ext { background:#FEE8E8; color:#8A1A1A; }
+  .tag-def { background:var(--color-background-secondary); color:var(--color-text-secondary); }
+  .critical { border-color:#3D6B4F; background:#EAF2ED; }
+  .critical .item-title { color:#1E2620; }
+  .divider { height:0.5px; background:var(--color-border-tertiary); margin:20px 0; }
+  .legend { display:flex; gap:12px; flex-wrap:wrap; margin-bottom:20px; }
+  .leg-item { display:flex; align-items:center; gap:5px; font-size:10px; color:var(--color-text-secondary); }
+</style>
+
+<div class="hz">
+  <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400;1,500&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+
+  <div class="hz-header">
+    <h1 class="hz-title">What's on the horizon</h1>
+    <span class="hz-sub">Updated May 2026</span>
+  </div>
+
+  <div class="legend">
+    <div class="leg-item"><span class="tag tag-now">Build</span> Code work</div>
+    <div class="leg-item"><span class="tag tag-data">Data</span> Supabase / seeding</div>
+    <div class="leg-item"><span class="tag tag-ext">External</span> Outside your control</div>
+    <div class="leg-item"><span class="tag tag-def">Deferred</span> Post-launch</div>
+  </div>
+
+  <!-- IMMEDIATE -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-dot" style="background:#3D6B4F"></div>
+      <span class="phase-label">Immediate</span>
+      <span class="phase-date">Before June 1</span>
+    </div>
+
+    <div class="item critical">
+      <span class="item-icon">🧪</span>
+      <div class="item-text">
+        <p class="item-title">Danielle dry run — full end-to-end</p>
+        <p class="item-sub">Proposal → Y/N → DoorDash dispatch → delivery → SMS. Every step confirmed live before anyone else touches it.</p>
+      </div>
+      <span class="tag tag-now">Priority 1</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">📱</span>
+      <div class="item-text">
+        <p class="item-title">A2P 10DLC approval</p>
+        <p class="item-sub">Submitted. Waiting on carrier approval — unlocks SMS at scale. Nothing to do but monitor.</p>
+      </div>
+      <span class="tag tag-ext">External</span>
+    </div>
+  </div>
+
+  <!-- SPRINT 1 -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-dot" style="background:#4A8FA8"></div>
+      <span class="phase-label">Sprint 1 — Infrastructure</span>
+      <span class="phase-date">June 2026</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">🗺️</span>
+      <div class="item-text">
+        <p class="item-title">ZIP → service area mapping</p>
+        <p class="item-sub">Add service_area column to restaurants table. Build service_areas lookup table (city, ZIP array). Kitchen creation filters restaurant pool by ZIP.</p>
+      </div>
+      <span class="tag tag-data">Data + Build</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">⏰</span>
+      <div class="item-text">
+        <p class="item-title">Meal-type aware notification cron</p>
+        <p class="item-sub">Breakfast → 6:30am notify, 8:30am deadline. Lunch → 9am / 11am. Dinner → 2pm / 5pm. Replaces single 9:45am cron.</p>
+      </div>
+      <span class="tag tag-now">Build</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">📋</span>
+      <div class="item-text">
+        <p class="item-title">Onboarding flow updates</p>
+        <p class="item-sub">Tier education screen first. Address split into street / apt / city / state / ZIP. Phone number field added. Geo coverage note at address step.</p>
+      </div>
+      <span class="tag tag-now">Build</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">🛠️</span>
+      <div class="item-text">
+        <p class="item-title">Internal admin page</p>
+        <p class="item-sub">Password-protected /admin/restaurants. Add restaurants + menu items via form instead of Supabase Studio. Saves hours per city onboarded.</p>
+      </div>
+      <span class="tag tag-now">Build</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">🌐</span>
+      <div class="item-text">
+        <p class="item-title">Connect app.yourkitchen.app + fix Vercel protection</p>
+        <p class="item-sub">Custom domain live. Deployment protection configured correctly so preview vs production is clean.</p>
+      </div>
+      <span class="tag tag-now">Build</span>
+    </div>
+  </div>
+
+  <!-- SPRINT 2 -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-dot" style="background:#C17F47"></div>
+      <span class="phase-label">Sprint 2 — Pre-Launch</span>
+      <span class="phase-date">Late June – Early July</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">🏙️</span>
+      <div class="item-text">
+        <p class="item-title">Seed 8 cities × 30 restaurants × 5–8 items</p>
+        <p class="item-sub">Houston, Indianapolis, Atlanta, Dallas, Chicago, DC, LA, New York. Chains reused across cities (same menu, new address). ~25–30 hrs total seeding work.</p>
+      </div>
+      <span class="tag tag-data">Data</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">📅</span>
+      <div class="item-text">
+        <p class="item-title">Coordinator meal history + restaurant tally</p>
+        <p class="item-sub">Last 14 days of confirmed meals visible on kitchen link. Restaurant frequency bar chart. Prevents duplicate orders.</p>
+      </div>
+      <span class="tag tag-now">Build</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">📱</span>
+      <div class="item-text">
+        <p class="item-title">Contact Picker API for sharing</p>
+        <p class="item-sub">Native contacts on iOS Safari 14.5+ and Android Chrome. Graceful fallback to manual entry + copy link for desktop.</p>
+      </div>
+      <span class="tag tag-now">Build</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">⏳</span>
+      <div class="item-text">
+        <p class="item-title">Proposal 4-hour auto-expiration</p>
+        <p class="item-sub">Supabase cron. Unconfirmed proposals expire → slot returns to available → village push notification fires.</p>
+      </div>
+      <span class="tag tag-now">Build</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">🤝</span>
+      <div class="item-text">
+        <p class="item-title">Coordinator referral card on confirmation screen</p>
+        <p class="item-sub">After sending a meal, coordinator sees a shareable card to invite others to claim open dates.</p>
+      </div>
+      <span class="tag tag-now">Build</span>
+    </div>
+  </div>
+
+  <!-- LAUNCH -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-dot" style="background:#3D6B4F"></div>
+      <span class="phase-label">Launch — Controlled 50</span>
+      <span class="phase-date">July 2026</span>
+    </div>
+
+    <div class="item critical">
+      <span class="item-icon">🚀</span>
+      <div class="item-text">
+        <p class="item-title">50-person invite-only launch</p>
+        <p class="item-sub">Houston-first, 8 cities covered. Personal invites only. Manual restaurant concierge for non-Houston cities. Every order watched closely.</p>
+      </div>
+      <span class="tag tag-now">Milestone</span>
+    </div>
+
+    <div class="item critical">
+      <span class="item-icon">📊</span>
+      <div class="item-text">
+        <p class="item-title">Accumulate transaction data for DoorDash pitch</p>
+        <p class="item-sub">Orders placed, GMV, delivery completion rate, cities active. This is the evidence that unlocks Marketplace API access.</p>
+      </div>
+      <span class="tag tag-now">Critical path</span>
+    </div>
+  </div>
+
+  <!-- POST LAUNCH -->
+  <div class="phase">
+    <div class="phase-header">
+      <div class="phase-dot" style="background:#6B7066"></div>
+      <span class="phase-label">Post-Launch</span>
+      <span class="phase-date">August 2026 +</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">🔑</span>
+      <div class="item-text">
+        <p class="item-title">DoorDash Marketplace API — critical path dependency</p>
+        <p class="item-sub">Unlocks self-serve restaurant selection, full national catalog, removes manual seeding bottleneck entirely. Everything scales after this.</p>
+      </div>
+      <span class="tag tag-ext">External</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">✉️</span>
+      <div class="item-text">
+        <p class="item-title">Onboarding email sequence (Resend)</p>
+        <p class="item-sub">Welcome → day 3 tips → day 25 trial expiry nudge → day 30 upgrade prompt.</p>
+      </div>
+      <span class="tag tag-def">Deferred</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">🍎</span>
+      <div class="item-text">
+        <p class="item-title">Apple Sign-In</p>
+        <p class="item-sub">Required for App Store submission. Not needed for PWA web launch.</p>
+      </div>
+      <span class="tag tag-def">Deferred</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">🏠</span>
+      <div class="item-text">
+        <p class="item-title">Village Time — babysitting coordination</p>
+        <p class="item-sub">Same calendar-and-claim mechanic applied to childcare. Fully scoped, ready to build post-July.</p>
+      </div>
+      <span class="tag tag-def">Deferred</span>
+    </div>
+
+    <div class="item">
+      <span class="item-icon">📦</span>
+      <div class="item-text">
+        <p class="item-title">Feature gating, gift redemption, mobile responsiveness pass</p>
+        <p class="item-sub">Free vs Care+ enforcement in code. Gift subscription flow. Dedicated mobile UI polish sprint.</p>
+      </div>
+      <span class="tag tag-def">Deferred</span>
+    </div>
+  </div>
+
+</div>
