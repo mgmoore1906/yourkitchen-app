@@ -3,108 +3,88 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="robots" content="noindex, nofollow">
-<title>Study · YourKitchen</title>
+<title>YourKitchen — Study</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --sage:#3D6B4F; --sageLight:#EAF2ED; --cream:#FAFAF5; --forest:#1E2620;
-    --amber:#C17F47; --stone:#6B7066; --border:#DDE8E0; --white:#FFFFFF;
+    --sage:#3D6B4F; --sageMid:#6B9E7E; --sageLight:#EAF2ED; --cream:#FAFAF5;
+    --forest:#1E2620; --stone:#6B7066; --border:#DDE8E0;
+    --serif:'Lora',Georgia,serif; --sans:'DM Sans',system-ui,sans-serif;
   }
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--cream);color:var(--forest);font-family:'DM Sans',sans-serif;
-    line-height:1.6;padding:56px 20px;-webkit-font-smoothing:antialiased}
-  .wrap{max-width:680px;margin:0 auto}
-
-  .top{display:flex;align-items:center;justify-content:space-between;
-    border-bottom:2px solid var(--forest);padding-bottom:16px;margin-bottom:8px}
-  .brand{display:flex;align-items:center;gap:10px}
-  .brand .wm-your{font-family:'Lora',serif;font-style:italic;font-weight:500;font-size:15px;color:var(--sage);line-height:0.9}
-  .brand .wm-kitchen{font-family:'Lora',serif;font-weight:600;font-size:21px;color:var(--forest);line-height:0.9;letter-spacing:-0.3px}
-  .lock{font-size:10.5px;font-weight:600;color:var(--stone);text-transform:uppercase;letter-spacing:0.13em;
-    display:flex;align-items:center;gap:6px}
-  .lock svg{display:block}
-
-  .head{margin:30px 0 22px}
-  .eyebrow{font-size:10.5px;font-weight:700;color:var(--sage);text-transform:uppercase;letter-spacing:0.16em;margin-bottom:8px}
-  h1{font-family:'Lora',serif;font-size:30px;font-weight:600;letter-spacing:-0.5px}
-  .sub{font-size:13.5px;color:var(--stone);margin-top:6px}
-
-  .card{display:flex;align-items:center;gap:16px;background:var(--white);border:1px solid var(--border);
-    border-radius:12px;padding:18px 20px;margin-bottom:12px;text-decoration:none;color:inherit;
-    transition:border-color .15s ease, transform .15s ease}
-  .card:hover{border-color:var(--sage);transform:translateY(-1px)}
-  .card .ic{flex-shrink:0;width:42px;height:42px;border-radius:10px;background:var(--sageLight);
-    display:flex;align-items:center;justify-content:center;font-size:20px}
-  .card .body{flex:1;min-width:0}
-  .card .t{font-family:'Lora',serif;font-size:16px;font-weight:600;color:var(--forest)}
-  .card .d{font-size:12.5px;color:var(--stone);margin-top:2px}
-  .card .arrow{flex-shrink:0;color:var(--sage);font-size:18px}
-
-  .empty{font-size:12.5px;color:var(--stone);font-style:italic;padding:6px 2px}
-  .note{margin-top:26px;font-size:11.5px;color:var(--stone);line-height:1.6;
-    border-top:1px solid var(--border);padding-top:16px}
-  .note code{font-family:ui-monospace,Menlo,monospace;background:var(--sageLight);
-    padding:1px 6px;border-radius:5px;font-size:11px;color:var(--sage)}
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{font-family:var(--sans);color:var(--forest);background:var(--cream);
+    -webkit-font-smoothing:antialiased;padding:56px 16px 80px}
+  header.mast{max-width:1040px;margin:0 auto 64px;padding:0 4px}
+  .kicker{font-size:11px;font-weight:600;letter-spacing:.2em;color:var(--sageMid);text-transform:uppercase;margin-bottom:10px}
+  h1{font-family:var(--serif);font-size:44px;font-weight:600;margin:0;letter-spacing:-1px;line-height:1.05}
+  .lede{font-size:16px;color:var(--stone);margin-top:16px;max-width:640px;line-height:1.65}
+  section{margin-bottom:64px}
+  .shead{max-width:1040px;margin:0 auto 18px;padding:0 4px}
+  .skick{font-size:11px;font-weight:600;letter-spacing:.16em;color:var(--sageMid);text-transform:uppercase;margin-bottom:8px}
+  h2{font-family:var(--serif);font-size:28px;font-weight:600;margin:0;letter-spacing:-.5px}
+  .blurb{font-size:14.5px;color:var(--stone);margin:8px 0 0;max-width:680px;line-height:1.6}
+  .rule{height:1px;background:var(--border);margin-top:20px}
+  .frame{max-width:1040px;margin:0 auto}
+  iframe{width:100%;border:none;display:block;border-radius:18px;overflow:hidden;background:transparent}
+  footer{max-width:1040px;margin:24px auto 0;padding:0 4px;text-align:center}
+  footer .rule{margin-bottom:24px}
+  footer p{font-size:13px;color:var(--stone)}
 </style>
 </head>
 <body>
-<div class="wrap">
+  <header class="mast">
+    <div class="kicker">YourKitchen · Study</div>
+    <h1>Your kitchen, covered.</h1>
+    <p class="lede">A care platform that activates a recipient&rsquo;s existing village to send real, home-delivered meals through life&rsquo;s hardest seasons. Below: how it works, the product, the revenue model, the buyer&rsquo;s view, and the go-to-market.</p>
+  </header>
 
-  <div class="top">
-    <div class="brand">
-      <svg width="26" height="26" viewBox="0 0 26 26" fill="none" xmlns="http://www.w3.org/2000/svg">
-        <path d="M5 10h16M8 10V7a5 5 0 0110 0v3" stroke="#3D6B4F" stroke-width="1.6" stroke-linecap="round"/>
-        <path d="M6 10l1.5 9h11L20 10" stroke="#3D6B4F" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
-        <path d="M10 15h6" stroke="#3D6B4F" stroke-width="1.4" stroke-linecap="round"/>
-      </svg>
-      <div>
-        <div class="wm-your">Your</div>
-        <div class="wm-kitchen">Kitchen</div>
-      </div>
-    </div>
-    <div class="lock">
-      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><rect x="4" y="11" width="16" height="10" rx="2" stroke="#6B7066" stroke-width="2"/><path d="M8 11V7a4 4 0 018 0v4" stroke="#6B7066" stroke-width="2"/></svg>
-      Private
-    </div>
-  </div>
+  <section>
+    <div class="shead"><div class="skick">01 · The concept</div><h2>How it works</h2>
+      <p class="blurb">Three ways a village gathers around someone who needs one — confirmed by the recipient before anything is charged.</p><div class="rule"></div></div>
+    <div class="frame"><iframe src="tiers-features.html" title="How it works" scrolling="no" style="height:2100px"></iframe></div>
+  </section>
 
-  <div class="head">
-    <div class="eyebrow">Founder reference</div>
-    <h1>Study</h1>
-    <div class="sub">Your private shelf — quick to reach, nobody else can see it.</div>
-  </div>
+  <section>
+    <div class="shead"><div class="skick">02 · The product</div><h2>What the recipient sees</h2>
+      <p class="blurb">The confirm-before-charge flow and village experience, on the phone.</p><div class="rule"></div></div>
+    <div class="frame"><iframe src="tutorial-mockup.html" title="Product tutorial" scrolling="no" style="height:1150px"></iframe></div>
+  </section>
 
-  <!-- ── Reference pages. Duplicate a card below to add a new one. ── -->
+  <section>
+    <div class="shead"><div class="skick">03 · The economics</div><h2>B2B revenue model</h2>
+      <p class="blurb">Org pools priced for the families they serve, not the slots they hold. Drag the inputs to see how few care-org deals reach six figures in year one.</p><div class="rule"></div></div>
+    <div class="frame"><iframe src="model.html" title="B2B revenue model" scrolling="no" style="height:1180px"></iframe></div>
+  </section>
 
-  <a class="card" href="./positioning-metrics-brief.html">
-    <div class="ic">📋</div>
-    <div class="body">
-      <div class="t">Positioning &amp; Metrics Brief</div>
-      <div class="d">Positioning, acronym guide, the metrics that matter, churn &amp; organic growth</div>
-    </div>
-    <div class="arrow">→</div>
-  </a>
+  <section>
+    <div class="shead"><div class="skick">04 · The buyer&rsquo;s view</div><h2>What a care org measures</h2>
+      <p class="blurb">The admin dashboard a hospice director or EAP manager sees — utilization, families served, and the cost-per-family renewal case on one screen.</p><div class="rule"></div></div>
+    <div class="frame"><iframe src="dashboard.html" title="Care pool dashboard" scrolling="no" style="height:1240px"></iframe></div>
+  </section>
 
-  <!--
-  TEMPLATE — copy this block, drop the new .html file in public/study/, point href at it:
+  <section>
+    <div class="shead"><div class="skick">05 · The go-to-market</div><h2>B2B sales process &amp; attack plan</h2>
+      <p class="blurb">The segments closest to the moment of need, and the sequence to reach them.</p><div class="rule"></div></div>
+    <div class="frame"><iframe src="b2b-sales-flow.html" title="B2B sales flow" scrolling="no" style="height:4400px"></iframe></div>
+  </section>
 
-  <a class="card" href="./your-new-page.html">
-    <div class="ic">📄</div>
-    <div class="body">
-      <div class="t">Page title</div>
-      <div class="d">One-line description</div>
-    </div>
-    <div class="arrow">→</div>
-  </a>
-  -->
+  <footer><div class="rule"></div><p>yourkitchen.app · Made for the people who show up.</p></footer>
 
-  <div class="note">
-    Add a page: drop its <code>.html</code> file into <code>public/study/</code>, then copy a card block above and point its <code>href</code> at the file. Everything under <code>/study</code> is password-protected automatically.
-  </div>
-
-</div>
+  <script>
+    // Auto-size same-origin iframes to their content (overrides the fallback heights above)
+    function fitAll(){
+      document.querySelectorAll('iframe').forEach(function(f){
+        try{
+          var h=f.contentWindow.document.body.scrollHeight;
+          if(h && h>40) f.style.height=h+'px';
+        }catch(e){/* keep fallback height */}
+      });
+    }
+    window.addEventListener('load',function(){ fitAll(); setTimeout(fitAll,400); });
+    window.addEventListener('resize',function(){ clearTimeout(window._t); window._t=setTimeout(fitAll,200); });
+    document.querySelectorAll('iframe').forEach(function(f){ f.addEventListener('load',fitAll); });
+  </script>
 </body>
 </html>
