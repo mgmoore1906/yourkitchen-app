@@ -1,6 +1,7 @@
 // app/api/profile/create/route.ts
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { getSessionUserId } from '@/lib/requireUser'
 export const dynamic = 'force-dynamic'
 function getSupabase() {
   return createClient(
@@ -13,6 +14,11 @@ export async function POST(request: Request) {
   const supabase = getSupabase()
   try {
     const body = await request.json()
+
+    const sessionUserId = await getSessionUserId()
+    if (!sessionUserId || body?.id !== sessionUserId) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 401 })
+    }
 
     const { error } = await supabase
       .from('profiles')
