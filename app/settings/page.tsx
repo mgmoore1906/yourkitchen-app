@@ -61,10 +61,23 @@ const [emailErr, setEmailErr] = useState('')
 const [deleteConfirm, setDeleteConfirm] = useState(false)
 const [deleteLoading, setDeleteLoading] = useState(false)
 const [currentTier, setCurrentTier] = useState('free')
+const [portalLoading, setPortalLoading] = useState(false)
 const [kitchenId, setKitchenId] = useState('')
 const [userId, setUserId] = useState('')
 const [open, setOpen] = useState<Record<string, boolean>>({})
 const toggle = (k: string) => setOpen(o => ({ ...o, [k]: !o[k] }))
+const openBillingPortal = async () => {
+  setPortalLoading(true)
+  try {
+    const res = await fetch('/api/billing-portal', { method: 'POST' })
+    const data = await res.json()
+    if (data.url) { window.location.href = data.url; return }
+    alert(data.error || 'Could not open billing right now. Please try again.')
+  } catch {
+    alert('Could not open billing right now. Please try again.')
+  }
+  setPortalLoading(false)
+}
 
 const [form, setForm] = useState({
 full_name: '',
@@ -321,6 +334,12 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 </div>
 )}
 </div>
+
+{(currentTier === 'care' || currentTier === 'annual') && (
+<button onClick={openBillingPortal} disabled={portalLoading} style={{ width: '100%', padding: '12px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: 'transparent', fontSize: 13, fontWeight: 600, color: S.forest, cursor: portalLoading ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", marginBottom: 24 }}>
+{portalLoading ? 'Opening…' : 'Manage or cancel subscription'}
+</button>
+)}
 
 {/* ── PROFILE ── */}
 <p style={sLabel}>Profile</p>
