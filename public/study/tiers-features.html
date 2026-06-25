@@ -36,7 +36,7 @@
   .masthead p.sub{ font-size:14px; color:rgba(250,250,245,0.72); margin-top:10px; max-width:600px; position:relative; z-index:1; }
 
   /* Tier cards */
-  .tiers{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:0; background:var(--border); }
+  .tiers{ display:grid; grid-template-columns:1fr 1fr; gap:0; background:var(--border); }
   .tier{ background:var(--cream); padding:32px 26px 30px; position:relative; }
   .tier.care{ background:var(--white); }
   .tier.founding{ background:linear-gradient(170deg,#2A3326 0%, var(--forest) 100%); color:var(--cream); }
@@ -91,8 +91,66 @@
   .foot .meta{ font-size:12px; color:var(--stone); margin-top:8px; }
   .foot .heart{ color:var(--heart); }
 
+  /* Plan pricing on cards */
+  .tier-price{ display:flex; align-items:baseline; gap:4px; margin:12px 0 2px; }
+  .tier-price .amt{ font-family:var(--serif); font-size:34px; font-weight:600; color:var(--forest); letter-spacing:-0.02em; }
+  .tier-price .per{ font-size:13px; color:var(--stone); font-weight:500; }
+  .tier-trial{ font-size:11.5px; color:var(--sage); font-weight:600; margin-bottom:2px; }
+  .tier-trial b{ font-weight:700; }
+
+  /* Trial bar */
+  .trial-bar{ margin:0; padding:18px 48px; background:var(--sage-light); border-top:1px solid var(--border); border-bottom:1px solid var(--border); display:flex; align-items:center; gap:14px; }
+  .trial-bar .ico{ flex:0 0 auto; width:34px; height:34px; border-radius:50%; background:var(--sage); display:flex; align-items:center; justify-content:center; }
+  .trial-bar .ico svg{ width:18px; height:18px; }
+  .trial-bar .txt{ font-size:13px; color:var(--forest); line-height:1.45; }
+  .trial-bar .txt b{ font-weight:700; color:var(--sage); }
+
+  /* Founding section */
+  .founding-section{ padding:44px 48px 30px; background:var(--cream); }
+  .founding-head{ text-align:center; margin-bottom:6px; }
+  .founding-head .eyebrow{ font-size:11px; font-weight:700; letter-spacing:0.32em; text-transform:uppercase; color:var(--gold-deep); margin-bottom:8px; }
+  .founding-head h2{ font-family:var(--serif); font-size:25px; font-weight:600; }
+  .founding-head p{ font-size:13px; color:var(--stone); max-width:560px; margin:8px auto 0; line-height:1.55; }
+  .founding-cap{ display:inline-block; margin:14px auto 26px; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:var(--gold-deep); background:var(--gold-light); border:1px solid rgba(193,127,71,0.3); padding:6px 16px; border-radius:20px; }
+
+  .ladder{ display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .fcard{ background:var(--white); border:1px solid var(--border); border-radius:16px; padding:24px 20px 22px; position:relative; overflow:hidden; display:flex; flex-direction:column; }
+  .fcard::before{ content:''; position:absolute; top:0; left:0; right:0; height:4px; }
+  .fcard.friend::before{ background:linear-gradient(90deg,#C8884E,#7C4A20); }
+  .fcard.patron::before{ background:linear-gradient(90deg,#E2E6E9,#8C949B); }
+  .fcard.builder::before{ background:linear-gradient(90deg,#E8C572,#A87C30); }
+  .fcard.partner::before{ background:linear-gradient(90deg,#F4F5F7,#AEB6BE); }
+  .fcard.partner{ border-color:#C9CFD4; box-shadow:0 14px 34px rgba(30,38,32,0.10); }
+
+  /* Seal / medal */
+  .seal{ width:60px; height:60px; border-radius:50%; display:flex; align-items:center; justify-content:center; margin-bottom:14px; position:relative; box-shadow:inset 0 1px 2px rgba(255,255,255,0.55), inset 0 -2px 4px rgba(0,0,0,0.18), 0 4px 10px rgba(0,0,0,0.14); }
+  .seal::after{ content:''; position:absolute; inset:5px; border-radius:50%; border:1px solid rgba(255,255,255,0.35); }
+  .seal svg{ width:24px; height:24px; position:relative; z-index:1; }
+  .seal.friend{ background:radial-gradient(circle at 32% 28%, #DCA36A, #B5703A 52%, #7C4A20); }
+  .seal.patron{ background:radial-gradient(circle at 32% 28%, #F1F4F6, #B7BFC5 55%, #8C949B); }
+  .seal.builder{ background:radial-gradient(circle at 32% 28%, #F0D58A, #C79A45 55%, #9A7128); }
+  .seal.partner{ background:radial-gradient(circle at 32% 28%, #FFFFFF, #D7DCE1 50%, #A9B2BA); box-shadow:inset 0 1px 2px rgba(255,255,255,0.7), inset 0 -2px 4px rgba(0,0,0,0.14), 0 0 0 1.5px rgba(120,130,140,0.4), 0 5px 14px rgba(0,0,0,0.16); }
+
+  .fcard-tier{ font-family:var(--serif); font-size:18px; font-weight:600; letter-spacing:-0.01em; }
+  .fcard-sub{ font-size:11px; font-weight:700; letter-spacing:0.06em; text-transform:uppercase; color:var(--stone); margin-top:3px; }
+  .fcard.friend .fcard-sub{ color:#9A5F2C; }
+  .fcard.patron .fcard-sub{ color:#7E868C; }
+  .fcard.builder .fcard-sub{ color:#A87C30; }
+  .fcard.partner .fcard-sub{ color:#7C868E; }
+  .fcard-price{ font-family:var(--serif); font-size:30px; font-weight:600; color:var(--forest); letter-spacing:-0.02em; margin:12px 0 2px; }
+  .fcard-once{ font-size:11px; color:var(--stone); font-weight:500; }
+  .fcard-term{ margin:14px 0 12px; padding:9px 12px; background:var(--sage-light); border-radius:9px; font-size:12px; font-weight:600; color:var(--sage); text-align:center; }
+  .fcard-feat{ list-style:none; margin-top:2px; }
+  .fcard-feat li{ font-size:12px; line-height:1.4; color:var(--forest); padding:6px 0 6px 20px; position:relative; }
+  .fcard-feat li::before{ content:''; position:absolute; left:0; top:8px; width:12px; height:12px; border-radius:50%; background:var(--sage-light) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233D6B4F' stroke-width='3.5' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E") center/8px no-repeat; }
+  .fcard-feat li b{ font-weight:700; }
+  .fcard-incl{ font-size:11px; color:var(--stone); margin-top:auto; padding-top:14px; line-height:1.4; }
+
+  @media (max-width:880px){ .ladder{ grid-template-columns:1fr 1fr; } }
   @media (max-width:780px){
     .tiers{ grid-template-columns:1fr; }
+    .ladder{ grid-template-columns:1fr; }
+    .founding-section,.trial-bar{ padding-left:24px; padding-right:24px; }
     .matrix-wrap,.founding-strip,.foot,.masthead{ padding-left:24px; padding-right:24px; }
     .tier-for{ min-height:0; }
     table{ font-size:11px; }
@@ -114,16 +172,19 @@
   <!-- Tier cards -->
   <div class="tiers">
 
-    <!-- FREE -->
+    <!-- CARE (base) -->
     <div class="tier free">
       <div class="tier-name">Care</div>
       <div class="tier-for">For anyone gathering meals around someone they love.</div>
+      <div class="tier-price"><span class="amt">$10</span><span class="per">/ month</span></div>
+      <div class="tier-trial"><b>Free to start</b> — 30 days or 5 meals</div>
 
       <div class="tier-lead">What&rsquo;s included</div>
       <ul class="feat">
         <li>A <b>kitchen</b> for your recipient</li>
         <li><b>Unlimited calendar</b> — claim any date</li>
-        <li>Add favorite <b>restaurants &amp; meals</b></li>
+        <li>Add any <b>restaurant &amp; meal</b> you want</li>
+        <li class="heart-feat"><b>Automatic menu import</b> — we pull the menu in for you</li>
         <li>Home delivery by courier</li>
         <li>Y/N text confirmation before any charge</li>
         <li>Live delivery tracking for the recipient</li>
@@ -139,39 +200,28 @@
       <div class="ribbon">Most loved</div>
       <div class="tier-name">Care+</div>
       <div class="tier-for">For families who want the village to feel like a keepsake.</div>
+      <div class="tier-price"><span class="amt">$20</span><span class="per">/ month</span></div>
+      <div class="tier-trial"><b>Free to start</b> — 30 days or 5 meals</div>
 
       <div class="tier-lead">Everything in Care, plus</div>
       <ul class="feat">
+        <li>Cover <b>more loved ones</b> — multiple kitchens</li>
         <li class="heart-feat"><b>The full village</b> — photos, reactions &amp; replies</li>
         <li class="heart-feat"><b>Village keepsake</b> — your record, kept &amp; saved</li>
-        <li>Cover <b>more loved ones</b> — multiple kitchens</li>
+        <li>Your own <b>custom kitchen web address</b></li>
         <li><b>Personal thank-you</b> sent to each sender</li>
         <li>Live tracking shared with the sender</li>
-        <li><b>More restaurants &amp; meals</b> to choose from</li>
-        <li>Your own custom kitchen web address</li>
         <li>Home-cooked &amp; personal drop-off option</li>
-        <li>Priority support</li>
+        <li><b>Priority support</b></li>
       </ul>
     </div>
 
-    <!-- FOUNDING -->
-    <div class="tier founding">
-      <div class="ribbon">First 250 only</div>
-      <div class="tier-name">Founding Member</div>
-      <div class="tier-for">For the first people who help this stand up.</div>
+  </div>
 
-      <div class="tier-lead">Everything in Care+, plus</div>
-      <ul class="feat">
-        <li><b>Permanent Founding badge</b></li>
-        <li>A <b>direct line</b> to the founder</li>
-        <li><b>Early access</b> to new features first</li>
-        <li>Your name in the <b>Founding story</b></li>
-        <li class="heart-feat"><b>Gift the village</b> to a friend — a share-with-someone code</li>
-        <li>Private <b>founders&rsquo; community</b></li>
-        <li class="heart-feat"><b>Founders Gift Box</b> — shipped to your door</li>
-      </ul>
-    </div>
-
+  <!-- Trial bar -->
+  <div class="trial-bar">
+    <div class="ico"><svg viewBox="0 0 24 24" fill="none" stroke="#FAFAF5" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="12 7 12 12 15 14"/></svg></div>
+    <div class="txt">Every new account starts free — <b>30 days or 5 meals, whichever comes first.</b> No charge until you choose a plan, and your kitchen keeps working the whole time.</div>
   </div>
 
   <!-- Comparison matrix -->
@@ -188,10 +238,15 @@
         </tr>
       </thead>
       <tbody>
+        <tr class="section-row"><td colspan="4">Plans &amp; pricing</td></tr>
+        <tr><td class="feat-col">Price</td><td class="val">$10 / mo</td><td class="val">$20 / mo</td><td class="f-cell val f">From $200 once</td></tr>
+        <tr><td class="feat-col">Free trial<small>30 days or 5 meals, whichever comes first</small></td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell val f">Care+ included</td></tr>
+
         <tr class="section-row"><td colspan="4">The essentials</td></tr>
         <tr><td class="feat-col">Kitchens<small>Loved ones you can cover</small></td><td class="val">1</td><td class="val">More</td><td class="f-cell val f">More</td></tr>
         <tr><td class="feat-col">Calendar window</td><td class="val">Unlimited</td><td class="val">Unlimited</td><td class="f-cell val f">Unlimited</td></tr>
-        <tr><td class="feat-col">Restaurants &amp; meals to choose from</td><td class="val">A few</td><td class="val">Many more</td><td class="f-cell val f">Many more</td></tr>
+        <tr><td class="feat-col">Add any restaurant you want</td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Automatic menu import<small>We pull the menu in for you</small></td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
 
         <tr class="section-row"><td colspan="4">Sending a meal</td></tr>
         <tr><td class="feat-col">Home delivery by courier</td><td class="yes">&#10003;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
@@ -214,21 +269,94 @@
         <tr><td class="feat-col">Priority support</td><td class="no">&mdash;</td><td class="yes">&#10003;</td><td class="f-cell yes">&#10003;</td></tr>
 
         <tr class="section-row"><td colspan="4">Founding privileges</td></tr>
-        <tr><td class="feat-col">Permanent Founding badge</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
-        <tr><td class="feat-col">Direct line to the founder</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Permanent Founding badge<small>Color reflects your circle</small></td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
         <tr><td class="feat-col">Early access to new features</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
         <tr><td class="feat-col">Name in the Founding story</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
-        <tr><td class="feat-col">Gift the village to a friend<small>A share-with-someone code</small></td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
+        <tr><td class="feat-col">Gift Care+ to a friend<small>1&ndash;3 codes, by circle</small></td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
         <tr><td class="feat-col">Private founders&rsquo; community</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
         <tr><td class="feat-col">Founders Gift Box</td><td class="no">&mdash;</td><td class="no">&mdash;</td><td class="f-cell yes">&#10003;</td></tr>
       </tbody>
     </table>
   </div>
 
+  <!-- Founding ladder -->
+  <div class="founding-section">
+    <div class="founding-head">
+      <div class="eyebrow">The Founding Circles</div>
+      <h2>Help YourKitchen stand up</h2>
+      <p>Four ways to be one of the first believers. Every circle is a one-time gift that locks in Care+ and a permanent Founding badge — choose the one that fits.</p>
+      <div class="founding-cap">Only 250 founding seats — across all circles</div>
+    </div>
+
+    <div class="ladder">
+
+      <!-- FRIEND -->
+      <div class="fcard friend">
+        <div class="seal friend"><svg viewBox="0 0 24 24" fill="#FBF4EB" stroke="none"><path d="M12 21s-7-4.35-9.5-8.5C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 7-2.5 4.15-9.5 8.5-9.5 8.5z"/></svg></div>
+        <div class="fcard-tier">Founding Friend</div>
+        <div class="fcard-sub">Bronze circle</div>
+        <div class="fcard-price">$200</div>
+        <div class="fcard-once">one-time</div>
+        <div class="fcard-term">3 years of Care+</div>
+        <ul class="fcard-feat">
+          <li>Permanent <b>bronze badge</b></li>
+          <li>Bless a friend &mdash; <b>1 Care+ gift code</b>, 90 days</li>
+          <li><b>Founders Gift Box</b>, shipped to you</li>
+          <li>Your name in the Founding story</li>
+        </ul>
+      </div>
+
+      <!-- PATRON -->
+      <div class="fcard patron">
+        <div class="seal patron"><svg viewBox="0 0 24 24" fill="#5A636A" stroke="none"><path d="M12 21s-7-4.35-9.5-8.5C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 7-2.5 4.15-9.5 8.5-9.5 8.5z"/></svg></div>
+        <div class="fcard-tier">Founding Patron</div>
+        <div class="fcard-sub">Silver circle</div>
+        <div class="fcard-price">$350</div>
+        <div class="fcard-once">one-time</div>
+        <div class="fcard-term">4 years of Care+</div>
+        <ul class="fcard-feat">
+          <li>Everything in <b>Friend</b></li>
+          <li>Bless <b>two friends</b> — 2 Care+ gift codes, 90 days each</li>
+        </ul>
+      </div>
+
+      <!-- BUILDER -->
+      <div class="fcard builder">
+        <div class="seal builder"><svg viewBox="0 0 24 24" fill="#5A4516" stroke="none"><path d="M12 21s-7-4.35-9.5-8.5C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 7-2.5 4.15-9.5 8.5-9.5 8.5z"/></svg></div>
+        <div class="fcard-tier">Founding Builder</div>
+        <div class="fcard-sub">Gold circle</div>
+        <div class="fcard-price">$500</div>
+        <div class="fcard-once">one-time</div>
+        <div class="fcard-term">5 years of Care+</div>
+        <ul class="fcard-feat">
+          <li>Everything in <b>Patron</b></li>
+          <li>2 Care+ gift codes, <b>180 days</b> each</li>
+          <li>A <b>say in the roadmap</b> &amp; a call with the founder</li>
+        </ul>
+      </div>
+
+      <!-- PARTNER -->
+      <div class="fcard partner">
+        <div class="seal partner"><svg viewBox="0 0 24 24" fill="#4A5258" stroke="none"><path d="M12 21s-7-4.35-9.5-8.5C1 9 2.5 5.5 6 5.5c2 0 3.2 1.2 4 2.3.8-1.1 2-2.3 4-2.3 3.5 0 5 3.5 3.5 7-2.5 4.15-9.5 8.5-9.5 8.5z"/></svg></div>
+        <div class="fcard-tier">Founding Partner</div>
+        <div class="fcard-sub">Platinum circle</div>
+        <div class="fcard-price">$1,000</div>
+        <div class="fcard-once">one-time</div>
+        <div class="fcard-term">Care+ for life</div>
+        <ul class="fcard-feat">
+          <li>Everything in <b>Builder</b></li>
+          <li>3 Care+ gift codes, <b>180 days</b> each</li>
+          <li><b>Permanent recognition</b> as a founder</li>
+        </ul>
+      </div>
+
+    </div>
+  </div>
+
   <!-- Founding strip -->
   <div class="founding-strip">
-    <h3>Become a Founding Member</h3>
-    <p>Founding Members are the first believers — the people who help YourKitchen stand up before the world knows its name. You&rsquo;ll get the badge, the access, the founders&rsquo; community, and a Founders Gift Box shipped to your door. A limited circle, open now.</p>
+    <h3>Every circle, the same heart</h3>
+    <p>However you join, you get the badge, early access, your name in the Founding story, the private founders&rsquo; community, and a Founders Gift Box at your door. The higher circles simply let people who can give more do more — and bless more families along the way. A limited group of 250, open now.</p>
   </div>
 
   <!-- Footer -->
