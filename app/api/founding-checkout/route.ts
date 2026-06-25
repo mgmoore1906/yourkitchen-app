@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { getSessionUserId } from '@/lib/requireUser'
 import Stripe from 'stripe'
 
 function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!) }
@@ -24,6 +25,10 @@ export async function POST(request: Request) {
   try {
     const { user_id } = await request.json()
     if (!user_id) return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
+    const sessionUserId = await getSessionUserId()
+    if (!sessionUserId || user_id !== sessionUserId) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 401 })
+    }
 
     // ACH Direct Debit requires an account-holder name, so make sure the Stripe
     // customer has one on file (mirrors the stripe-subscription route).
