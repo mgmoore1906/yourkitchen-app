@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { getSessionUserId } from '@/lib/requireUser'
 export const dynamic = 'force-dynamic'
 function getSupabase() {
   return createClient(
@@ -27,6 +28,10 @@ export async function POST(request: Request) {
   try {
     const { user_id } = await request.json()
     if (!user_id) return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
+    const sessionUserId = await getSessionUserId()
+    if (!sessionUserId || user_id !== sessionUserId) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 401 })
+    }
 
     // Small helper: run a delete, throw with a labeled message if it errors.
     const step = async (label: string, p: PromiseLike<{ error: any }>) => {
