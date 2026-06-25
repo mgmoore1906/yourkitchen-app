@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { getSessionUserId } from '@/lib/requireUser'
 import { geocodeAddress } from '@/lib/geocode'
 export const dynamic = 'force-dynamic'
 function getSupabase() {
@@ -28,6 +29,10 @@ export async function POST(request: Request) {
     } = await request.json()
 
     if (!user_id)        return NextResponse.json({ error: 'Missing user_id' }, { status: 400 })
+    const sessionUserId = await getSessionUserId()
+    if (!sessionUserId || user_id !== sessionUserId) {
+      return NextResponse.json({ error: 'Not authorized' }, { status: 401 })
+    }
     if (!full_name?.trim()) return NextResponse.json({ error: 'Name is required' }, { status: 400 })
 
     const { error: profileError } = await supabase
