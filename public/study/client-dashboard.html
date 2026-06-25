@@ -15,8 +15,7 @@
     --serif:'Lora',Georgia,serif; --sans:'DM Sans',system-ui,sans-serif;
   }
   *{margin:0;padding:0;box-sizing:border-box}
-  body{font-family:var(--sans);color:var(--forest);background:var(--cream);
-    -webkit-font-smoothing:antialiased;padding:26px 22px 34px}
+  body{font-family:var(--sans);color:var(--forest);background:var(--cream);-webkit-font-smoothing:antialiased;padding:26px 22px 34px}
   .wrap{max-width:960px;margin:0 auto}
   .head{display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:12px;margin-bottom:20px}
   .kicker{font-size:10px;font-weight:600;letter-spacing:.16em;color:var(--sageMid);text-transform:uppercase;margin-bottom:4px}
@@ -54,6 +53,18 @@
   .kl{font-size:11px;color:var(--stone)}
   .st{font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:20px;white-space:nowrap}
   .st.a{color:var(--sage);background:var(--sageLight)} .st.w{color:var(--amber);background:var(--amberLight)}
+  .ctxcard{padding:18px 20px;margin-bottom:16px}
+  .orgsel{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:16px}
+  .orgbtn{font-family:var(--sans);font-size:12px;font-weight:500;color:var(--stone);background:#fff;border:.5px solid var(--border);border-radius:20px;padding:6px 14px;cursor:pointer;transition:all .15s;white-space:nowrap}
+  .orgbtn.active{background:var(--sage);color:#fff;border-color:var(--sage);font-weight:600}
+  .stack{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:14px 0 16px;background:var(--sageLight)}
+  .stack .seg{height:100%}
+  .ctxlegend{display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:11px 20px}
+  .ctxitem{display:flex;align-items:center;gap:8px}
+  .ctxitem .cdot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
+  .ctxitem .cl{font-size:12px;color:var(--forest);flex:1}
+  .ctxitem .cv{font-size:12px;font-weight:600;color:var(--forest)}
+  .ctxitem .cp{font-size:11px;color:var(--stone);margin-left:3px}
   .ctrl{background:#fff;border:.5px solid var(--border);border-radius:16px;padding:18px 22px}
   .ctrlhead{display:flex;align-items:center;gap:8px;margin-bottom:16px}
   .ctrlhead span{font-size:11px;font-weight:700;letter-spacing:.1em;color:var(--sage);text-transform:uppercase}
@@ -65,15 +76,6 @@
   input[type=range]{width:100%;accent-color:var(--sage);cursor:pointer}
   .summary{font-size:11px;color:var(--stone);line-height:1.55;margin-top:8px;padding-top:12px;border-top:.5px solid var(--border)}
   .summary b{color:var(--forest)}
-  .ctxcard{padding:18px 20px;margin-bottom:16px}
-  .stack{display:flex;height:14px;border-radius:7px;overflow:hidden;margin:14px 0 16px;background:var(--sageLight)}
-  .stack .seg{height:100%}
-  .ctxlegend{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:11px 20px}
-  .ctxitem{display:flex;align-items:center;gap:8px}
-  .ctxitem .cdot{width:10px;height:10px;border-radius:3px;flex:0 0 auto}
-  .ctxitem .cl{font-size:12px;color:var(--forest);flex:1}
-  .ctxitem .cv{font-size:12px;font-weight:600;color:var(--forest)}
-  .ctxitem .cp{font-size:11px;color:var(--stone);margin-left:3px}
   text{font-family:var(--sans)}
 </style>
 </head>
@@ -82,10 +84,10 @@
   <div class="head">
     <div>
       <div class="kicker">Care Pool · Admin</div>
-      <h1>Houston Methodist Hospital</h1>
+      <h1 id="orgname">Houston Methodist Hospital</h1>
       <div class="pills">
         <span class="pill">Growth Plan · <span id="p_slots">25</span> slots</span>
-        <span class="pill g">3 slots returning this week</span>
+        <span class="pill g" id="orgtype_pill">Hospice &amp; palliative</span>
       </div>
     </div>
     <div class="acts">
@@ -105,10 +107,7 @@
         <defs><linearGradient id="gd" x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stop-color="#3D6B4F" stop-opacity=".30"/>
           <stop offset="100%" stop-color="#3D6B4F" stop-opacity=".02"/></linearGradient></defs>
-        <g id="yt"></g>
-        <path id="area" fill="url(#gd)"/>
-        <path id="line" fill="none" stroke="#3D6B4F" stroke-width="2.5"/>
-        <g id="xt"></g>
+        <g id="yt"></g><path id="area" fill="url(#gd)"/><path id="line" fill="none" stroke="#3D6B4F" stroke-width="2.5"/><g id="xt"></g>
       </svg>
     </div>
     <div class="card q">
@@ -119,7 +118,8 @@
 
   <div class="card ctxcard">
     <h3>Families by care context</h3>
-    <div class="csub">How your pool&rsquo;s throughput maps to the populations funders report on</div>
+    <div class="csub">Aggregated from the <b>use_case</b> each coordinator selects at kitchen setup. Pick an org type to see how the mix differs.</div>
+    <div class="orgsel" id="orgsel"></div>
     <div class="stack" id="ctxbar"></div>
     <div class="ctxlegend" id="ctxleg"></div>
   </div>
@@ -148,7 +148,7 @@
 </div>
 
 <script>
-  var ICON = {
+  var ICON={
     activity:'<polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/>',
     users:'<path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/>',
     utensils:'<path d="M3 2v7c0 1.1.9 2 2 2h0a2 2 0 0 0 2-2V2"/><path d="M5 2v20"/><path d="M21 15V2a5 5 0 0 0-3 5v6c0 1.1.9 2 2 2h1zm0 0v7"/>',
@@ -158,7 +158,7 @@
     trending:'<polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/>',
     download:'<path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>'
   };
-  function svg(name,color){return '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="'+color+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICON[name]+'</svg>';}
+  function svg(n,c){return '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="'+c+'" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">'+ICON[n]+'</svg>';}
   function fmt(n){return Math.round(n).toLocaleString('en-US');}
   function dollars(n){return '$'+Math.round(n).toLocaleString('en-US');}
   function val(id){return parseFloat(document.getElementById(id).value);}
@@ -169,8 +169,7 @@
       '<div class="tr">'+(delta!=null?'<div class="delta">'+svg('trending','#3D6B4F')+'+'+delta+'%</div>':'')+
       '<button class="info" onclick="toggleTip(this)" aria-label="Explain">i</button></div></div>'+
       '<div class="val">'+value+(unit?'<span class="u">'+unit+'</span>':'')+'</div>'+
-      '<div class="lab">'+label+'</div>'+
-      '<div class="tip">'+tip+'</div></div>';
+      '<div class="lab">'+label+'</div><div class="tip">'+tip+'</div></div>';
   }
   function toggleTip(btn){
     var tip=btn.closest('.kpi').querySelector('.tip');
@@ -181,44 +180,68 @@
 
   var TIP={
     util:'Share of your purchased slots currently active. Idle slots are capacity you are paying for but not using.',
-    families:'Active slots &times; annual turns (365 &divide; activation length). Each slot recycles to a new family when one finishes — the real throughput your pool delivers.',
+    families:'Active slots &times; annual turns (365 &divide; activation length). Each slot recycles to a new family when one finishes.',
     meals:'Families served &times; meals per episode. Total home-delivered meals coordinated across your population.',
     hours:'Meals delivered &times; ~1.5 hrs each (shopping, cooking, cleanup spared). A narrative estimate, not audited time.',
-    ontime:'Share of meals that arrived within the promised window — your service-quality signal.',
+    ontime:'Share of meals that arrived within the promised window &mdash; your service-quality signal.',
     supporters:'Families served &times; average supporters per village. The community volume your pool activated.',
-    spend:'Meals delivered &times; average meal value. Community giving routed through the platform — funded by villages, not your budget.',
+    spend:'Meals delivered &times; average meal value. Community giving routed through the platform &mdash; funded by villages, not your budget.',
     costFamily:'Annual plan price &divide; families served. What you pay to support one family through a full care episode.'
   };
 
-  var KITCHENS=[
-    {who:'New baby',where:'Waller, TX',status:'a',days:41,meals:18},
-    {who:'Chemo recovery',where:'Cibolo, TX',status:'a',days:12,meals:26},
-    {who:'Post-surgery',where:'Katy, TX',status:'a',days:67,meals:9},
-    {who:'Bereavement',where:'Houston, TX',status:'w',days:4,meals:31},
-    {who:'Deployment',where:'Fort Cavazos',status:'a',days:88,meals:14}
+  // Mirrors the exact use_case enum stored on the kitchens table at onboarding
+  var USE_CASES={
+    new_baby:    {label:'New baby / postpartum',          color:'#3D6B4F'},
+    illness:     {label:'Illness, surgery, or treatment', color:'#6B9E7E'},
+    bereavement: {label:'Bereavement / loss',             color:'#1E2620'},
+    deployment:  {label:'Military deployment',            color:'#9AB5A4'},
+    caregiving:  {label:'Aging parent / caregiving',      color:'#C17F47'},
+    celebration: {label:'Celebration / milestone',        color:'#D8B48F'},
+    other:       {label:'Other',                          color:'#B7BEB6'}
+  };
+  // Demo org profiles. In production each mix = select use_case, count(*) ... group by use_case
+  var ORGS=[
+    {name:'Cedar Hollow Hospice',        type:'Hospice & palliative', mix:[['bereavement',0.86],['caregiving',0.14]]},
+    {name:'Bright Futures OB-GYN',       type:'OB-GYN practice',      mix:[['new_baby',0.88],['illness',0.12]]},
+    {name:'Valor Employee Assistance',   type:'Employer EAP',         mix:[['new_baby',0.26],['illness',0.30],['bereavement',0.16],['caregiving',0.14],['deployment',0.06],['other',0.08]]},
+    {name:'Fort Cavazos Family Support', type:'Military family org',  mix:[['deployment',0.70],['new_baby',0.18],['bereavement',0.12]]},
+    {name:'Memorial Hermann System',     type:'Health system',        mix:[['illness',0.55],['new_baby',0.22],['bereavement',0.12],['caregiving',0.11]]}
   ];
+  var currentOrg=0;
+  var LOCS=['Waller, TX','Cibolo, TX','Katy, TX','Houston, TX','Conroe, TX'];
+  var KITCHENS=[];
+  var LAST={};
 
-  var CONTEXTS=[
-    {label:'Postpartum & newborn', pct:0.26, color:'#3D6B4F'},
-    {label:'Illness & treatment', pct:0.22, color:'#6B9E7E'},
-    {label:'Surgery & recovery', pct:0.18, color:'#C17F47'},
-    {label:'Bereavement & loss', pct:0.16, color:'#1E2620'},
-    {label:'Eldercare & aging', pct:0.08, color:'#D8B48F'}
-  ];
-  function renderContexts(families, mealsPer){
-    var bar='', leg='';
-    CONTEXTS.forEach(function(c){
-      var fam=Math.round(families*c.pct);
-      bar+='<div class="seg" style="width:'+(c.pct*100)+'%;background:'+c.color+'" title="'+c.label+'"></div>';
-      leg+='<div class="ctxitem"><span class="cdot" style="background:'+c.color+'"></span>'+
-        '<span class="cl">'+c.label+'</span>'+
-        '<span class="cv">'+fmt(fam)+'</span><span class="cp">'+Math.round(c.pct*100)+'%</span></div>';
+  function buildKitchens(){
+    var mix=ORGS[currentOrg].mix, rows=[], days=[41,12,67,4,88], meals=[18,26,9,31,14], i=0;
+    while(rows.length<5){
+      var key=mix[i%mix.length][0], idx=rows.length;
+      rows.push({who:USE_CASES[key].label, where:LOCS[idx], status:(idx===3?'w':'a'), days:days[idx], meals:meals[idx]});
+      i++;
+    }
+    return rows;
+  }
+  function renderContexts(families){
+    var mix=ORGS[currentOrg].mix, bar='', leg='';
+    mix.forEach(function(m){
+      var uc=USE_CASES[m[0]], pct=m[1], fam=Math.round(families*pct);
+      bar+='<div class="seg" style="width:'+(pct*100)+'%;background:'+uc.color+'" title="'+uc.label+': '+fam+' families"></div>';
+      leg+='<div class="ctxitem"><span class="cdot" style="background:'+uc.color+'"></span>'+
+        '<span class="cl">'+uc.label+'</span><span class="cv">'+fmt(fam)+'</span><span class="cp">'+Math.round(pct*100)+'%</span></div>';
     });
     document.getElementById('ctxbar').innerHTML=bar;
     document.getElementById('ctxleg').innerHTML=leg;
   }
-
-  var LAST={};
+  function buildOrgSelector(){
+    document.getElementById('orgsel').innerHTML=ORGS.map(function(o,i){
+      return '<button class="orgbtn'+(i===currentOrg?' active':'')+'" onclick="selectOrg('+i+')">'+o.type+'</button>';
+    }).join('');
+  }
+  function selectOrg(i){
+    currentOrg=i;
+    document.querySelectorAll('.orgbtn').forEach(function(b,j){b.classList.toggle('active',j===i);});
+    render();
+  }
 
   function drawChart(series){
     var W=560,H=196,padL=38,padR=10,padT=8,padB=22;
@@ -245,6 +268,9 @@
     var slots=val('slots'),util=val('util'),days=val('days'),acv=val('acv'),
         meals=val('meals'),sup=val('sup'),aov=val('aov'),ontime=val('ontime');
     document.getElementById('p_slots').textContent=slots;
+    document.getElementById('orgname').textContent=ORGS[currentOrg].name;
+    document.getElementById('orgtype_pill').textContent=ORGS[currentOrg].type;
+    KITCHENS=buildKitchens();
 
     var activeSlots=Math.round(slots*(util/100));
     var turns=365/days;
@@ -274,7 +300,7 @@
     var ramp=[0.34,0.44,0.54,0.61,0.69,0.77,0.82,0.87,0.91,0.95,0.98,1.0];
     var monthly=mealsYear/12;
     drawChart(ramp.map(function(r){return Math.round(monthly*r);}));
-    renderContexts(families, meals);
+    renderContexts(families);
 
     document.getElementById('kitchens').innerHTML=KITCHENS.map(function(k){
       return '<div class="kline"><div><div class="kw">'+k.who+'</div><div class="kl">'+k.where+' · '+k.meals+' meals</div></div>'+
@@ -293,7 +319,7 @@
    +".page{max-width:760px;margin:0 auto;padding:48px 44px}"
    +".rhead{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #3D6B4F;padding-bottom:16px;margin-bottom:24px}"
    +".wm{font-size:12px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;color:#6B9E7E}"
-   +".rt{font-family:'Lora',serif;font-size:24px;font-weight:600;margin-top:4px}"
+   +".rt{font-family:'Lora',serif;font-size:23px;font-weight:600;margin-top:4px}"
    +".pbtn{font-family:'DM Sans',sans-serif;font-size:12px;font-weight:600;color:#fff;background:#3D6B4F;border:none;border-radius:8px;padding:9px 14px;cursor:pointer}"
    +".org{display:flex;justify-content:space-between;font-size:13px;color:#6B7066;margin-bottom:6px}"
    +".org b{color:#1E2620;font-size:15px}.org .r{text-align:right}"
@@ -308,7 +334,7 @@
    +"@media print{.pbtn{display:none}.page{padding:0}}";
 
   function reportHTML(){
-    var d=LAST;
+    var d=LAST, org=ORGS[currentOrg];
     var date=new Date().toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'});
     var rows=[
       ['Pool utilization', d.util+'%','Share of purchased slots currently active'],
@@ -318,25 +344,25 @@
       ['Supporters mobilized', fmt(d.supporters),'Families &times; average supporters per village'],
       ['Caregiver hours relieved (est.)', fmt(d.hours),'Meals &times; ~1.5 hrs each (estimate)'],
       ['Community meal spend mobilized', dollars(d.spend),'Meals &times; average meal value (community-funded)'],
-      ['Cost per family · full episode', dollars(d.costFamily),'Annual plan price &divide; families served']
+      ['Cost per family &middot; full episode', dollars(d.costFamily),'Annual plan price &divide; families served']
     ];
     var trs=rows.map(function(r){return '<tr><td class="m">'+r[0]+'</td><td class="v">'+r[1]+'</td><td class="d">'+r[2]+'</td></tr>';}).join('');
-    var kits=KITCHENS.map(function(k){return '<tr><td>'+k.who+'</td><td>'+k.where+'</td><td>'+k.meals+'</td><td>'+(k.status==='a'?'Active':'Wrapping up')+' · '+k.days+'d left</td></tr>';}).join('');
-    var ctxTrs=CONTEXTS.map(function(c){var fam=Math.round(d.families*c.pct);return '<tr><td>'+c.label+'</td><td>'+fmt(fam)+'</td><td>'+fmt(fam*d.meals)+'</td><td>'+Math.round(c.pct*100)+'%</td></tr>';}).join('');
-    var summary='Through YourKitchen, Cedar Hollow Hospice activated <b>'+fmt(d.families)+'</b> family villages over the reporting period, coordinating <b>'+fmt(d.mealsYear)+'</b> home-delivered meals — approximately <b>'+dollars(d.spend)+'</b> in community-funded meal support — at a program cost of <b>'+dollars(d.costFamily)+'</b> per family for a full '+d.days+'-day care episode. '+d.ontime+'% of meals arrived on time, and an estimated <b>'+fmt(d.hours)+'</b> caregiver hours were relieved.';
-    return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>YourKitchen — Impact & Grant Report</title>'
+    var ctxTrs=org.mix.map(function(m){var uc=USE_CASES[m[0]],fam=Math.round(d.families*m[1]);return '<tr><td>'+uc.label+'</td><td>'+fmt(fam)+'</td><td>'+fmt(fam*d.meals)+'</td><td>'+Math.round(m[1]*100)+'%</td></tr>';}).join('');
+    var kits=KITCHENS.map(function(k){return '<tr><td>'+k.who+'</td><td>'+k.where+'</td><td>'+k.meals+'</td><td>'+(k.status==='a'?'Active':'Wrapping up')+' &middot; '+k.days+'d left</td></tr>';}).join('');
+    var summary='Through YourKitchen, '+org.name+' activated <b>'+fmt(d.families)+'</b> family villages over the reporting period, coordinating <b>'+fmt(d.mealsYear)+'</b> home-delivered meals &mdash; approximately <b>'+dollars(d.spend)+'</b> in community-funded meal support &mdash; at a program cost of <b>'+dollars(d.costFamily)+'</b> per family for a full '+d.days+'-day care episode. '+d.ontime+'% of meals arrived on time, and an estimated <b>'+fmt(d.hours)+'</b> caregiver hours were relieved.';
+    return '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><title>'+org.name+' &mdash; Grant Report</title>'
       +'<link href="https://fonts.googleapis.com/css2?family=Lora:wght@400;600&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">'
       +'<style>'+REPORT_CSS+'</style></head><body><div class="page">'
-      +'<div class="rhead"><div><div class="wm">YourKitchen</div><div class="rt">'+ORGS[currentOrg].name+' — Impact &amp; Grant Report</div></div>'
+      +'<div class="rhead"><div><div class="wm">YourKitchen</div><div class="rt">'+org.name+' &mdash; Impact &amp; Grant Report</div></div>'
       +'<button class="pbtn" onclick="window.print()">Save as PDF</button></div>'
-      +'<div class="org"><div><b>Cedar Hollow Hospice</b><br>Growth Plan · '+d.slots+' slots</div>'
+      +'<div class="org"><div><b>'+org.name+'</b> &mdash; '+org.type+'<br>Growth Plan &middot; '+d.slots+' slots</div>'
       +'<div class="r">Reporting period: trailing 12 months<br>Generated '+date+'</div></div>'
       +'<h2>Executive summary</h2><p class="sum">'+summary+'</p>'
       +'<h2>Outcome metrics</h2><table class="mt"><thead><tr><th>Metric</th><th>Value</th><th>What it measures</th></tr></thead><tbody>'+trs+'</tbody></table>'
       +'<h2>Families by care context</h2><table class="kt"><thead><tr><th>Care context</th><th>Families</th><th>Meals</th><th>% of pool</th></tr></thead><tbody>'+ctxTrs+'</tbody></table>'
-      +'<h2>Active engagements — snapshot</h2><table class="kt"><thead><tr><th>Care context</th><th>Location</th><th>Meals</th><th>Status</th></tr></thead><tbody>'+kits+'</tbody></table>'
-      +'<div class="meth"><b>Methodology &amp; notes.</b> Figures reflect an annualized run-rate at current pool utilization ('+d.util+'%). Families served = active slots &times; (365 &divide; '+d.days+'-day activation length). Caregiver hours and community spend are good-faith estimates for narrative use, not audited totals. Meal costs are funded directly by recipients&rsquo; own communities; YourKitchen provides the coordination, recipient confirmation, and delivery platform. Recipient identities are withheld for privacy.</div>'
-      +'<div class="rfoot">yourkitchen.app · Confidential — prepared for Cedar Hollow Hospice</div>'
+      +'<h2>Active engagements &mdash; snapshot</h2><table class="kt"><thead><tr><th>Care context</th><th>Location</th><th>Meals</th><th>Status</th></tr></thead><tbody>'+kits+'</tbody></table>'
+      +'<div class="meth"><b>Methodology &amp; notes.</b> Figures reflect an annualized run-rate at current pool utilization ('+d.util+'%). Families served = active slots &times; (365 &divide; '+d.days+'-day activation length), grouped by the care context selected at kitchen setup. Caregiver hours and community spend are good-faith estimates for narrative use, not audited totals. Meal costs are funded directly by recipients&rsquo; own communities; YourKitchen provides the coordination, recipient confirmation, and delivery platform. Recipient identities are withheld for privacy.</div>'
+      +'<div class="rfoot">yourkitchen.app &middot; Confidential &mdash; prepared for '+org.name+'</div>'
       +'</div></body></html>';
   }
 
@@ -348,7 +374,6 @@
     document.body.appendChild(a); a.click(); a.remove();
     setTimeout(function(){URL.revokeObjectURL(url);},2000);
   }
-
   function doExport(){
     triggerDownload(reportHTML(),'YourKitchen-Grant-Report.html','text/html');
     var b=document.getElementById('exp');
@@ -361,10 +386,9 @@
       b.classList.remove('done');
     },2000);
   }
-
   function downloadCSV(){
-    var d=LAST;
-    var L=[['YourKitchen — Care Pool report'],['Organization',ORGS[currentOrg].name+' — '+ORGS[currentOrg].type],['Plan','Growth · '+d.slots+' slots'],[''],['Metric','Value']];
+    var d=LAST, org=ORGS[currentOrg];
+    var L=[['YourKitchen Care Pool report'],['Organization',org.name],['Type',org.type],['Plan','Growth '+d.slots+' slots'],[''],['Metric','Value']];
     L.push(['Pool utilization',d.util+'%']);
     L.push(['Families served (annualized)',d.families]);
     L.push(['Meals delivered',d.mealsYear]);
@@ -376,7 +400,7 @@
     L.push(['Cost per meal',d.costMeal.toFixed(2)]);
     L.push(['']);
     L.push(['Families by care context','Families','Meals','% of pool']);
-    CONTEXTS.forEach(function(c){var fam=Math.round(d.families*c.pct);L.push([c.label,fam,fam*d.meals,Math.round(c.pct*100)+'%']);});
+    org.mix.forEach(function(m){var uc=USE_CASES[m[0]],fam=Math.round(d.families*m[1]);L.push([uc.label,fam,fam*d.meals,Math.round(m[1]*100)+'%']);});
     L.push(['']);
     L.push(['Active engagements','Location','Meals','Status']);
     KITCHENS.forEach(function(k){L.push([k.who,k.where,k.meals,(k.status==='a'?'Active':'Wrapping up')+' '+k.days+'d']);});
@@ -387,6 +411,7 @@
   ['slots','util','days','acv','meals','sup','aov','ontime'].forEach(function(id){
     document.getElementById(id).addEventListener('input',render);
   });
+  buildOrgSelector();
   document.getElementById('exp_ic').innerHTML=svg('download','#fff');
   render();
 </script>
