@@ -7,198 +7,387 @@
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: #FAFAF5; font-family: 'DM Sans', sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; min-height: 100vh; padding: 40px 24px; }
-  h1 { font-size: 13px; font-weight: 500; letter-spacing: 0.04em; color: #6B7066; text-transform: uppercase; margin-bottom: 24px; }
-  .card { background: #fff; border: 0.5px solid #DDE8E0; border-radius: 16px; padding: 32px; max-width: 900px; width: 100%; box-shadow: 0 4px 24px rgba(30,38,32,0.08); }
-  svg text { font-family: 'DM Sans', sans-serif; }
-  .legend { display: flex; gap: 20px; flex-wrap: wrap; margin-top: 20px; justify-content: center; }
-  .leg { display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6B7066; }
-  .dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+  body {
+    background: #FAFAF5;
+    font-family: 'DM Sans', sans-serif;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 48px 24px 64px;
+    min-height: 100vh;
+  }
+  .page-title {
+    font-size: 11px;
+    font-weight: 500;
+    letter-spacing: 0.07em;
+    color: #9B9991;
+    text-transform: uppercase;
+    margin-bottom: 4px;
+  }
+  .page-updated {
+    font-size: 11px;
+    color: #B4B2A9;
+    margin-bottom: 36px;
+  }
+
+  /* ── flow container ── */
+  .flow {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    width: 100%;
+    max-width: 520px;
+    gap: 0;
+  }
+
+  /* ── phase label ── */
+  .phase-label {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 24px 0 12px;
+  }
+  .phase-label:first-child { margin-top: 0; }
+  .phase-dot {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .phase-text {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.09em;
+    text-transform: uppercase;
+    color: #9B9991;
+  }
+  .phase-line {
+    flex: 1;
+    height: 0.5px;
+    background: #DDE8E0;
+  }
+
+  /* ── step card ── */
+  .step {
+    width: 100%;
+    border-radius: 10px;
+    border: 0.5px solid #DDE8E0;
+    background: #fff;
+    padding: 12px 16px;
+    position: relative;
+  }
+  .step-role {
+    font-size: 9px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    margin-bottom: 3px;
+  }
+  .step-title {
+    font-size: 14px;
+    font-weight: 500;
+    color: #1E2620;
+    margin-bottom: 2px;
+  }
+  .step-sub {
+    font-size: 11px;
+    color: #6B7066;
+    font-weight: 300;
+    line-height: 1.55;
+  }
+
+  /* ── connector ── */
+  .connector {
+    width: 1px;
+    height: 20px;
+    background: #C8CFC9;
+    position: relative;
+    flex-shrink: 0;
+  }
+  .connector::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 4px solid transparent;
+    border-right: 4px solid transparent;
+    border-top: 5px solid #C8CFC9;
+  }
+  .connector.dashed {
+    background: repeating-linear-gradient(
+      to bottom,
+      #C8CFC9 0px,
+      #C8CFC9 4px,
+      transparent 4px,
+      transparent 8px
+    );
+  }
+  .connector.dashed::after { border-top-color: #C8CFC9; }
+
+  /* ── split (two side-by-side steps) ── */
+  .split {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    position: relative;
+  }
+  .split-label {
+    position: absolute;
+    top: -9px;
+    left: 50%;
+    transform: translateX(-50%);
+    font-size: 9px;
+    font-weight: 600;
+    color: #9B9991;
+    background: #FAFAF5;
+    padding: 0 6px;
+    white-space: nowrap;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  /* ── outcome ── */
+  .outcome {
+    width: 100%;
+    border-radius: 10px;
+    border: 0.5px solid #A8CBBA;
+    background: #EAF2ED;
+    padding: 14px 16px;
+    text-align: center;
+  }
+  .outcome-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #1E2620;
+    margin-bottom: 2px;
+  }
+  .outcome-sub {
+    font-size: 11px;
+    color: #3D6B4F;
+    font-weight: 300;
+  }
+
+  /* ── color variants ── */
+  .c-recipient  { border-color: #A8CBBA; background: #EAF2ED; }
+  .c-recipient  .step-role { color: #2D5240; }
+
+  .c-coord      { border-color: #A8C4E8; background: #E6F1FB; }
+  .c-coord      .step-role { color: #0C447C; }
+
+  .c-stripe     { border-color: #E0C88A; background: #FAEEDA; }
+  .c-stripe     .step-role { color: #633806; }
+
+  .c-ops        { border-color: #E0A898; background: #FAECE7; }
+  .c-ops        .step-role { color: #711B13; }
+
+  .c-delivery   { border-color: #B8B0E8; background: #EEEDFE; }
+  .c-delivery   .step-role { color: #3C3489; }
+
+  .c-db         { border-color: #C8C6BC; background: #F1EFE8; }
+  .c-db         .step-role { color: #3C3A34; }
+
+  .c-ext        { border-color: #B8B0E8; background: #F4F3FD; }
+  .c-ext        .step-role { color: #534AB7; }
+
+  /* ── legend ── */
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 16px;
+    margin-top: 36px;
+    padding: 14px 18px;
+    border: 0.5px solid #DDE8E0;
+    border-radius: 10px;
+    background: #fff;
+    max-width: 520px;
+    width: 100%;
+    justify-content: center;
+  }
+  .leg {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 11px;
+    color: #6B7066;
+  }
+  .leg-dot {
+    width: 9px; height: 9px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .footer-note {
+    margin-top: 20px;
+    font-size: 10px;
+    color: #B4B2A9;
+    letter-spacing: 0.03em;
+  }
+
   @media print {
-    body { background: white; padding: 0; }
-    .card { box-shadow: none; border: none; padding: 16px; }
+    body { background: white; padding: 16px; }
   }
 </style>
 </head>
 <body>
-<h1>YourKitchen — End-to-end system architecture</h1>
-<div class="card">
-<svg width="100%" viewBox="0 0 840 600" xmlns="http://www.w3.org/2000/svg">
-<defs>
-<marker id="arrow" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto-start-reverse">
-<path d="M2 1L8 5L2 9" fill="none" stroke="context-stroke" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-</marker>
-</defs>
 
-<!-- row labels -->
-<text x="12" y="78" font-size="10" fill="#6B7066" font-weight="500" font-family="DM Sans,sans-serif" text-anchor="middle" transform="rotate(-90,12,100)">Setup</text>
-<text x="12" y="166" font-size="10" fill="#6B7066" font-weight="500" font-family="DM Sans,sans-serif" text-anchor="middle" transform="rotate(-90,12,188)">Coordinator</text>
-<text x="12" y="255" font-size="10" fill="#6B7066" font-weight="500" font-family="DM Sans,sans-serif" text-anchor="middle" transform="rotate(-90,12,277)">Confirmation</text>
-<text x="12" y="345" font-size="10" fill="#6B7066" font-weight="500" font-family="DM Sans,sans-serif" text-anchor="middle" transform="rotate(-90,12,367)">Food order</text>
-<text x="12" y="435" font-size="10" fill="#6B7066" font-weight="500" font-family="DM Sans,sans-serif" text-anchor="middle" transform="rotate(-90,12,457)">Dispatch</text>
+<p class="page-title">YourKitchen — End-to-end system architecture</p>
+<p class="page-updated">Updated June 2026</p>
 
-<!-- ── ROW 1: SETUP ── -->
-<g>
-  <rect x="30" y="54" width="140" height="48" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="100" y="73" font-size="13" font-weight="500" fill="#085041" text-anchor="middle" font-family="DM Sans,sans-serif">Recipient</text>
-  <text x="100" y="90" font-size="11" fill="#0F6E56" text-anchor="middle" font-family="DM Sans,sans-serif">Account · prefs · calendar</text>
-</g>
-<line x1="170" y1="78" x2="200" y2="78" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="200" y="54" width="140" height="48" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="270" y="73" font-size="13" font-weight="500" fill="#3C3489" text-anchor="middle" font-family="DM Sans,sans-serif">DataForSEO</text>
-  <text x="270" y="90" font-size="11" fill="#534AB7" text-anchor="middle" font-family="DM Sans,sans-serif">Nationwide menus · prices</text>
-</g>
-<line x1="340" y1="78" x2="370" y2="78" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="370" y="54" width="140" height="48" rx="8" fill="#F1EFE8" stroke="#5F5E5A" stroke-width="0.5"/>
-  <text x="440" y="73" font-size="13" font-weight="500" fill="#2C2C2A" text-anchor="middle" font-family="DM Sans,sans-serif">Supabase</text>
-  <text x="440" y="90" font-size="11" fill="#5F5E5A" text-anchor="middle" font-family="DM Sans,sans-serif">Kitchen · calendar · RLS</text>
-</g>
-<line x1="510" y1="78" x2="540" y2="78" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="540" y="54" width="140" height="48" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="610" y="73" font-size="13" font-weight="500" fill="#085041" text-anchor="middle" font-family="DM Sans,sans-serif">Kitchen link live</text>
-  <text x="610" y="90" font-size="11" fill="#0F6E56" text-anchor="middle" font-family="DM Sans,sans-serif">yourkitchen.app/k/[slug]</text>
-</g>
-<line x1="610" y1="102" x2="610" y2="122" stroke="#888780" stroke-width="0.8" stroke-dasharray="3 3" fill="none"/>
-<line x1="610" y1="122" x2="270" y2="122" stroke="#888780" stroke-width="0.8" stroke-dasharray="3 3" fill="none"/>
-<line x1="270" y1="122" x2="270" y2="132" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
+<div class="flow">
 
-<!-- ── ROW 2: COORDINATOR ── -->
-<g>
-  <rect x="30" y="132" width="140" height="48" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
-  <text x="100" y="151" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="DM Sans,sans-serif">Opens link</text>
-  <text x="100" y="168" font-size="11" fill="#185FA5" text-anchor="middle" font-family="DM Sans,sans-serif">No account needed</text>
-</g>
-<line x1="170" y1="156" x2="200" y2="156" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="200" y="132" width="140" height="48" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
-  <text x="270" y="151" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="DM Sans,sans-serif">Picks date + meal</text>
-  <text x="270" y="168" font-size="11" fill="#185FA5" text-anchor="middle" font-family="DM Sans,sans-serif">Menu via DataForSEO</text>
-</g>
-<line x1="340" y1="156" x2="370" y2="156" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="370" y="132" width="140" height="48" rx="8" fill="#E6F1FB" stroke="#185FA5" stroke-width="0.5"/>
-  <text x="440" y="151" font-size="13" font-weight="500" fill="#0C447C" text-anchor="middle" font-family="DM Sans,sans-serif">Selects tip</text>
-  <text x="440" y="168" font-size="11" fill="#185FA5" text-anchor="middle" font-family="DM Sans,sans-serif">Delivery preference set</text>
-</g>
-<line x1="510" y1="156" x2="540" y2="156" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="540" y="132" width="140" height="48" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <text x="610" y="151" font-size="13" font-weight="500" fill="#633806" text-anchor="middle" font-family="DM Sans,sans-serif">Stripe checkout</text>
-  <text x="610" y="168" font-size="11" fill="#854F0B" text-anchor="middle" font-family="DM Sans,sans-serif">Card held · not charged</text>
-</g>
-<line x1="100" y1="180" x2="100" y2="210" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<line x1="610" y1="180" x2="610" y2="210" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
+  <!-- ══ SETUP ══ -->
+  <div class="phase-label">
+    <div class="phase-dot" style="background:#3D6B4F"></div>
+    <span class="phase-text">Setup</span>
+    <div class="phase-line"></div>
+  </div>
 
-<!-- ── ROW 3: CONFIRMATION ── -->
-<g>
-  <rect x="30" y="210" width="140" height="48" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="100" y="229" font-size="13" font-weight="500" fill="#085041" text-anchor="middle" font-family="DM Sans,sans-serif">Twilio SMS</text>
-  <text x="100" y="246" font-size="11" fill="#0F6E56" text-anchor="middle" font-family="DM Sans,sans-serif">Morning-of notification</text>
-</g>
-<line x1="170" y1="234" x2="200" y2="234" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="200" y="210" width="140" height="48" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="270" y="229" font-size="13" font-weight="500" fill="#085041" text-anchor="middle" font-family="DM Sans,sans-serif">Recipient replies</text>
-  <text x="270" y="246" font-size="11" fill="#0F6E56" text-anchor="middle" font-family="DM Sans,sans-serif">Y confirm · N decline</text>
-</g>
-<line x1="340" y1="234" x2="370" y2="234" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="370" y="210" width="140" height="48" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <text x="440" y="229" font-size="13" font-weight="500" fill="#633806" text-anchor="middle" font-family="DM Sans,sans-serif">Stripe captures</text>
-  <text x="440" y="246" font-size="11" fill="#854F0B" text-anchor="middle" font-family="DM Sans,sans-serif">Coordinator charged</text>
-</g>
-<line x1="510" y1="234" x2="540" y2="234" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="540" y="210" width="140" height="48" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <text x="610" y="229" font-size="13" font-weight="500" fill="#711B13" text-anchor="middle" font-family="DM Sans,sans-serif">Alert → Marques</text>
-  <text x="610" y="246" font-size="11" fill="#993C1D" text-anchor="middle" font-family="DM Sans,sans-serif">Order confirmed</text>
-</g>
-<line x1="100" y1="258" x2="100" y2="288" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<line x1="610" y1="258" x2="610" y2="288" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
+  <div class="step c-recipient">
+    <p class="step-role">Recipient</p>
+    <p class="step-title">Creates their Kitchen</p>
+    <p class="step-sub">Account · delivery address · calendar dates · dietary prefs</p>
+  </div>
+  <div class="connector"></div>
 
-<!-- ── ROW 4: FOOD ORDER ── -->
-<g>
-  <rect x="30" y="288" width="140" height="48" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <text x="100" y="307" font-size="13" font-weight="500" fill="#711B13" text-anchor="middle" font-family="DM Sans,sans-serif">Zapier parses</text>
-  <text x="100" y="324" font-size="11" fill="#993C1D" text-anchor="middle" font-family="DM Sans,sans-serif">Items · modifiers · address</text>
-</g>
-<line x1="170" y1="312" x2="200" y2="312" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="200" y="288" width="140" height="48" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <text x="270" y="307" font-size="13" font-weight="500" fill="#711B13" text-anchor="middle" font-family="DM Sans,sans-serif">Synthflow fills</text>
-  <text x="270" y="324" font-size="11" fill="#993C1D" text-anchor="middle" font-family="DM Sans,sans-serif">Restaurant checkout form</text>
-</g>
-<line x1="340" y1="312" x2="370" y2="312" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="370" y="288" width="140" height="48" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <text x="440" y="307" font-size="13" font-weight="500" fill="#711B13" text-anchor="middle" font-family="DM Sans,sans-serif">Marques clicks</text>
-  <text x="440" y="324" font-size="11" fill="#993C1D" text-anchor="middle" font-family="DM Sans,sans-serif">5-sec verify → Submit</text>
-</g>
-<line x1="510" y1="312" x2="540" y2="312" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="540" y="288" width="140" height="48" rx="8" fill="#FAEEDA" stroke="#854F0B" stroke-width="0.5"/>
-  <text x="610" y="307" font-size="13" font-weight="500" fill="#633806" text-anchor="middle" font-family="DM Sans,sans-serif">Stripe Issuing</text>
-  <text x="610" y="324" font-size="11" fill="#854F0B" text-anchor="middle" font-family="DM Sans,sans-serif">Virtual ops card · auto-log</text>
-</g>
-<line x1="100" y1="336" x2="100" y2="366" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<line x1="610" y1="336" x2="610" y2="366" stroke="#888780" stroke-width="1" stroke-dasharray="3 3" fill="none"/>
+  <div class="step c-ext">
+    <p class="step-role">Google Places</p>
+    <p class="step-title">Adds restaurants</p>
+    <p class="step-sub">Search · verify food type · save menu items + prices manually</p>
+  </div>
+  <div class="connector"></div>
 
-<!-- ── ROW 5: DISPATCH ── -->
-<g>
-  <rect x="30" y="366" width="140" height="48" rx="8" fill="#FAECE7" stroke="#993C1D" stroke-width="0.5"/>
-  <text x="100" y="385" font-size="13" font-weight="500" fill="#711B13" text-anchor="middle" font-family="DM Sans,sans-serif">Tap Dispatch</text>
-  <text x="100" y="402" font-size="11" fill="#993C1D" text-anchor="middle" font-family="DM Sans,sans-serif">Admin panel → trigger</text>
-</g>
-<line x1="170" y1="390" x2="200" y2="390" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="200" y="366" width="140" height="48" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="270" y="385" font-size="13" font-weight="500" fill="#3C3489" text-anchor="middle" font-family="DM Sans,sans-serif">Shipday API</text>
-  <text x="270" y="402" font-size="11" fill="#534AB7" text-anchor="middle" font-family="DM Sans,sans-serif">Route · track · webhook</text>
-</g>
-<line x1="340" y1="390" x2="370" y2="390" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="370" y="366" width="140" height="48" rx="8" fill="#EEEDFE" stroke="#534AB7" stroke-width="0.5"/>
-  <text x="440" y="385" font-size="13" font-weight="500" fill="#3C3489" text-anchor="middle" font-family="DM Sans,sans-serif">DoorDash / Uber</text>
-  <text x="440" y="402" font-size="11" fill="#534AB7" text-anchor="middle" font-family="DM Sans,sans-serif">Courier assigned · pickup</text>
-</g>
-<line x1="510" y1="390" x2="540" y2="390" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
-<g>
-  <rect x="540" y="366" width="140" height="48" rx="8" fill="#E1F5EE" stroke="#0F6E56" stroke-width="0.5"/>
-  <text x="610" y="385" font-size="13" font-weight="500" fill="#085041" text-anchor="middle" font-family="DM Sans,sans-serif">SMS tracking</text>
-  <text x="610" y="402" font-size="11" fill="#0F6E56" text-anchor="middle" font-family="DM Sans,sans-serif">Recipient + coordinator</text>
-</g>
+  <div class="step c-db">
+    <p class="step-role">Supabase</p>
+    <p class="step-title">Kitchen stored + kitchen link live</p>
+    <p class="step-sub">yourkitchen.app/k/[slug] · RLS-protected · calendar populated</p>
+  </div>
 
-<!-- outcome -->
-<path d="M100 414 L100 458 L300 458" stroke="#888780" stroke-width="1" fill="none"/>
-<path d="M610 414 L610 458 L540 458" stroke="#888780" stroke-width="1" fill="none" marker-end="url(#arrow)"/>
-<g>
-  <rect x="300" y="444" width="240" height="28" rx="8" fill="#EAF3DE" stroke="#3B6D11" stroke-width="0.5"/>
-  <text x="420" y="458" font-size="13" font-weight="500" fill="#173404" text-anchor="middle" dominant-baseline="central" font-family="DM Sans,sans-serif">Dinner arrives · GMV recorded · 🧡</text>
-</g>
-<line x1="300" y1="458" x2="300" y2="458" stroke="#888780" stroke-width="1" marker-end="url(#arrow)" fill="none"/>
+  <!-- ══ COORDINATOR ══ -->
+  <div class="phase-label">
+    <div class="phase-dot" style="background:#4A8FA8"></div>
+    <span class="phase-text">Coordinator</span>
+    <div class="phase-line"></div>
+  </div>
+
+  <div class="step c-coord">
+    <p class="step-role">Coordinator</p>
+    <p class="step-title">Opens kitchen link — no account needed</p>
+    <p class="step-sub">Sees open calendar dates · picks a date to claim</p>
+  </div>
+  <div class="connector"></div>
+
+  <div class="step c-coord">
+    <p class="step-role">Coordinator</p>
+    <p class="step-title">Selects meal + tip + delivery</p>
+    <p class="step-sub">Chooses from recipient's saved menu · pickup option available</p>
+  </div>
+  <div class="connector"></div>
+
+  <div class="step c-stripe">
+    <p class="step-role">Stripe</p>
+    <p class="step-title">Card held — not charged yet</p>
+    <p class="step-sub">Payment method saved at claim · charge only fires on Y</p>
+  </div>
+
+  <!-- ══ CONFIRMATION ══ -->
+  <div class="phase-label">
+    <div class="phase-dot" style="background:#C17F47"></div>
+    <span class="phase-text">Confirmation</span>
+    <div class="phase-line"></div>
+  </div>
+
+  <div class="step c-recipient">
+    <p class="step-role">Twilio SMS</p>
+    <p class="step-title">Morning-of notification sent to recipient</p>
+    <p class="step-sub">Meal details · restaurant · delivery window · reply Y or N</p>
+  </div>
+  <div class="connector"></div>
+
+  <div class="split" style="position:relative;">
+    <div class="step c-recipient">
+      <p class="step-role">Recipient → Y</p>
+      <p class="step-title">Confirms</p>
+      <p class="step-sub">Stripe captures · coordinator charged · 5% + $0.99 fee retained</p>
+    </div>
+    <div class="step" style="border-color:#DDE8E0; background:#FAFAF5;">
+      <p class="step-role" style="color:#9B9991;">Recipient → N</p>
+      <p class="step-title" style="color:#6B7066;">Declines</p>
+      <p class="step-sub">No charge · date reopens · coordinator notified</p>
+    </div>
+  </div>
+
+  <!-- ══ FOOD ORDER ══ -->
+  <div class="phase-label">
+    <div class="phase-dot" style="background:#993C1D"></div>
+    <span class="phase-text">Food Order</span>
+    <div class="phase-line"></div>
+  </div>
+
+  <div class="step c-ops">
+    <p class="step-role">Marques — Ops</p>
+    <p class="step-title">Alert received · places food order</p>
+    <p class="step-sub">Direct at restaurant or via delivery app · verifies items + address</p>
+  </div>
+  <div class="connector"></div>
+
+  <div class="step c-ops">
+    <p class="step-role">Admin Panel</p>
+    <p class="step-title">Taps Dispatch</p>
+    <p class="step-sub">Dispatch tab → manual gate · triggers courier pickup</p>
+  </div>
+
+  <!-- ══ DISPATCH ══ -->
+  <div class="phase-label">
+    <div class="phase-dot" style="background:#534AB7"></div>
+    <span class="phase-text">Dispatch</span>
+    <div class="phase-line"></div>
+  </div>
+
+  <div class="split">
+    <div class="step c-delivery">
+      <p class="step-role">Uber Eats — Primary</p>
+      <p class="step-title">Courier assigned</p>
+      <p class="step-sub">Pickup · en route · delivered</p>
+    </div>
+    <div class="step c-delivery" style="border-style:dashed;">
+      <p class="step-role">DoorDash — Secondary</p>
+      <p class="step-title">Fallback courier</p>
+      <p class="step-sub">Used when Uber unavailable</p>
+    </div>
+  </div>
+  <div class="connector"></div>
+
+  <div class="step c-recipient">
+    <p class="step-role">Twilio SMS</p>
+    <p class="step-title">Live delivery updates</p>
+    <p class="step-sub">On the way · Delivered — sent to recipient and coordinator</p>
+  </div>
+
+  <!-- ══ OUTCOME ══ -->
+  <div class="connector" style="background:#3D6B4F; opacity:0.4;"></div>
+  <div class="outcome">
+    <p class="outcome-title">Dinner arrives 🧡</p>
+    <p class="outcome-sub">GMV recorded in Supabase · platform fee retained · order complete</p>
+  </div>
+
+</div>
 
 <!-- legend -->
-<rect x="30" y="490" width="680" height="22" rx="6" fill="none" stroke="#DDE8E0" stroke-width="0.5"/>
-<circle cx="52" cy="501" r="5" fill="#1D9E75"/>
-<text x="61" y="505" font-size="11" fill="#6B7066" font-family="DM Sans,sans-serif">Recipient</text>
-<circle cx="128" cy="501" r="5" fill="#378ADD"/>
-<text x="137" y="505" font-size="11" fill="#6B7066" font-family="DM Sans,sans-serif">Coordinator</text>
-<circle cx="220" cy="501" r="5" fill="#D85A30"/>
-<text x="229" y="505" font-size="11" fill="#6B7066" font-family="DM Sans,sans-serif">Marques ops</text>
-<circle cx="320" cy="501" r="5" fill="#BA7517"/>
-<text x="329" y="505" font-size="11" fill="#6B7066" font-family="DM Sans,sans-serif">Payments</text>
-<circle cx="398" cy="501" r="5" fill="#7F77DD"/>
-<text x="407" y="505" font-size="11" fill="#6B7066" font-family="DM Sans,sans-serif">Delivery</text>
-<circle cx="460" cy="501" r="5" fill="#888780"/>
-<text x="469" y="505" font-size="11" fill="#6B7066" font-family="DM Sans,sans-serif">Database</text>
-<circle cx="524" cy="501" r="5" fill="#639922"/>
-<text x="533" y="505" font-size="11" fill="#6B7066" font-family="DM Sans,sans-serif">Outcome</text>
-
-<text x="420" y="530" font-size="10" fill="#B4B2A9" text-anchor="middle" font-family="DM Sans,sans-serif">YourKitchen LLC · yourkitchen.app · "Your kitchen, covered."</text>
-</svg>
+<div class="legend">
+  <div class="leg"><div class="leg-dot" style="background:#1D9E75"></div> Recipient</div>
+  <div class="leg"><div class="leg-dot" style="background:#378ADD"></div> Coordinator</div>
+  <div class="leg"><div class="leg-dot" style="background:#D85A30"></div> Marques ops</div>
+  <div class="leg"><div class="leg-dot" style="background:#BA7517"></div> Payments (Stripe)</div>
+  <div class="leg"><div class="leg-dot" style="background:#7F77DD"></div> Delivery</div>
+  <div class="leg"><div class="leg-dot" style="background:#888780"></div> Database (Supabase)</div>
+  <div class="leg"><div class="leg-dot" style="background:#534AB7; opacity:0.5;"></div> External API</div>
 </div>
+
+<p class="footer-note">YourKitchen LLC · yourkitchen.app · "Your kitchen, covered." · June 2026</p>
+
 </body>
 </html>
