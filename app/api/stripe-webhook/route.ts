@@ -123,6 +123,27 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 400 })
   }
 
+  // ── customer.subscription.deleted — a Care+/Annual cancellation ─────────────
+  // When a subscriber cancels (via the billing portal), Stripe deletes the
+  // subscription (immediately or at period end, per portal config). Map the
+  // customer back to the profile and drop them to free. Guard on tier so a
+  // one-time 'founding' member is never clobbered.
+  if (event.type === 'customer.subscription.deleted') {
+    const sub = event.data.object as Stripe.Subscription
+    const customerId = sub.customer as string
+    if (customerId) {
+      const { data: prof } = await supabase
+        .from('profiles')
+        .select('id, tier')
+        .eq('stripe_customer_id', customerId)
+        .single()
+      if (prof && (prof.tier === 'care' || prof.tier === 'annual')) {
+        await supabase.from('profiles').update({ tier: 'free' }).eq('id', prof.id)
+      }
+    }
+    return NextResponse.json({ received: true })
+  }
+
   // ── checkout.session.completed ─────────────────────────────────────────────
   if (event.type === 'checkout.session.completed') {
     const session         = event.data.object as Stripe.Checkout.Session
