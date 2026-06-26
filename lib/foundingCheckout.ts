@@ -17,13 +17,13 @@ export const FOUNDING_AMOUNTS: Record<FoundingCircle, number> = {
 
 // Hosted card Payment Links — the "prefer to pay by card?" fallback and the
 // shareable outreach links. Each link is a fixed amount in Stripe; the webhook
-// provisions the matching circle by amount (metadata.tier is only a backup), so
-// a missing/mis-set link tag can't misprovision.
+// provisions the matching circle by AMOUNT (metadata.tier is only a backup), so
+// the methods a link happens to show never affect which tier gets granted.
 export const FOUNDING_CARD_LINKS: Record<FoundingCircle, string> = {
-  friend:  'https://buy.stripe.com/9B6fZ9cvi1r76pL5w5abK02',
-  patron:  'https://buy.stripe.com/9B6fZ97aY5Hn7tPe2BabK03',
-  builder: 'https://buy.stripe.com/14AcMXeDq1r7bK57EdabK04',
-  partner: 'https://buy.stripe.com/28E00b52Q8TzcO9f6FabK06',
+  friend:  'https://buy.stripe.com/4gMcMXeDq5Hn6pL6A9abK09',
+  patron:  'https://buy.stripe.com/5kQ8wH8f27Pv8xT1fPabK08',
+  builder: 'https://buy.stripe.com/eVq5kv52Q5Hn6pL5w5abK0a',
+  partner: 'https://buy.stripe.com/bJe00bdzmd9P3dzaQpabK0b',
 }
 
 // Back-compat: existing callers import FOUNDING_CARD_LINK (the $200 Friend link).
