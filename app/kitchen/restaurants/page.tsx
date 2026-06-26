@@ -13,8 +13,8 @@ border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47',
 amberLight: '#FBF0E4', red: '#B94040', redLight: '#FDE8E8',
 }
 
-const TIER_LIMITS: Record<string, number> = { free: 3, trial: 10, care: 10, annual: 10, founding: 999 }
-const MEAL_LIMITS: Record<string, number> = { free: 4, trial: 12, care: 12, annual: 12, founding: 999 }
+const TIER_LIMITS: Record<string, number> = { free: 8, trial: 999, care: 999, annual: 999, founding: 999 } // Care = 8 restaurants; Care+/trial/founding = unlimited (999 = ∞)
+const MEAL_LIMITS: Record<string, number> = { free: 8, trial: 999, care: 999, annual: 999, founding: 999 } // Care = 8 meals each; Care+/trial/founding = unlimited
 const TIER_LABELS: Record<string, string> = { free: 'Free', trial: 'Free Trial', care: 'Care+', annual: 'Early Adopter', founding: 'Founding Member' }
 
 const TAG_ROLES = ['👩','👨','🧑','👧','👦','🧒','👶','👵','👴']
@@ -136,7 +136,7 @@ setRestaurants(mapped)
 return mapped
 }
 
-const limit: number = 5 // pilot cap on restaurants (overrides TIER_LIMITS during pilot)
+const limit: number = TIER_LIMITS[userTier] ?? 8 // tier-based: Care 8, Care+/Founding unlimited
 const activeCount = restaurants.filter(r => r.is_active).length
 const atLimit = activeCount >= limit
 const shakeLimit = () => { setShakingLimit(true); setTimeout(() => setShakingLimit(false), 600) }
@@ -238,7 +238,7 @@ if (data.success) { setRestaurants([]); setSaveMsg('All favorites removed'); set
 }
 
 const addMeal = async (restaurantId: string) => {
-const mealLimit = MEAL_LIMITS[userTier] || 4
+const mealLimit = MEAL_LIMITS[userTier] || 8
 const restForLimit = restaurants.find(r => r.id === restaurantId)
 if (restForLimit && (restForLimit.favorite_meals?.length || 0) >= mealLimit) {
 alert(`Your plan allows up to ${mealLimit} meals per restaurant. Upgrade to Care+ for more.`)
@@ -451,7 +451,7 @@ const addAllReviewed = async (restaurantId: string) => {
 const rest = restaurants.find(r => r.id === restaurantId)
 const items = reviewItems[restaurantId] || []
 if (!rest || items.length === 0) return
-const mealLimit = MEAL_LIMITS[userTier] || 4
+const mealLimit = MEAL_LIMITS[userTier] || 8
 const current = rest.favorite_meals?.length || 0
 const available = Math.max(0, mealLimit - current)
 let toAdd = items.filter(it => it.name.trim())
