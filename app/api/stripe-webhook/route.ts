@@ -109,6 +109,64 @@ function prettyTime(t: string | null | undefined, mealType: string): string {
   return `${h}:${m || '00'} ${ampm}`
 }
 
+// ── Founding circles ───────────────────────────────────────────────────────
+// One-time founding comes in four circles. We resolve the circle from the PAID
+// amount first (works identically for in-app ACH and the shared card links),
+// then metadata.circle, then legacy single-tier founding -> friend. The Care+
+// term is anchored to BETA LAUNCH, not purchase date -- "the pilot is on us":
+// pre-launch founders' clocks start at launch. Partner = lifetime (null expiry).
+type FoundingCircle = 'friend' | 'patron' | 'builder' | 'partner'
+const BETA_LAUNCH = '2026-08-11'
+const CARE_PLUS_YEARS: Record<FoundingCircle, number | null> = {
+  friend: 3, patron: 4, builder: 5, partner: null, // null = lifetime
+}
+function circleFromAmount(cents: number | null | undefined): FoundingCircle | null {
+  switch (cents) {
+    case 20000:  return 'friend'
+    case 35000:  return 'patron'
+    case 50000:  return 'builder'
+    case 100000: return 'partner'
+    default:     return null
+  }
+}
+function resolveCircle(session: Stripe.Checkout.Session): FoundingCircle {
+  const byAmount = circleFromAmount(session.amount_total)
+  if (byAmount) return byAmount
+  const m = (session.metadata?.circle || '') as FoundingCircle
+  if (m === 'friend' || m === 'patron' || m === 'builder' || m === 'partner') return m
+  return 'friend' // legacy single-tier founding
+}
+function foundingExpiry(circle: FoundingCircle): string | null {
+  const years = CARE_PLUS_YEARS[circle]
+  if (years == null) return null // lifetime (Partner)
+  const launch = new Date(BETA_LAUNCH + 'T00:00:00Z')
+  const now = new Date()
+  const start = now > launch ? now : launch // pre-launch terms start at launch
+  const end = new Date(start)
+  end.setUTCFullYear(end.getUTCFullYear() + years)
+  return end.toISOString()
+}
+async function provisionFounding(supabase: any, session: Stripe.Checkout.Session): Promise<boolean> {
+  // Paid-only: card is paid on 'completed'; ACH clears later via async success.
+  // Never grant access before funds clear.
+  if (session.payment_status !== 'paid') {
+    console.log(`Founding: session ${session.id} not yet paid (${session.payment_status}) -- waiting for ACH to clear`)
+    return false
+  }
+  const userId = session.metadata?.user_id || session.client_reference_id
+  if (!userId) { console.log(`Founding: no user id on session ${session.id}`); return false }
+  const circle = resolveCircle(session)
+  const expires = foundingExpiry(circle)
+  await supabase.from('profiles').update({
+    tier: 'founding',
+    founding_circle: circle,
+    founding_expires_at: expires,
+  }).eq('id', userId)
+  console.log(`Founding provisioned: ${userId} -> ${circle} (Care+ ${expires ? `until ${expires}` : 'lifetime'})`)
+  // TODO (gift-code slice): issue 1/2/2/3 codes by circle (90/90/180/180 days) here.
+  return true
+}
+
 export async function POST(request: Request) {
   const stripe = getStripe()
   const supabase = getSupabase()
@@ -145,48 +203,38 @@ export async function POST(request: Request) {
   }
 
   // ── checkout.session.completed ─────────────────────────────────────────────
-  if (event.type === 'checkout.session.completed') {
+  if (event.type === 'checkout.session.completed' || event.type === 'checkout.session.async_payment_succeeded') {
     const session         = event.data.object as Stripe.Checkout.Session
     const paymentIntentId = session.payment_intent as string
     const type            = session.metadata?.type
     const proposalIds     = JSON.parse(session.metadata?.proposal_ids || '[]') as string[]
     const coordinatorName = session.metadata?.coordinator_name || ''
 
-    // Tier upgrade — handles BOTH recurring subscriptions (Care+/Annual) and the
-    // one-time Founding payment. Founding checkout uses mode:'payment' and does
-    // not set metadata.type, so we key off the presence of metadata.tier rather
-    // than type alone (otherwise founding buyers would pay and never get upgraded).
-    const tierMeta = session.metadata?.tier
-    if (type === 'subscription' || tierMeta) {
-      const userId = session.metadata?.user_id
-      const tier   = tierMeta
-      if (userId && tier) {
-        const update: Record<string, any> = { tier }
-        // Founding = 3 years of Care+ access. Stamp the expiry at purchase so the
-        // term is tracked from member #1 (even though nothing enforces it yet).
-        if (tier === 'founding') {
-          const expiry = new Date()
-          expiry.setFullYear(expiry.getFullYear() + 3)
-          update.founding_expires_at = expiry.toISOString()
-        }
-        await supabase.from('profiles').update(update).eq('id', userId)
-        console.log(`Tier updated: ${userId} → ${tier}${tier === 'founding' ? ` (expires ${update.founding_expires_at})` : ''}`)
-      }
+    // ── FOUNDING (one-time, any circle) ─────────────────────────────
+    // Covers in-app ACH (metadata.tier='founding') AND the shared card Payment
+    // Links (no metadata.type; client_reference_id holds the user id; the amount
+    // identifies the circle). Card is paid on 'completed'; ACH completes as
+    // 'unpaid' and clears later via async_payment_succeeded -- provisionFounding
+    // is paid-only, so access never precedes cleared funds.
+    const isFounding =
+      type !== 'proposal' && type !== 'subscription' &&
+      (session.metadata?.tier === 'founding' || circleFromAmount(session.amount_total) != null)
+    if (isFounding) {
+      await provisionFounding(supabase, session)
       return NextResponse.json({ received: true })
     }
 
-    // Founding via static Payment Link: the link carries no metadata.tier/type, but
-    // client_reference_id holds the user id (appended in onboarding). It's the only
-    // checkout that arrives with no metadata.type, so it uniquely marks a founding
-    // purchase. Provision founding + stamp the 3-year term here — on PAID checkout only.
-    if (!type && !tierMeta && session.client_reference_id) {
-      const fid = session.client_reference_id
-      const expiry = new Date()
-      expiry.setFullYear(expiry.getFullYear() + 3)
-      await supabase.from('profiles')
-        .update({ tier: 'founding', founding_expires_at: expiry.toISOString() })
-        .eq('id', fid)
-      console.log(`Founding provisioned via payment link: ${fid}`)
+    // ── SUBSCRIPTION upgrade (Care / Care+, monthly or annual) ───────────
+    // Recurring Checkout sets metadata.type='subscription' (+ metadata.tier).
+    // Card only, so it's always paid on 'completed'.
+    const tierMeta = session.metadata?.tier
+    if (type === 'subscription' || (tierMeta && tierMeta !== 'founding')) {
+      const userId = session.metadata?.user_id
+      const tier   = tierMeta
+      if (userId && tier) {
+        await supabase.from('profiles').update({ tier }).eq('id', userId)
+        console.log(`Tier updated: ${userId} → ${tier}`)
+      }
       return NextResponse.json({ received: true })
     }
 
@@ -261,6 +309,15 @@ export async function POST(request: Request) {
       }
       console.log(`Payment authorized for ${proposalIds.length} proposal(s): ${paymentIntentId}`)
     }
+  }
+
+  // ── checkout.session.async_payment_failed ── an ACH founding payment bounced ─
+  // We only ever provision on 'paid', so nothing was granted -- just log it.
+  if (event.type === 'checkout.session.async_payment_failed') {
+    const session = event.data.object as Stripe.Checkout.Session
+    const who = session.metadata?.user_id || session.client_reference_id || 'unknown'
+    console.log(`ACH payment failed for session ${session.id} (user ${who}) -- not provisioned`)
+    return NextResponse.json({ received: true })
   }
 
   // ── checkout.session.expired ─────────────────────────────────
