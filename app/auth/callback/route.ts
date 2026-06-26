@@ -21,6 +21,7 @@ export async function GET(request: Request) {
   const code = searchParams.get('code')
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type') as EmailOtpType | null
+  const next = searchParams.get('next')
 
   const supabase = await createClient()
   let verified = false
@@ -38,6 +39,11 @@ export async function GET(request: Request) {
   }
 
   if (verified) {
+    // A safe relative next destination wins over the default kitchen routing
+    // (used by the password-reset flow → /reset-password).
+    if (next && next.startsWith('/') && !next.startsWith('//')) {
+      return NextResponse.redirect(`${origin}${next}`)
+    }
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
       // "Onboarding complete" === has a kitchen WITH at least one restaurant.
