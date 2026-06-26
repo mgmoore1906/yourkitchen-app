@@ -10,6 +10,7 @@ export default function LoginPage() {
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
+  const [resetMsg, setResetMsg] = useState('')
   const router = useRouter()
   const supabase = createClient()
 
@@ -24,6 +25,16 @@ export default function LoginPage() {
     } else {
       router.push('/dashboard')
     }
+  }
+
+  const handleForgot = async () => {
+    if (!email) { setError('Enter your email above, then tap \u201cForgot password?\u201d'); return }
+    setError(''); setResetMsg('')
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+    })
+    if (error) setError(error.message)
+    else setResetMsg('Check your email \u2014 we sent a link to reset your password.')
   }
 
   const handleGoogleLogin = async () => {
@@ -104,6 +115,11 @@ await supabase.auth.signInWithOAuth({
             />
           </div>
 
+          <div style={{ textAlign: 'right', marginTop: -6 }}>
+            <button type="button" onClick={handleForgot} style={{ background: 'none', border: 'none', padding: 0, color: '#3D6B4F', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', textDecoration: 'underline', fontFamily: "'DM Sans', sans-serif" }}>Forgot password?</button>
+          </div>
+
+          {resetMsg && <p style={{ color: '#3D6B4F', fontSize: 13, margin: 0 }}>{resetMsg}</p>}
           {error && <p style={{ color: '#B94040', fontSize: 13, margin: 0 }}>{error}</p>}
 
           <button
