@@ -36,8 +36,14 @@ export default function ResetPasswordPage() {
   // URL — the recovery code lives only in the email body, which link scanners
   // (Safe Links, prefetch, in-app browsers) cannot consume. The user types it.
   useEffect(() => {
-    const e = new URLSearchParams(window.location.search).get('email')
+    const params = new URLSearchParams(window.location.search)
+    const e = params.get('email')
     if (e) setEmail(e)
+    // The code may ride in the link too, purely to pre-fill the field. It is NOT
+    // verified on load — only when the user submits — so a prefetch that loads
+    // this URL fills a text box and nothing more; the code stays unconsumed.
+    const c = params.get('code')
+    if (c) setCode(c.replace(/[^0-9]/g, '').slice(0, 6))
   }, [])
 
   const handleSubmit = async (ev: React.FormEvent) => {
