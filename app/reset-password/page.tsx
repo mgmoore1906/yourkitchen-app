@@ -1,144 +1,145 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { PILOT_SURVEY_URL } from '@/lib/links'
+import Link from 'next/link'
 
-export default function LoginPage() {
-  const [email, setEmail] = useState('')
+const EyeIcon = () => (
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+<circle cx="12" cy="12" r="3" />
+</svg>
+)
+const EyeOffIcon = () => (
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
+<path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94" />
+<path d="M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19" />
+<line x1="1" y1="1" x2="23" y2="23" />
+</svg>
+)
+
+export default function ResetPasswordPage() {
+  const supabase = createClient()
+  const router = useRouter()
+
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirm, setShowConfirm] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
-  const [googleLoading, setGoogleLoading] = useState(false)
-  const [resetMsg, setResetMsg] = useState('')
-  const router = useRouter()
-  const supabase = createClient()
+  const [done, setDone] = useState(false)
 
-  const handleLogin = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) {
-      setError(error.message)
-      setLoading(false)
-    } else {
-      router.push('/dashboard')
-    }
-  }
+  // The /auth/callback route verifies the recovery token and establishes the
+  // session before redirecting here. We confirm that session exists; if it
+  // doesn't (expired or reused link), we show a "request a new link" state
+  // instead of a form that can't save.
+  const [checking, setChecking] = useState(true)
+  const [hasSession, setHasSession] = useState(false)
 
-  const handleForgot = async () => {
-    if (!email) { setError('Enter your email above, then tap \u201cForgot password?\u201d'); return }
-    setError(''); setResetMsg('')
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth/callback?next=/reset-password`,
+  useEffect(() => {
+    let active = true
+    ;(async () => {
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!active) return
+      setHasSession(!!session)
+      setChecking(false)
+    })()
+    // Also catch the recovery event if the session lands a beat after mount.
+    const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'PASSWORD_RECOVERY' || session) { setHasSession(true); setChecking(false) }
     })
-    if (error) setError(error.message)
-    else setResetMsg('Check your email \u2014 we sent a link to reset your password.')
+    return () => { active = false; sub.subscription.unsubscribe() }
+  }, [])
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError('')
+    if (password.length < 8) { setError('Password must be at least 8 characters'); return }
+    if (password !== confirm) { setError('Passwords do not match'); return }
+    setLoading(true)
+    const { error } = await supabase.auth.updateUser({ password })
+    if (error) { setError(error.message); setLoading(false); return }
+    setDone(true); setLoading(false)
+    setTimeout(() => router.push('/dashboard'), 1600)
   }
 
-  const handleGoogleLogin = async () => {
-    setGoogleLoading(true)
-    const { error } = // app/login/page.tsx (or wherever Google sign-in is triggered)
-await supabase.auth.signInWithOAuth({
-  provider: 'google',
-  options: {
-    queryParams: {
-      prompt: 'select_account',  // ← forces account picker every time
-    },
-    redirectTo: `${window.location.origin}/auth/callback`,
-  },
-})
-    if (error) {
-      setError(error.message)
-      setGoogleLoading(false)
-    }
-  }
+  const passwordsMatch = confirm.length > 0 && password === confirm
 
   return (
     <div style={{ minHeight: '100vh', background: '#FAFAF5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
       <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
       <div style={{ width: '100%', maxWidth: 400, padding: '0 24px' }}>
 
-        <div style={{ textAlign: 'center', marginBottom: 40 }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{ fontSize: 11, fontWeight: 500, letterSpacing: 5, color: '#6B9E7E', textTransform: 'uppercase', marginBottom: 4 }}>Your</div>
           <div style={{ fontFamily: "'Lora', serif", fontSize: 32, fontWeight: 500, color: '#1E2620' }}>Kitchen</div>
-          <p style={{ fontSize: 14, color: '#6B7066', marginTop: 8 }}>Sign in to your account</p>
         </div>
 
-        {/* Google Sign In */}
-        <button
-          onClick={handleGoogleLogin}
-          disabled={googleLoading}
-          style={{
-            width: '100%', padding: '13px 16px', borderRadius: 10,
-            border: '1.5px solid #DDE8E0', background: '#fff',
-            fontSize: 14, fontWeight: 500, color: '#1E2620',
-            cursor: googleLoading ? 'default' : 'pointer',
-            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
-            marginBottom: 20, fontFamily: "'DM Sans', sans-serif",
-          }}
-        >
-          {googleLoading ? 'Redirecting…' : (
-            <>
-              <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-                <path d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.874 2.684-6.615z" fill="#4285F4"/>
-                <path d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.86-3.048.86-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 009 18z" fill="#34A853"/>
-                <path d="M3.964 10.707A5.41 5.41 0 013.682 9c0-.593.102-1.17.282-1.707V4.961H.957A8.996 8.996 0 000 9c0 1.452.348 2.827.957 4.039l3.007-2.332z" fill="#FBBC05"/>
-                <path d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 00.957 4.961L3.964 7.293C4.672 5.166 6.656 3.58 9 3.58z" fill="#EA4335"/>
-              </svg>
-              Continue with Google
-            </>
-          )}
-        </button>
-
-        {/* Divider */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
-          <div style={{ flex: 1, height: 1, background: '#DDE8E0' }} />
-          <span style={{ fontSize: 12, color: '#6B7066', fontWeight: 300 }}>or sign in with email</span>
-          <div style={{ flex: 1, height: 1, background: '#DDE8E0' }} />
-        </div>
-
-        <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 500, color: '#6B7066', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Email</label>
-            <input
-              type="email" value={email} onChange={e => setEmail(e.target.value)} required
-              style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 16, background: '#fff', color: '#1E2620', outline: 'none', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif" }}
-            />
+        {checking ? (
+          <p style={{ textAlign: 'center', fontSize: 14, color: '#6B7066', fontWeight: 300 }}>Checking your reset link…</p>
+        ) : done ? (
+          <div style={{ textAlign: 'center' }}>
+            <div style={{ width: 64, height: 64, borderRadius: 18, background: '#EAF2ED', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 30, margin: '0 auto 20px' }}>✓</div>
+            <h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: '#1E2620', margin: '0 0 10px', letterSpacing: -0.5 }}>Password updated</h1>
+            <p style={{ fontSize: 14, color: '#6B7066', fontWeight: 300, lineHeight: 1.7 }}>Taking you to your dashboard…</p>
           </div>
-          <div>
-            <label style={{ fontSize: 12, fontWeight: 500, color: '#6B7066', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }}>Password</label>
-            <input
-              type="password" value={password} onChange={e => setPassword(e.target.value)} required
-              style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 16, background: '#fff', color: '#1E2620', outline: 'none', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif" }}
-            />
+        ) : !hasSession ? (
+          <div style={{ textAlign: 'center' }}>
+            <h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: '#1E2620', margin: '0 0 10px', letterSpacing: -0.5 }}>This link has expired</h1>
+            <p style={{ fontSize: 14, color: '#6B7066', fontWeight: 300, lineHeight: 1.7, margin: '0 0 24px' }}>
+              Reset links are single-use and expire after a short time. Head back to sign in and tap “Forgot password?” to get a fresh one.
+            </p>
+            <Link href="/login" style={{ display: 'inline-block', background: '#3D6B4F', color: '#fff', borderRadius: 10, padding: '13px 28px', fontSize: 14, fontWeight: 500, textDecoration: 'none' }}>Back to sign in</Link>
           </div>
+        ) : (
+          <>
+            <p style={{ textAlign: 'center', fontSize: 14, color: '#6B7066', marginTop: -8, marginBottom: 28, fontWeight: 300 }}>Choose a new password for your account.</p>
+            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+              <div>
+                <label style={labelStyle}>New password</label>
+                <div style={{ position: 'relative' }}>
+                  <input type={showPassword ? 'text' : 'password'} value={password} onChange={e => setPassword(e.target.value)} required placeholder="At least 8 characters" style={{ ...inputStyle, paddingRight: 46 }} />
+                  <button type="button" onClick={() => setShowPassword(v => !v)} aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7066', display: 'flex', alignItems: 'center', padding: 0 }}>
+                    {showPassword ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
+              </div>
 
-          <div style={{ textAlign: 'right', marginTop: -6 }}>
-            <button type="button" onClick={handleForgot} style={{ background: 'none', border: 'none', padding: 0, color: '#3D6B4F', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', textDecoration: 'underline', fontFamily: "'DM Sans', sans-serif" }}>Forgot password?</button>
-          </div>
+              <div>
+                <label style={labelStyle}>Confirm new password</label>
+                <div style={{ position: 'relative' }}>
+                  <input type={showConfirm ? 'text' : 'password'} value={confirm} onChange={e => setConfirm(e.target.value)} required placeholder="Repeat your password" style={{ ...inputStyle, paddingRight: 46 }} />
+                  <button type="button" onClick={() => setShowConfirm(v => !v)} aria-label={showConfirm ? 'Hide confirm password' : 'Show confirm password'}
+                    style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', color: '#6B7066', display: 'flex', alignItems: 'center', padding: 0 }}>
+                    {showConfirm ? <EyeOffIcon /> : <EyeIcon />}
+                  </button>
+                </div>
+                {confirm.length > 0 && (
+                  <p style={{ fontSize: 12, color: passwordsMatch ? '#3D6B4F' : '#B94040', margin: '6px 0 0', fontWeight: 500 }}>
+                    {passwordsMatch ? '✓ Passwords match' : '✗ Passwords do not match'}
+                  </p>
+                )}
+              </div>
 
-          {resetMsg && <p style={{ color: '#3D6B4F', fontSize: 13, margin: 0 }}>{resetMsg}</p>}
-          {error && <p style={{ color: '#B94040', fontSize: 13, margin: 0 }}>{error}</p>}
+              {error && <p style={{ color: '#B94040', fontSize: 13, margin: 0 }}>{error}</p>}
 
-          <button
-            type="submit" disabled={loading}
-            style={{ background: loading ? '#6B9E7E' : '#3D6B4F', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 14, fontWeight: 500, cursor: loading ? 'default' : 'pointer', width: '100%', minHeight: 48, marginTop: 8, fontFamily: "'DM Sans', sans-serif" }}
-          >
-            {loading ? 'Signing in…' : 'Sign In'}
-          </button>
-        </form>
+              <button type="submit" disabled={loading}
+                style={{ background: loading ? '#6B9E7E' : '#3D6B4F', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 14, fontWeight: 500, cursor: loading ? 'default' : 'pointer', width: '100%', minHeight: 48, marginTop: 8, fontFamily: "'DM Sans', sans-serif" }}>
+                {loading ? 'Updating…' : 'Update password'}
+              </button>
+            </form>
 
-        <p style={{ textAlign: 'center', fontSize: 13, color: '#6B7066', marginTop: 24, fontWeight: 300 }}>
-          Don&apos;t have an account?{' '}
-          <a href="/signup" style={{ color: '#3D6B4F', fontWeight: 500, textDecoration: 'none' }}>Create one free</a>
-        </p>
-        <p style={{ textAlign: 'center', fontSize: 12.5, color: '#6B7066', marginTop: 14, fontWeight: 300 }}>
-          In the pilot?{' '}
-          <a href={PILOT_SURVEY_URL} target="_blank" rel="noopener" style={{ color: '#3D6B4F', fontWeight: 500, textDecoration: 'none' }}>Share your feedback →</a>
-        </p>
+            <p style={{ textAlign: 'center', fontSize: 13, color: '#6B7066', marginTop: 24, fontWeight: 300 }}>
+              <Link href="/login" style={{ color: '#3D6B4F', fontWeight: 500, textDecoration: 'none' }}>Back to sign in</Link>
+            </p>
+          </>
+        )}
       </div>
     </div>
   )
 }
+
+const labelStyle: React.CSSProperties = { fontSize: 12, fontWeight: 500, color: '#6B7066', letterSpacing: 1, textTransform: 'uppercase', display: 'block', marginBottom: 8 }
+const inputStyle: React.CSSProperties = { width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', fontSize: 16, background: '#fff', color: '#1E2620', outline: 'none', boxSizing: 'border-box', fontFamily: "'DM Sans', sans-serif" }
