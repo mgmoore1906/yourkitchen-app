@@ -38,18 +38,32 @@ export default function ResetPasswordPage() {
   const [hasSession, setHasSession] = useState(false)
 
   useEffect(() => {
-    // The recovery token arrives in the URL (PKCE ?code= or a #hash). The browser
-    // client's detectSessionInUrl exchanges it asynchronously, so we wait for that
-    // to land rather than declaring the link dead on the first paint.
     let settled = false
     const ready = () => { if (!settled) { settled = true; setHasSession(true); setChecking(false) } }
+
+    ;(async () => {
+      // Preferred path: token_hash OTP verification. Works in ANY browser or
+      // device because it needs no PKCE verifier — the email link carries the
+      // token_hash directly and we verify it right here.
+      const params = new URLSearchParams(window.location.search)
+      const token_hash = params.get('token_hash')
+      const type = params.get('type')
+      if (token_hash && type) {
+        const { error } = await supabase.auth.verifyOtp({ type: type as any, token_hash })
+        if (!error) { ready(); return }
+      }
+      // Fallback: a PKCE ?code= / #hash link — detectSessionInUrl exchanges it
+      // (same-browser only). Pick up the resulting session if one exists.
+      const { data: { session } } = await supabase.auth.getSession()
+      if (session) ready()
+    })()
+
+    // Catch the session if it lands a beat after mount.
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (session || event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') ready()
     })
-    supabase.auth.getSession().then(({ data: { session } }) => { if (session) ready() })
-    // Grace window: if no session is established from the URL within a few seconds,
-    // the link is invalid, expired, or already used.
-    const timer = setTimeout(() => { if (!settled) { settled = true; setChecking(false); setHasSession(false) } }, 4000)
+    // Grace window: nothing established a session → invalid/expired/used link.
+    const timer = setTimeout(() => { if (!settled) { settled = true; setChecking(false); setHasSession(false) } }, 5000)
     return () => { settled = true; sub.subscription.unsubscribe(); clearTimeout(timer) }
   }, [])
 
