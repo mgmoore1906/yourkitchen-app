@@ -30,12 +30,14 @@ const [googleLoading, setGoogleLoading] = useState(false)
 const [emailSent, setEmailSent] = useState(false)
 const [resending, setResending] = useState(false)
 const [resent, setResent] = useState(false)
+const [agreed, setAgreed] = useState(false)
 const router = useRouter()
 const supabase = createClient()
 
 const handleSignUp = async (e: React.FormEvent) => {
 e.preventDefault()
 setError('')
+if (!agreed) { setError('Please agree to the Terms and Privacy Policy to continue.'); return }
 if (password !== confirmPassword) { setError('Passwords do not match'); return }
 if (password.length < 8) { setError('Password must be at least 8 characters'); return }
 
@@ -43,7 +45,7 @@ setLoading(true)
 const { data, error } = await supabase.auth.signUp({
 email,
 password,
-options: { emailRedirectTo: `${window.location.origin}/auth/callback` },
+options: { emailRedirectTo: `${window.location.origin}/auth/callback`, data: { terms_accepted_at: new Date().toISOString() } },
 })
 
 if (error) {
@@ -75,6 +77,7 @@ setResending(false); setResent(true)
 }
 
 const handleGoogleSignUp = async () => {
+if (!agreed) { setError('Please agree to the Terms and Privacy Policy to continue.'); return }
 setGoogleLoading(true)
 const { error } = await supabase.auth.signInWithOAuth({
 provider: 'google',
@@ -131,8 +134,16 @@ Already confirmed?{' '}
 ) : (
 /* ── SIGNUP FORM ── */
 <>
-<button onClick={handleGoogleSignUp} disabled={googleLoading}
-style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', background: '#fff', fontSize: 14, fontWeight: 500, color: '#1E2620', cursor: googleLoading ? 'default' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>
+<div style={{ background: '#EAF2ED', border: '1.5px solid #DDE8E0', borderRadius: 10, padding: '12px 14px', marginBottom: 16 }}>
+<label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
+<input type="checkbox" checked={agreed} onChange={e => setAgreed(e.target.checked)} style={{ width: 18, height: 18, accentColor: '#3D6B4F', flexShrink: 0, marginTop: 1 }} />
+<span style={{ fontSize: 12.5, color: '#6B7066', lineHeight: 1.6, fontWeight: 300 }}>
+I agree to the <a href="/terms" target="_blank" rel="noopener noreferrer" style={{ color: '#3D6B4F', fontWeight: 500 }}>Terms of Service</a> and <a href="/privacy" target="_blank" rel="noopener noreferrer" style={{ color: '#3D6B4F', fontWeight: 500 }}>Privacy Policy</a>.
+</span>
+</label>
+</div>
+<button onClick={handleGoogleSignUp} disabled={googleLoading || !agreed}
+style={{ width: '100%', padding: '13px 16px', borderRadius: 10, border: '1.5px solid #DDE8E0', background: '#fff', fontSize: 14, fontWeight: 500, color: '#1E2620', cursor: (googleLoading || !agreed) ? 'default' : 'pointer', opacity: !agreed ? 0.55 : 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10, marginBottom: 20, fontFamily: "'DM Sans', sans-serif" }}>
 {googleLoading ? 'Redirecting…' : (
 <>
 <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
@@ -187,8 +198,8 @@ style={{ position: 'absolute', right: 14, top: '50%', transform: 'translateY(-50
 
 {error && <p style={{ color: '#B94040', fontSize: 13, margin: 0 }}>{error}</p>}
 
-<button type="submit" disabled={loading}
-style={{ background: loading ? '#6B9E7E' : '#3D6B4F', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 14, fontWeight: 500, cursor: loading ? 'default' : 'pointer', width: '100%', minHeight: 48, marginTop: 8, fontFamily: "'DM Sans', sans-serif" }}>
+<button type="submit" disabled={loading || !agreed}
+style={{ background: (loading || !agreed) ? '#6B9E7E' : '#3D6B4F', color: '#fff', border: 'none', borderRadius: 10, padding: '14px', fontSize: 14, fontWeight: 500, cursor: (loading || !agreed) ? 'default' : 'pointer', width: '100%', minHeight: 48, marginTop: 8, fontFamily: "'DM Sans', sans-serif" }}>
 {loading ? 'Creating account…' : 'Create Free Account'}
 </button>
 </form>
