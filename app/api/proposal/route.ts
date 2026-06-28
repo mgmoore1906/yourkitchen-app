@@ -1,3 +1,4 @@
+import { captureServer } from '@/lib/posthog-server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
@@ -44,7 +45,7 @@ if (guestError) return NextResponse.json({ error: guestError.message }, { status
 // ── Kitchen ──────────────────────────────────────────────────────────────
 const { data: kitchen } = await supabase
 .from('kitchens')
-.select('id, name, latitude, longitude, address, breakfast_windows, lunch_windows, dinner_windows')
+.select('id, name, latitude, longitude, address, breakfast_windows, lunch_windows, dinner_windows, recipient_id')
 .eq('slug', kitchen_slug)
 .single()
 if (!kitchen) return NextResponse.json({ error: 'Kitchen not found' }, { status: 404 })
@@ -199,6 +200,7 @@ status: 'pending',
 .select('id')
 .single()
 if (proposalError) { await releaseLocks(); return NextResponse.json({ error: proposalError.message }, { status: 400 }) }
+if (proposal?.id) { await captureServer((kitchen as any).recipient_id, 'meal proposed', { restaurant: restName, meal: mealName, is_pickup: !!is_pickup }) }
 
 if (!use_places && proposal?.id) {
 const { data: calDate } = await supabase
