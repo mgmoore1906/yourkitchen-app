@@ -15,9 +15,8 @@ const DIETARY_OPTIONS = ['No shellfish', 'No nuts', 'No dairy', 'No gluten', 'Ve
 
 const TIER_BADGES: Record<string, { badge: string; price: string; period: string; color: string; bg: string; desc: string }> = {
 free:     { badge: 'Care', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
-trial:    { badge: 'Trial', price: '', period: '', color: '#4A8FA8', bg: '#DFF0F6', desc: 'Full access — your first 30 days or 5 meals.' },
-care:     { badge: 'Care', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
-careplus: { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
+trial:    { badge: 'Pilot Access', price: '', period: '', color: '#4A8FA8', bg: '#DFF0F6', desc: 'Full access during the pilot.' },
+care:     { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
 annual:   { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
 founding: { badge: 'Founding Member', price: '', period: '', color: '#B88B4A', bg: '#FFF4E8', desc: 'Thank you for founding YourKitchen.' },
 }
@@ -253,7 +252,7 @@ const handlePasswordReset = async () => {
 setPasswordLoading(true); setPasswordSuccess('')
 const { data: { user } } = await supabase.auth.getUser()
 if (!user?.email) { setPasswordLoading(false); return }
-await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${window.location.origin}/auth/callback` })
+await supabase.auth.resetPasswordForEmail(user.email, { redirectTo: `${window.location.origin}/reset-password` })
 setPasswordSuccess(`Reset link sent to ${user.email}.`)
 setPasswordLoading(false)
 }
@@ -321,22 +320,22 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 {open.plan && (
 <div style={{ marginTop: 12, paddingTop: 12, borderTop: `0.5px solid ${activeTier.color}33`, display: 'flex', flexDirection: 'column', gap: 10 }}>
 <div>
-<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care &middot; $10/mo or $100/yr</div>
-<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Your kitchen with up to 8 restaurants, 8 meals each, and your full village. Delivery confirmation included.</div>
+<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care &middot; free</div>
+<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Your kitchen with an unlimited calendar and your full village. Delivery confirmation included.</div>
 </div>
 <div>
-<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care+ &middot; $20/mo or $200/yr</div>
-<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Everything in Care, plus unlimited restaurants and meals, up to 3 kitchens, a custom link, and priority support.</div>
+<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care+ &middot; $9.99/mo or $90/yr</div>
+<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Everything in Care, plus multiple kitchens, a custom link, priority support, and a warmer thank-you and tracking layer.</div>
 </div>
 <div>
-<div style={{ fontSize: 12.5, fontWeight: 700, color: '#B88B4A' }}>Founding Member &middot; from $200</div>
-<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Three years of Care+ and up, a founder badge, the Founders Gift Box, and gift codes to share. Four circles, first 250 only.</div>
+<div style={{ fontSize: 12.5, fontWeight: 700, color: '#B88B4A' }}>Founding Member &middot; $200 once</div>
+<div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Three years of Care+, a founder badge, early access, and the Founders Gift Box. Limited to the first 250.</div>
 </div>
 </div>
 )}
 </div>
 
-{(currentTier === 'care' || currentTier === 'careplus' || currentTier === 'annual') && (
+{(currentTier === 'care' || currentTier === 'annual') && (
 <button onClick={openBillingPortal} disabled={portalLoading} style={{ width: '100%', padding: '12px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: 'transparent', fontSize: 13, fontWeight: 600, color: S.forest, cursor: portalLoading ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", marginBottom: 24 }}>
 {portalLoading ? 'Opening…' : 'Manage or cancel subscription'}
 </button>
