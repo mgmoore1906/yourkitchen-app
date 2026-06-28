@@ -14,9 +14,9 @@ border: '#DDE8E0', white: '#FFFFFF', amber: '#C17F47',
 amberLight: '#FBF0E4', red: '#B94040', redLight: '#FDE8E8',
 }
 
-const TIER_LIMITS: Record<string, number> = { free: 8, trial: 999, care: 999, annual: 999, founding: 999 } // Care = 8 restaurants; Care+/trial/founding = unlimited (999 = ∞)
-const MEAL_LIMITS: Record<string, number> = { free: 8, trial: 999, care: 999, annual: 999, founding: 999 } // Care = 8 meals each; Care+/trial/founding = unlimited
-const TIER_LABELS: Record<string, string> = { free: 'Free', trial: 'Free Trial', care: 'Care+', annual: 'Early Adopter', founding: 'Founding Member' }
+const TIER_LIMITS: Record<string, number> = { free: 8, trial: 999, care: 8, careplus: 999, annual: 999, founding: 999 } // Care = 8 restaurants; Care+/trial/founding = unlimited (999 = ∞)
+const MEAL_LIMITS: Record<string, number> = { free: 8, trial: 999, care: 8, careplus: 999, annual: 999, founding: 999 } // Care = 8 meals each; Care+/trial/founding = unlimited
+const TIER_LABELS: Record<string, string> = { free: 'Free', trial: 'Free Trial', care: 'Care', careplus: 'Care+', annual: 'Early Adopter', founding: 'Founding Member' }
 
 const TAG_ROLES = ['👩','👨','🧑','👧','👦','🧒','👶','👵','👴']
 const TAG_TONES = ['','🏻','🏼','🏽','🏾','🏿']
