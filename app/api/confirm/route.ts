@@ -1,3 +1,4 @@
+import { captureServer } from '@/lib/posthog-server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import { NextResponse } from 'next/server'
@@ -100,6 +101,8 @@ if (action === 'confirm') {
 
   await stripe.paymentIntents.capture(paymentIntentId)
 
+  await captureServer((proposal as any).kitchens?.recipient_id, 'meal confirmed', { channel: 'dashboard' })
+
   // Email the recipient a calendar (.ics) so they can add this meal to Google/
   // Apple/Outlook in one tap, right from their inbox. Best-effort — the confirm
   // and capture already succeeded above, so this never blocks the response.
@@ -158,6 +161,8 @@ if (action === 'decline') {
       .update({ status: 'available' })
       .eq('id', proposal.claims?.calendar_date_id),
   ])
+
+  await captureServer((proposal as any).kitchens?.recipient_id, 'meal declined', { channel: 'dashboard' })
 
   // Tell the coordinator their offer was declined — the /proposals/[id] screen
   // promises "X has been notified". Email is reliable even while SMS is filtered.
