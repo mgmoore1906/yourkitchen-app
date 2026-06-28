@@ -1,4 +1,5 @@
 import { NextResponse } from 'next/server'
+import { checkRateLimit, clientIp, tooManyRequests } from '@/lib/ratelimit'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -299,6 +300,9 @@ async function fetchRich(url: string): Promise<string> {
 
 export async function POST(request: Request) {
   try {
+    const rl = await checkRateLimit('menu-parse', clientIp(request))
+    if (rl.limited) return tooManyRequests(rl.reset)
+
     const body = await request.json()
     const url: string | undefined = body?.url
     const imageBase64: string | undefined = body?.imageBase64
