@@ -38,18 +38,19 @@ export default function ResetPasswordPage() {
   const [hasSession, setHasSession] = useState(false)
 
   useEffect(() => {
-    let active = true
-    ;(async () => {
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!active) return
-      setHasSession(!!session)
-      setChecking(false)
-    })()
-    // Also catch the recovery event if the session lands a beat after mount.
+    // The recovery token arrives in the URL (PKCE ?code= or a #hash). The browser
+    // client's detectSessionInUrl exchanges it asynchronously, so we wait for that
+    // to land rather than declaring the link dead on the first paint.
+    let settled = false
+    const ready = () => { if (!settled) { settled = true; setHasSession(true); setChecking(false) } }
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
-      if (event === 'PASSWORD_RECOVERY' || session) { setHasSession(true); setChecking(false) }
+      if (session || event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') ready()
     })
-    return () => { active = false; sub.subscription.unsubscribe() }
+    supabase.auth.getSession().then(({ data: { session } }) => { if (session) ready() })
+    // Grace window: if no session is established from the URL within a few seconds,
+    // the link is invalid, expired, or already used.
+    const timer = setTimeout(() => { if (!settled) { settled = true; setChecking(false); setHasSession(false) } }, 4000)
+    return () => { settled = true; sub.subscription.unsubscribe(); clearTimeout(timer) }
   }, [])
 
   const handleSubmit = async (e: React.FormEvent) => {
