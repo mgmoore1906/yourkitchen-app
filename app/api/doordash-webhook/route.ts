@@ -12,6 +12,17 @@ function getSupabase() {
 function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!) }
 function getTwilio() { return twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!) }
 export async function POST(request: Request) {
+  // ── DORMANT BY DEFAULT ─────────────────────────────────────────────────────
+  // Legacy DoorDash *Drive* (delivery) webhook, kept for future DoorDash API
+  // sandbox certification. It stays fully inert — no Stripe refunds, no DB
+  // writes, no SMS — unless DOORDASH_WEBHOOK_ENABLED=true is set.
+  // SECURITY: before ever enabling this for real traffic, add DoorDash signature
+  // verification. While Stripe is live, an unguarded enable could be abused to
+  // trigger refunds. Enable only in a controlled sandbox/cert context.
+  if (process.env.DOORDASH_WEBHOOK_ENABLED !== 'true') {
+    return NextResponse.json({ received: true, dormant: true })
+  }
+
   const stripe = getStripe()
   const twilioClient = getTwilio()
   const supabase = getSupabase()
