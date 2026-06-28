@@ -147,17 +147,24 @@ const VILLAGE_CTA: Record<string,string> = {
   caregiving: 'Send a little care',
   celebration: 'Offer your congratulations',
 }
-function CoordCalendar({ availableDates,selectedIds,onToggle,recipientFirst,kitchenSlug,onOpenVillage,useCase }: { availableDates:any[];selectedIds:Set<string>;onToggle:(s:any)=>void;recipientFirst:string;kitchenSlug:string;onOpenVillage:()=>void;useCase?:string }) {
+function CoordCalendar({ availableDates,selectedIds,onToggle,recipientFirst,kitchenSlug,onOpenVillage,useCase,timezone }: { availableDates:any[];selectedIds:Set<string>;onToggle:(s:any)=>void;recipientFirst:string;kitchenSlug:string;onOpenVillage:()=>void;useCase?:string;timezone?:string }) {
 const today=new Date()
-const [viewYear,setViewYear]=useState(today.getFullYear())
-const [viewMonth,setViewMonth]=useState(today.getMonth())
-const todayStr=today.toISOString().split('T')[0]
-  // Day-of gating: no same-day orders. After the evening cutoff, also block
-  // tomorrow so every order can be pre-scheduled the night before.
-  const ymdLocal=(d:Date)=>`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`
+// Anchor "today" and the same-day cutoff to the RECIPIENT's delivery timezone
+// (captured on the kitchen at onboarding), not the coordinator's browser — a
+// villager in another timezone must not shift the recipient's cutoff. Falls back
+// to the browser tz for kitchens created before the timezone column existed.
+const _tz = timezone || Intl.DateTimeFormat().resolvedOptions().timeZone
+const _tzParts = new Intl.DateTimeFormat('en-US',{ timeZone:_tz, year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',hourCycle:'h23' }).formatToParts(today)
+const _tzGet = (t:string)=> _tzParts.find(p=>p.type===t)?.value || '00'
+const todayStr = `${_tzGet('year')}-${_tzGet('month')}-${_tzGet('day')}`
+const _tzHour = parseInt(_tzGet('hour'),10)
+const [viewYear,setViewYear]=useState(parseInt(_tzGet('year'),10))
+const [viewMonth,setViewMonth]=useState(parseInt(_tzGet('month'),10)-1)
+  // Day-of gating: no same-day orders. After the recipient's evening cutoff,
+  // also block tomorrow so every order can be pre-scheduled the night before.
   const LEAD_CUTOFF_HOUR=18
-  const _min=new Date(today); _min.setDate(_min.getDate()+(today.getHours()>=LEAD_CUTOFF_HOUR?2:1))
-  const minDateStr=ymdLocal(_min)
+  const _addDays=(ymd:string,n:number)=>{ const [y,m,d]=ymd.split('-').map(Number); const dt=new Date(Date.UTC(y,m-1,d)); dt.setUTCDate(dt.getUTCDate()+n); return `${dt.getUTCFullYear()}-${String(dt.getUTCMonth()+1).padStart(2,'0')}-${String(dt.getUTCDate()).padStart(2,'0')}` }
+  const minDateStr=_addDays(todayStr, _tzHour>=LEAD_CUTOFF_HOUR?2:1)
 const monthName=new Date(viewYear,viewMonth,1).toLocaleDateString('en-US',{month:'long',year:'numeric'})
 const firstDay=new Date(viewYear,viewMonth,1).getDay()
 const daysInMonth=new Date(viewYear,viewMonth+1,0).getDate()
@@ -636,7 +643,7 @@ return (
 <p style={{ color:S.mahogany,margin:0 }}>No open dates right now. Check back soon!</p>
 </div>
 ):(
-<CoordCalendar availableDates={availableDates} selectedIds={selectedIds} onToggle={toggleSlot} recipientFirst={recipientFirst} kitchenSlug={kitchen.slug} onOpenVillage={()=>setShowVillage(true)} useCase={kitchen.use_case}/>
+<CoordCalendar availableDates={availableDates} selectedIds={selectedIds} onToggle={toggleSlot} recipientFirst={recipientFirst} kitchenSlug={kitchen.slug} onOpenVillage={()=>setShowVillage(true)} useCase={kitchen.use_case} timezone={kitchen.timezone}/>
 )}
 {selectedSlots.length>0&&(
 <div style={{ background:S.amberLight,borderRadius:14,padding:'14px 16px',marginBottom:16,border:`1px solid ${S.amberBorder}` }}>
