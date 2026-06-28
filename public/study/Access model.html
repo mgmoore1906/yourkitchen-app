@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YourKitchen — The Access Model</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600;9..40,700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --sage:#3D6B4F; --sage-mid:#6B9E7E; --sage-light:#EAF2ED;
+    --cream:#FAFAF5; --forest:#1E2620; --stone:#6B7066;
+    --border:#DDE8E0; --white:#FFFFFF;
+    --gold:#B88B4A; --gold-deep:#C17F47; --gold-light:#F5EBDD;
+    --serif:'Lora',Georgia,serif; --sans:'DM Sans',system-ui,sans-serif;
+  }
+  *{margin:0;padding:0;box-sizing:border-box}
+  body{ font-family:var(--sans); color:var(--forest); background:#EDEDE6; -webkit-font-smoothing:antialiased; line-height:1.5; padding:30px 16px; }
+  .sheet{ max-width:1000px; margin:0 auto; background:var(--cream); border-radius:20px; overflow:hidden; box-shadow:0 24px 60px rgba(30,38,32,0.16); }
+
+  /* Masthead */
+  .mast{ background:var(--forest); color:var(--cream); padding:42px 48px 36px; position:relative; overflow:hidden; }
+  .mast::after{ content:''; position:absolute; right:-90px; top:-90px; width:340px; height:340px; border-radius:50%; background:radial-gradient(circle, rgba(107,158,126,0.20), transparent 70%); }
+  .eyebrow{ font-size:11px; font-weight:600; letter-spacing:0.34em; text-transform:uppercase; color:var(--sage-mid); margin-bottom:10px; }
+  .mast h1{ font-family:var(--serif); font-weight:500; font-size:30px; letter-spacing:-0.01em; line-height:1.15; max-width:680px; position:relative; z-index:1; }
+  .mast p{ font-size:14px; color:rgba(250,250,245,0.74); margin-top:12px; max-width:640px; position:relative; z-index:1; line-height:1.6; }
+
+  /* Diagram */
+  .diagram{ padding:38px 48px 8px; }
+  .layer-label{ font-size:11px; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:var(--stone); text-align:center; margin-bottom:16px; }
+  .layer-label.k{ color:var(--sage); margin-top:6px; }
+
+  .tier-row{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:16px; }
+  .tcard{ background:var(--white); border:1px solid var(--border); border-radius:14px; padding:20px 18px 18px; position:relative; overflow:hidden; }
+  .tcard::before{ content:''; position:absolute; top:0; left:0; right:0; height:4px; }
+  .tcard.house::before{ background:var(--sage-mid); }
+  .tcard.org::before{ background:var(--gold); }
+  .tcard.ent::before{ background:var(--forest); }
+  .tcard .tname{ font-family:var(--serif); font-size:18px; font-weight:600; }
+  .tcard .pays{ font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; margin-top:3px; }
+  .tcard.house .pays{ color:var(--sage); }
+  .tcard.org .pays{ color:var(--gold-deep); }
+  .tcard.ent .pays{ color:var(--forest); }
+  .tcard ul{ list-style:none; margin-top:13px; }
+  .tcard li{ font-size:12px; color:var(--forest); line-height:1.4; padding:5px 0 5px 16px; position:relative; }
+  .tcard li::before{ content:''; position:absolute; left:0; top:9px; width:6px; height:6px; border-radius:50%; }
+  .tcard.house li::before{ background:var(--sage-mid); }
+  .tcard.org li::before{ background:var(--gold); }
+  .tcard.ent li::before{ background:var(--forest); }
+  .tcard li b{ font-weight:600; }
+
+  .connector{ display:block; width:100%; height:64px; }
+
+  .kitchen{ background:var(--sage-light); border:1.5px solid var(--sage-mid); border-radius:16px; padding:24px 26px; text-align:center; position:relative; }
+  .kitchen .ktag{ font-size:10.5px; font-weight:700; letter-spacing:0.1em; text-transform:uppercase; color:var(--sage); margin-bottom:8px; }
+  .kitchen h3{ font-family:var(--serif); font-size:21px; font-weight:600; color:var(--forest); }
+  .kitchen p{ font-size:13px; color:var(--forest); margin-top:8px; max-width:560px; margin-left:auto; margin-right:auto; line-height:1.55; }
+  .kitchen .chips{ display:flex; flex-wrap:wrap; gap:8px; justify-content:center; margin-top:14px; }
+  .kitchen .chip{ font-size:11.5px; font-weight:600; color:var(--sage); background:var(--white); border:1px solid var(--border); padding:5px 12px; border-radius:20px; }
+  .kitchen .wg{ font-size:11.5px; color:var(--stone); font-style:italic; margin-top:12px; }
+
+  .down{ text-align:center; color:var(--sage-mid); font-size:22px; line-height:1; margin:8px 0; }
+
+  .village{ background:var(--white); border:1px solid var(--border); border-radius:14px; padding:18px 22px; text-align:center; max-width:560px; margin:0 auto; }
+  .village .vname{ font-family:var(--serif); font-size:17px; font-weight:600; }
+  .village p{ font-size:12.5px; color:var(--stone); margin-top:5px; line-height:1.5; }
+  .village b{ color:var(--sage); font-weight:600; }
+
+  /* Insight strip */
+  .insight{ margin:30px 48px 0; padding:22px 26px; background:linear-gradient(165deg,#2A3326,var(--forest)); border-radius:16px; position:relative; overflow:hidden; }
+  .insight::after{ content:''; position:absolute; right:-60px; bottom:-60px; width:220px; height:220px; border-radius:50%; background:radial-gradient(circle,rgba(184,139,74,0.20),transparent 70%); }
+  .insight h4{ font-family:var(--serif); font-size:17px; color:#E9CF9B; margin-bottom:6px; position:relative; }
+  .insight p{ font-size:13px; color:rgba(250,250,245,0.82); max-width:660px; line-height:1.55; position:relative; }
+
+  /* Build sequence */
+  .seq{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:14px; padding:26px 48px 8px; }
+  .step{ background:var(--white); border:1px solid var(--border); border-radius:14px; padding:18px 18px 16px; position:relative; }
+  .step .num{ width:26px; height:26px; border-radius:50%; background:var(--sage); color:#fff; font-size:13px; font-weight:700; display:flex; align-items:center; justify-content:center; margin-bottom:10px; }
+  .step .sname{ font-family:var(--serif); font-size:15px; font-weight:600; }
+  .step .sdesc{ font-size:12px; color:var(--stone); margin-top:5px; line-height:1.45; }
+  .step .out{ font-size:11px; font-weight:700; color:var(--gold-deep); margin-top:9px; }
+
+  /* Functionality table */
+  .tbl-wrap{ padding:30px 48px 18px; }
+  .tbl-title{ font-family:var(--serif); font-size:20px; font-weight:600; text-align:center; margin-bottom:4px; }
+  .tbl-sub{ text-align:center; font-size:12.5px; color:var(--stone); margin-bottom:22px; }
+  table{ width:100%; border-collapse:collapse; }
+  thead th{ font-size:11px; font-weight:700; letter-spacing:0.04em; text-transform:uppercase; padding:10px 10px; text-align:left; border-bottom:2px solid var(--sage); }
+  thead th.dim{ color:var(--stone); width:24%; }
+  thead th.house{ color:var(--sage); }
+  thead th.org{ color:var(--gold-deep); }
+  thead th.ent{ color:var(--forest); }
+  tbody td{ padding:9px 10px; font-size:12px; border-bottom:0.5px solid var(--border); vertical-align:top; line-height:1.4; }
+  tbody td.dim{ font-weight:600; color:var(--forest); }
+  tbody td.same{ color:var(--sage); font-weight:500; }
+  tbody tr:last-child td{ border-bottom:none; }
+  .legend-note{ font-size:11.5px; color:var(--stone); margin-top:12px; text-align:center; }
+  .legend-note .dot{ display:inline-block; width:9px; height:9px; border-radius:50%; background:var(--sage); margin-right:4px; vertical-align:middle; }
+
+  /* Footer */
+  .foot{ padding:26px 48px 34px; text-align:center; }
+  .foot .line{ width:46px; height:2px; background:var(--gold); margin:0 auto 14px; border-radius:2px; }
+  .foot .tag{ font-family:var(--serif); font-style:italic; font-size:17px; color:var(--sage); }
+  .foot .meta{ font-size:11.5px; color:var(--stone); margin-top:6px; }
+
+  @media (max-width:760px){
+    .tier-row,.seq{ grid-template-columns:1fr; }
+    .mast,.diagram,.insight,.seq,.tbl-wrap,.foot{ padding-left:22px; padding-right:22px; }
+    .insight{ margin-left:22px; margin-right:22px; }
+    table{ font-size:11px; }
+  }
+</style>
+</head>
+<body>
+<div class="sheet">
+
+  <div class="mast">
+    <div class="eyebrow">YourKitchen &middot; The Access Model</div>
+    <h1>One kitchen. Three ways to fund it.</h1>
+    <p>Households, care organizations, and Fortune 500 employers look like three different products. Underneath, they&rsquo;re the same one. The model diverges at the top &mdash; who sponsors and how it&rsquo;s funded &mdash; and converges on a single, identical kitchen.</p>
+  </div>
+
+  <div class="diagram">
+    <div class="layer-label">Who sponsors &amp; funds it</div>
+
+    <div class="tier-row">
+      <div class="tcard house">
+        <div class="tname">Household</div>
+        <div class="pays">Care+ &middot; you pay</div>
+        <ul>
+          <li>Up to <b>3 kitchens</b>, addresses independent</li>
+          <li>Light <b>OTP login</b>, scoped per kitchen</li>
+          <li>Sponsor creates <b>anytime</b></li>
+          <li>Caring across distance</li>
+        </ul>
+      </div>
+      <div class="tcard org">
+        <div class="tname">Organization pool</div>
+        <div class="pays">Org pays &middot; seats</div>
+        <ul>
+          <li><b>Pool of seats</b>, time-boxed &amp; recycled</li>
+          <li>Full recipient account per person</li>
+          <li>Org sets the <b>activation window</b></li>
+          <li>Hospice &middot; home health &middot; MCO</li>
+        </ul>
+      </div>
+      <div class="tcard ent">
+        <div class="tname">Enterprise</div>
+        <div class="pays">Employer pays</div>
+        <ul>
+          <li><b>SSO eligibility</b>, separate logins</li>
+          <li>Self-serve anytime, or <b>event-triggered</b></li>
+          <li>Employee becomes their own sponsor</li>
+          <li>F500 total rewards &middot; EAP</li>
+        </ul>
+      </div>
+    </div>
+
+    <svg class="connector" viewBox="0 0 1000 64" preserveAspectRatio="none" aria-hidden="true">
+      <path d="M167 2 L500 54" fill="none" stroke="#6B9E7E" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M500 2 L500 54" fill="none" stroke="#6B9E7E" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M833 2 L500 54" fill="none" stroke="#6B9E7E" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M491 47 L500 58 L509 47" fill="none" stroke="#6B9E7E" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+    </svg>
+
+    <div class="layer-label k">The kitchen &mdash; identical in all three</div>
+    <div class="kitchen">
+      <div class="ktag">The recipient sets up their own</div>
+      <h3>One kitchen, owned by the person it serves</h3>
+      <p>The recipient curates what they actually want and opens the days they&rsquo;d like dinner &mdash; through a light login, on their own schedule.</p>
+      <div class="chips">
+        <span class="chip">Own delivery address</span>
+        <span class="chip">Own restaurants &amp; meals</span>
+        <span class="chip">Own calendar</span>
+        <span class="chip">OTP login</span>
+      </div>
+      <div class="wg">&hellip; or set up white-glove by the sponsor, for anyone who can&rsquo;t self-serve.</div>
+    </div>
+
+    <div class="down">&#8595;</div>
+
+    <div class="village">
+      <div class="vname">The village sends</div>
+      <p>Opens the link, picks an open date and a meal, pays. <b>No login.</b> Every meal still gets the recipient&rsquo;s <b>Y/N</b> before any card is touched.</p>
+    </div>
+  </div>
+
+  <div class="insight">
+    <h4>Build the kitchen once.</h4>
+    <p>Organization pool and enterprise are layers on top of the same primitives &mdash; not separate products, not rebuilds. Consumer revenue funds the B2B motion, and B2B falls out of the consumer build. The kitchen never gets built twice.</p>
+  </div>
+
+  <div class="seq">
+    <div class="step">
+      <div class="num">1</div>
+      <div class="sname">Core</div>
+      <div class="sdesc">Split sponsor from recipient. Per-kitchen address. Recipient self-serves catalog &amp; calendar via OTP.</div>
+      <div class="out">&rarr; Care+ multi-kitchen</div>
+    </div>
+    <div class="step">
+      <div class="num">2</div>
+      <div class="sname">Org layer</div>
+      <div class="sdesc">Org entity, a pool of seats, time-boxed windows, an admin dashboard, staff white-glove setup.</div>
+      <div class="out">&rarr; Kitchen Pool</div>
+    </div>
+    <div class="step">
+      <div class="num">3</div>
+      <div class="sname">Enterprise layer</div>
+      <div class="sdesc">Eligibility via SSO / HRIS, anytime &amp; event-triggered activation, enterprise invoicing.</div>
+      <div class="out">&rarr; F500 total rewards</div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <div class="tbl-title">The same kitchen, three ways to fund it</div>
+    <div class="tbl-sub">The differences cluster at the top. The bottom rows &mdash; the kitchen itself &mdash; barely change.</div>
+    <table>
+      <thead>
+        <tr>
+          <th class="dim">&nbsp;</th>
+          <th class="house">Household (Care+)</th>
+          <th class="org">Organization pool</th>
+          <th class="ent">Enterprise</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr><td class="dim">Sponsor</td><td>The individual &mdash; 1 full account</td><td>The organization</td><td>The employer</td></tr>
+        <tr><td class="dim">Funding</td><td>Card on file</td><td>Contract &mdash; pool of seats</td><td>Total-rewards budget</td></tr>
+        <tr><td class="dim">Recipient access</td><td>Light OTP login, scoped to their kitchen</td><td>Full account, time-boxed</td><td>Full account via SSO</td></tr>
+        <tr><td class="dim">Who sets up</td><td class="same">Recipient self-serves (or white-glove)</td><td class="same">Recipient self-serves (or staff)</td><td class="same">Employee self-serves</td></tr>
+        <tr><td class="dim">Capacity</td><td>Up to 3 kitchens</td><td>N concurrent seats, rotating</td><td>Per eligible employee</td></tr>
+        <tr><td class="dim">Activation</td><td>Sponsor creates anytime</td><td>Org assigns + sets window</td><td>Anytime, or event-triggered</td></tr>
+        <tr><td class="dim">Window</td><td>Ongoing while subscribed</td><td>Time-boxed; seat recycles</td><td>Per employer policy</td></tr>
+        <tr><td class="dim">Address</td><td class="same">Per kitchen, independent</td><td class="same">Per recipient</td><td class="same">Per recipient</td></tr>
+        <tr><td class="dim">Best for</td><td>Families caring across distance</td><td>Hospice, home health, doula, MCO</td><td>F500 total rewards, EAP</td></tr>
+      </tbody>
+    </table>
+    <div class="legend-note"><span class="dot"></span>Green rows are effectively identical across all three tiers &mdash; that&rsquo;s the shared kitchen you build once.</div>
+  </div>
+
+  <div class="foot">
+    <div class="line"></div>
+    <div class="tag">One kitchen. Three ways to fund it.</div>
+    <div class="meta">yourkitchen.app &middot; The Access Model</div>
+  </div>
+
+</div>
+</body>
+</html>
