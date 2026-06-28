@@ -23,7 +23,7 @@ export async function GET() {
   const supabase = getSupabase()
   const { data: kitchens, error } = await supabase
     .from('kitchens')
-    .select('id, name, slug, address')
+    .select('id, name, slug, address, latitude, longitude')
     .eq('recipient_id', userId)
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
