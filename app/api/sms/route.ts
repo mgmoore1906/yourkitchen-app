@@ -12,6 +12,35 @@ function getSupabase() {
 }
 function getTwilio() { return twilio(process.env.TWILIO_ACCOUNT_SID!, process.env.TWILIO_AUTH_TOKEN!) }
 function getStripe() { return new Stripe(process.env.STRIPE_SECRET_KEY!) }
+
+// Verify the request was signed by Twilio (HMAC-SHA1 over the exact webhook URL
+// + sorted params, keyed by your auth token). The one failure mode is a URL
+// mismatch — a reconstructed URL not matching what Twilio actually signed —
+// which would 403 every real reply. So we try a few URL candidates and accept
+// if ANY validates; without the auth token an attacker still can't forge a valid
+// signature for any url, so this stays secure. Pin TWILIO_SMS_WEBHOOK_URL to the
+// exact configured URL to skip the guessing.
+function validateTwilioRequest(request: Request, params: Record<string, string>): boolean {
+  const token = process.env.TWILIO_AUTH_TOKEN
+  if (!token) return false
+  const signature = request.headers.get('x-twilio-signature') || ''
+  if (!signature) return false
+
+  const proto = request.headers.get('x-forwarded-proto') || 'https'
+  const host = request.headers.get('host') || ''
+  let pathname = '/api/sms'
+  try { pathname = new URL(request.url).pathname } catch {}
+
+  const candidates = [
+    process.env.TWILIO_SMS_WEBHOOK_URL,
+    `${proto}://${host}${pathname}`,
+    `https://${host}${pathname}`,
+  ].filter((u): u is string => !!u)
+
+  return candidates.some((url) => {
+    try { return twilio.validateRequest(token, signature, url, params) } catch { return false }
+  })
+}
 function twiml(msg: string) {
   return new NextResponse(
     `<?xml version="1.0" encoding="UTF-8"?><Response><Message>${msg}</Message></Response>`,
@@ -44,12 +73,24 @@ function phoneCandidates(raw: string): string[] {
 }
 
 export async function POST(request: Request) {
+  const formData = await request.formData()
+  const params: Record<string, string> = {}
+  formData.forEach((value, key) => { params[key] = typeof value === 'string' ? value : '' })
+
+  // ── Reject anything that isn't a signature-verified Twilio request ──
+  // The real protection for this webhook: without your auth token, no one can
+  // forge a valid X-Twilio-Signature, so a script can't spam this endpoint to
+  // burn Stripe captures, Resend emails, or Supabase queries.
+  // Kill-switch: set SMS_VALIDATE=false to disable if the URL ever mismatches.
+  if (process.env.SMS_VALIDATE !== 'false' && !validateTwilioRequest(request, params)) {
+    return new NextResponse('Forbidden', { status: 403 })
+  }
+
   const stripe = getStripe()
   const twilioClient = getTwilio()
   const supabase = getSupabase()
-  const formData = await request.formData()
-  const body = (formData.get('Body') as string)?.trim().toUpperCase()
-  const from  = formData.get('From') as string
+  const body = (params.Body || '').trim().toUpperCase()
+  const from  = params.From || ''
 
   // ── A2P compliance keywords — handled before anything else, for ANY sender ──
   // If Twilio Advanced Opt-Out is enabled on your Messaging Service, Twilio
