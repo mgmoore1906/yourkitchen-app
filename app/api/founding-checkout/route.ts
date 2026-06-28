@@ -80,7 +80,7 @@ export async function POST(request: Request) {
         price_data: {
           currency: 'usd',
           unit_amount: amount,
-          product_data: { name: CIRCLE_PRODUCT_NAME[circle] },
+          product_data: { name: CIRCLE_PRODUCT_NAME[circle], images: [`${appUrl}/founding/${circle}.png`] },
         },
       }],
       success_url: `${appUrl}/payment-success?tier=founding&circle=${circle}`,
