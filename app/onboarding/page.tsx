@@ -249,9 +249,6 @@ const allSelectedWindowKeys = [...breakfastWindows, ...lunchWindows, ...dinnerWi
 const hasWindows = allSelectedWindowKeys.length > 0
 const defaultWindow = DELIVERY_WINDOWS.find(w => w.key === allSelectedWindowKeys[0]) || DELIVERY_WINDOWS[5]
 
-// Holds the payment tab we open synchronously on click (popup-blocker-safe).
-let payTab: Window | null = null
-
 const handleFinish = async () => {
 setLoading(true); setError('')
 const { data: { user } } = await supabase.auth.getUser()
@@ -287,8 +284,6 @@ const data = await res.json()
 if (!res.ok) {
 setError(data.error || 'Something went wrong.')
 setLoading(false)
-// If we pre-opened a payment tab for a founder but creation failed, close it.
-if (payTab && !payTab.closed) payTab.close()
 return
 }
 posthog.capture('kitchen created', { tier: selectedTier, use_case: form.use_case || null })
