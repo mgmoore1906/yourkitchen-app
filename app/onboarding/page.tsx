@@ -39,7 +39,7 @@ const FOUNDING_PAYMENT_LINK = 'https://buy.stripe.com/5kQ00beDq9XD9BX5w5abK01'
 
 const TIERS = [
 { key: 'trial', badge: 'Pilot', name: 'Pilot Account', price: 'Free', period: 'full access', highlight: 'Pilot', blurb: 'Everything unlocked while we build together. No card, no charge — you help shape YourKitchen.' },
-{ key: 'founding', badge: 'Founding', name: 'Founding Member', price: '$200', period: 'one-time', highlight: 'First 250', blurb: 'Back YourKitchen as a founder: permanent badge, founder access, the Founders Gift Box, and 3 years of Care+. Your 3 years starts at beta launch — the pilot is on us.' },
+{ key: 'founding', badge: 'Founding', name: 'Founding Member', price: 'From $200', period: 'choose your circle', highlight: 'First 250', blurb: 'Back YourKitchen as a founder — choose your circle (Friend through Partner) on the next step. Every circle locks in the badge, the Founders Gift Box, and Care+. Your years start at beta launch — the pilot is on us.' },
 ]
 
 type Step = 'profile' | 'address' | 'calendar' | 'delivery' | 'plan' | 'review'
@@ -299,35 +299,18 @@ await new Promise(r => setTimeout(r, 800))
 // is already created as 'trial', so an unpaid founder still has a working pilot
 // account — we provision founding status once the payment lands.
 if (selectedTier === 'founding') {
-// Bank-only ($200 ACH) founding checkout. Fetch the session URL, then point the
-// pre-opened tab at it (the tab was opened synchronously on click to dodge popup
-// blockers). If it fails, close the tab and continue — the account is already a
-// working 'trial', so they can finish founding later from the restaurants banner.
-try {
-const fcRes = await fetch('/api/founding-checkout', {
-method: 'POST', headers: { 'Content-Type': 'application/json' },
-body: JSON.stringify({ user_id: user.id }),
-})
-const fcData = await fcRes.json()
-if (fcData?.url) {
-if (payTab && !payTab.closed) payTab.location.href = fcData.url
-else window.open(fcData.url, '_blank')
-} else if (payTab && !payTab.closed) { payTab.close() }
-} catch { if (payTab && !payTab.closed) payTab.close() }
-router.push('/kitchen/restaurants?welcome=1&founding=pending')
+// Account is created as 'trial'. Founders choose their circle (Friend $200 →
+// Partner $1,000) and pay on the Plans & pricing page; founding status is
+// provisioned by the founding-checkout webhook once payment lands.
+router.push('/tiers?welcome=1&founding=pick')
 return
 }
 router.push('/kitchen/restaurants?welcome=1')
 }
 
-// Fired by the finish button. For founders we MUST open the payment tab here,
-// synchronously inside the click gesture, or the browser's popup blocker kills
-// it. Open a blank tab now; handleFinish points it at Stripe once the account
-// is created (or closes it if creation fails).
+// Fired by the finish button. Founders no longer pay inline — they pick a circle
+// on /tiers after the account is created — so there's no payment tab to pre-open.
 const startFinish = () => {
-if (selectedTier === 'founding') {
-payTab = window.open('about:blank', '_blank')
-}
 handleFinish()
 }
 
