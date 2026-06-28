@@ -65,10 +65,10 @@ const CARE_SECTIONS: Section[] = [
 ]
 
 const FOUNDING_CIRCLES: { circle: FoundingCircle; name: string; price: string; term: string; accent: string; badgeBg: string; badgeText: string; perks: string[] }[] = [
-  { circle: 'friend',  name: 'Founding Friend',  price: '$200',   term: '3 years of Care+', accent: '#6B9E7E', badgeBg: '#6B9E7E', badgeText: '#1E2620', perks: ['Founders Gift Box, shipped to you', 'Gift 90 days of Care+ to a friend', 'Your name in the Founding story'] },
-  { circle: 'patron',  name: 'Founding Patron',  price: '$350',   term: '4 years of Care+', accent: '#3D6B4F', badgeBg: '#3D6B4F', badgeText: '#FFFFFF', perks: ['Everything in Friend', 'Bless two friends \u2014 2 gifts, 90 days each'] },
-  { circle: 'builder', name: 'Founding Builder', price: '$500',   term: '5 years of Care+', accent: '#2D5240', badgeBg: '#2D5240', badgeText: '#FFFFFF', perks: ['Everything in Patron', '2 gifts of 180 days each', 'A say in the roadmap + a call with the founder'] },
-  { circle: 'partner', name: 'Founding Partner', price: '$1,000', term: 'Care+ for life',   accent: '#1E2620', badgeBg: '#1E2620', badgeText: '#FFFFFF', perks: ['Everything in Builder', '3 gifts of 180 days each', 'Permanent recognition as a founder'] },
+  { circle: 'friend',  name: 'Founding Friend',  price: '$200',   term: '3 years of Care+', accent: '#A86B3C', badgeBg: '#A86B3C', badgeText: '#FBF4EB', perks: ['Founders Gift Box, shipped to you', 'Gift 90 days of Care+ to a friend', 'Your name in the Founding story'] },
+  { circle: 'patron',  name: 'Founding Patron',  price: '$350',   term: '4 years of Care+', accent: '#8C949B', badgeBg: '#8C949B', badgeText: '#FFFFFF', perks: ['Everything in Friend', 'Bless two friends \u2014 2 gifts, 90 days each'] },
+  { circle: 'builder', name: 'Founding Builder', price: '$500',   term: '5 years of Care+', accent: '#C79A45', badgeBg: '#C79A45', badgeText: '#3A2C0A', perks: ['Everything in Patron', '2 gifts of 180 days each', 'A say in the roadmap + a call with the founder'] },
+  { circle: 'partner', name: 'Founding Partner', price: '$1,000', term: 'Care+ for life',   accent: '#7C868E', badgeBg: '#4A5258', badgeText: '#FFFFFF', perks: ['Everything in Builder', '3 gifts of 180 days each', 'Permanent recognition as a founder'] },
 ]
 
 // Pilot: hide the Care (free) and Care+ cards on the pricing page until the
