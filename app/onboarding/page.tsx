@@ -2,6 +2,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import posthog from 'posthog-js'
 
 const S = {
 sage: '#3D6B4F', sageMid: '#6B9E7E', sageLight: '#EAF2ED',
@@ -142,6 +143,7 @@ const load = async () => {
 const { data: { user } } = await supabase.auth.getUser()
 if (!user) { router.push('/login'); return }
 setUserId(user.id)
+posthog.identify(user.id)
 // Onboarding "done" is NOT just "has a kitchen" — the kitchen is created at
 // finish, BEFORE the restaurants step (which lives at /kitchen/restaurants).
 // So a kitchen can exist while setup is still in progress. If we redirect to
@@ -289,6 +291,7 @@ setLoading(false)
 if (payTab && !payTab.closed) payTab.close()
 return
 }
+posthog.capture('kitchen created', { tier: selectedTier, use_case: form.use_case || null })
 await new Promise(r => setTimeout(r, 800))
 // Founders: the Stripe tab was opened synchronously on click (below) to dodge
 // popup blockers. Point it at the payment link now, and continue THIS window
