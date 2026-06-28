@@ -1,0 +1,13 @@
+import PastDueBanner from '@/app/components/PastDueBanner'
+
+// Wraps the dashboard so the past-due banner appears above its content for any
+// signed-in user whose last Care+ charge failed. No dashboard layout existed
+// before; this nests inside the root layout (PostHogProvider stays in effect).
+export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <>
+      <PastDueBanner />
+      {children}
+    </>
+  )
+}
