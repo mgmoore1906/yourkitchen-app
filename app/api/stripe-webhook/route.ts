@@ -1,3 +1,4 @@
+import { captureServer } from '@/lib/posthog-server'
 import { createClient } from '@supabase/supabase-js'
 import Stripe from 'stripe'
 import twilio from 'twilio'
@@ -197,6 +198,7 @@ export async function POST(request: Request) {
         .single()
       if (prof && (prof.tier === 'care' || prof.tier === 'annual')) {
         await supabase.from('profiles').update({ tier: 'free' }).eq('id', prof.id)
+        await captureServer(prof.id, 'subscription canceled', { from_tier: prof.tier })
       }
     }
     return NextResponse.json({ received: true })
@@ -234,6 +236,7 @@ export async function POST(request: Request) {
       if (userId && tier) {
         await supabase.from('profiles').update({ tier }).eq('id', userId)
         console.log(`Tier updated: ${userId} → ${tier}`)
+        await captureServer(userId, 'subscription started', { tier })
       }
       return NextResponse.json({ received: true })
     }
