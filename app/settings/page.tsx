@@ -15,7 +15,7 @@ const DIETARY_OPTIONS = ['No shellfish', 'No nuts', 'No dairy', 'No gluten', 'Ve
 
 const TIER_BADGES: Record<string, { badge: string; price: string; period: string; color: string; bg: string; desc: string }> = {
 free:     { badge: 'Care', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
-trial:    { badge: 'Pilot Access', price: '', period: '', color: '#4A8FA8', bg: '#DFF0F6', desc: 'Full access during the pilot.' },
+trial:    { badge: 'Trial', price: '', period: '', color: '#4A8FA8', bg: '#DFF0F6', desc: 'Full access — your first 30 days or 5 meals.' },
 care:     { badge: 'Care', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
 careplus: { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
 annual:   { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
@@ -433,11 +433,7 @@ style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', backg
 <CollapseHeader label="Account" openState={!!open.acct} onClick={() => toggle('acct')} />
 {open.acct && (<div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 22 }}>
 <div>
-<button onClick={() => toggle('temp')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', marginBottom: open.temp ? 12 : 24, fontFamily: "'DM Sans', sans-serif" }}>
-<span style={{ ...lStyle, marginBottom: 0 }}>Temporary delivery address{tempAddress.trim() ? ' · on' : ''}</span>
-<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7066" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open.temp ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
-</button>
-{open.temp && (
+<p style={{ ...sLabel, marginBottom: 12 }}>Temporary delivery address{tempAddress.trim() ? ' · on' : ''}</p>
 <div style={{ marginBottom: 24 }}>
 <p style={{ fontSize: 12.5, color: S.stone, fontWeight: 300, margin: '0 0 14px', lineHeight: 1.6 }}>
 Away from home for a stretch — a hospital stay, recovery at a parent’s place? Set an address and the dates, and any meal your village sends in that window goes there instead. It switches back to home on its own when the window ends — nothing for you to remember.
@@ -462,11 +458,10 @@ Away from home for a stretch — a hospital stay, recovery at a parent’s place
 </div>
 {tempMsg && <p style={{ fontSize: 12.5, color: S.sage, fontWeight: 500, margin: '10px 0 0', lineHeight: 1.5 }}>{tempMsg}</p>}
 </div>
-)}
 </div>
 <div>
-<CollapseHeader label="Email address" openState={!!open.email} onClick={() => toggle('email')} />
-{open.email && (<div style={{ marginTop: 16 }}>
+<p style={{ ...sLabel, marginBottom: 12 }}>Email address</p>
+<div style={{ marginTop: 0 }}>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
 Your current email is <strong style={{ color: S.forest, fontWeight: 500 }}>{currentEmail || '—'}</strong>. Changing it sends a confirmation link to the new address.
 </p>
@@ -477,11 +472,11 @@ Your current email is <strong style={{ color: S.forest, fontWeight: 500 }}>{curr
 style={{ width: '100%', padding: '13px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: 'transparent', fontSize: 14, color: S.forest, cursor: (emailLoading || !newEmail.trim()) ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", opacity: (emailLoading || !newEmail.trim()) ? 0.5 : 1 }}>
 {emailLoading ? 'Sending…' : 'Update Email'}
 </button>
-</div>)}
+</div>
 </div>
 <div>
-<CollapseHeader label="Reset password" openState={!!open.pwd} onClick={() => toggle('pwd')} />
-{open.pwd && (<div style={{ marginTop: 16 }}>
+<p style={{ ...sLabel, marginBottom: 12 }}>Reset password</p>
+<div style={{ marginTop: 0 }}>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
 Send a password reset link to your registered email.
 </p>
@@ -490,11 +485,11 @@ Send a password reset link to your registered email.
 style={{ width: '100%', padding: '13px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: 'transparent', fontSize: 14, color: S.forest, cursor: passwordLoading ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
 {passwordLoading ? 'Sending…' : 'Send Password Reset Email'}
 </button>
-</div>)}
+</div>
 </div>
 <div>
-<CollapseHeader label="Danger Zone" openState={!!open.danger} onClick={() => toggle('danger')} color={S.red} />
-{open.danger && (<div style={{ marginTop: 16 }}>
+<p style={{ ...sLabel, marginBottom: 12, color: S.red }}>Danger Zone</p>
+<div style={{ marginTop: 0 }}>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
 Permanently delete your account and all Kitchen data. This cannot be undone.
 </p>
@@ -515,7 +510,7 @@ Permanently delete your account and all Kitchen data. This cannot be undone.
 Delete my account
 </button>
 )}
-</div>)}
+</div>
 </div>
 </div>)}
 </div>
