@@ -1,3 +1,4 @@
+import { captureServer } from '@/lib/posthog-server'
 import { createClient } from '@supabase/supabase-js'
 import twilio from 'twilio'
 import { NextResponse } from 'next/server'
@@ -97,6 +98,7 @@ export async function POST(request: Request) {
 
   // Names for personalized messaging.
   const recipientId   = p.kitchens?.recipient_id
+  if (event === 'ORDER_COMPLETED') { await captureServer(recipientId, 'meal delivered', { restaurant: p.kitchen_restaurants?.name || null }) }
   const mealName      = p.menu_items?.name || 'your meal'
   const restName      = p.kitchen_restaurants?.name || 'the restaurant'
   const coordName     = p.claims?.guest_coordinators?.full_name || p.coordinator_name || 'someone who cares about you'
