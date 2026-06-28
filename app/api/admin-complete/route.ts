@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { captureServer } from '@/lib/posthog-server'
 export const dynamic = 'force-dynamic'
 
 function getSupabase() {
@@ -22,5 +23,17 @@ export async function POST(request: Request) {
     .update({ status: 'delivered', delivery_status: 'delivered' })
     .eq('id', proposal_id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Funnel: 'meal delivered' fires here on manual close. With Shipday paused this
+  // is where delivery actually completes, so the funnel's delivered step stays live.
+  try {
+    const { data: p } = await supabase
+      .from('meal_proposals')
+      .select('restaurant_name, kitchens:kitchen_id(recipient_id)')
+      .eq('id', proposal_id)
+      .single()
+    await captureServer((p as any)?.kitchens?.recipient_id, 'meal delivered', { restaurant: (p as any)?.restaurant_name || null, source: 'manual' })
+  } catch {}
+
   return NextResponse.json({ ok: true })
 }
