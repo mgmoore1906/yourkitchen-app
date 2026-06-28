@@ -17,6 +17,25 @@ async function userOwnsKitchen(supabase: any, userId: string, kitchenId: string 
   return !!k && (k.organizer_id === userId || k.recipient_id === userId)
 }
 
+// GET — list this kitchen's calendar dates (public by kitchen_id, like the
+// favorites GET the village page uses). Lets the recipient see and manage the
+// days they've opened from /my-kitchen.
+export async function GET(request: Request) {
+  const supabase = getSupabase()
+  const { searchParams } = new URL(request.url)
+  const kitchenId = searchParams.get('kitchen_id')
+  if (!kitchenId) return NextResponse.json({ error: 'kitchen_id required' }, { status: 400 })
+
+  const { data, error } = await supabase
+    .from('calendar_dates')
+    .select('id, date, status, meal_type')
+    .eq('kitchen_id', kitchenId)
+    .order('date', { ascending: true })
+
+  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  return NextResponse.json({ dates: data || [] })
+}
+
 // POST — add a date to the calendar
 export async function POST(request: Request) {
   const supabase = getSupabase()
