@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import posthog from 'posthog-js'
 
 const EyeIcon = () => (
 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round">
@@ -53,6 +54,9 @@ setError(error.message)
 setLoading(false)
 return
 }
+
+if (data.user?.id) posthog.identify(data.user.id, { email })
+posthog.capture('user signed up', { method: 'email' })
 
 // If Supabase returned an active session, email confirmation is OFF —
 // the user is already signed in, so go straight to onboarding.
