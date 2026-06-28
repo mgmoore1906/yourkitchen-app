@@ -1,3 +1,4 @@
+import { captureServer } from '@/lib/posthog-server'
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
 import twilio from 'twilio'
@@ -114,7 +115,7 @@ export async function POST(request: Request) {
   //   1. The recipient (matched via their profile phone), or
   //   2. A confirmation proxy the recipient delegated to (matched via the
   //      kitchen's proxy_phone — the proxy may not have an account at all).
-  let kitchen: { id: string } | null = null
+  let kitchen: { id: string; recipient_id?: string } | null = null
   const candidates = phoneCandidates(from)
 
   const { data: profileRows } = await supabase
@@ -127,7 +128,7 @@ export async function POST(request: Request) {
   if (profileId) {
     const { data: kRows } = await supabase
       .from('kitchens')
-      .select('id')
+      .select('id, recipient_id')
       .eq('recipient_id', profileId)
       .eq('status', 'active')
       .limit(1)
@@ -138,7 +139,7 @@ export async function POST(request: Request) {
   if (!kitchen) {
     const { data: kRows } = await supabase
       .from('kitchens')
-      .select('id')
+      .select('id, recipient_id')
       .in('proxy_phone', candidates)
       .eq('status', 'active')
       .limit(1)
@@ -204,6 +205,8 @@ export async function POST(request: Request) {
       return twiml("Payment capture failed. Please visit yourkitchen.app for help.")
     }
 
+    await captureServer(kitchen.recipient_id, 'meal confirmed', { channel: 'sms' })
+
     const confItems = Array.isArray(proposal.meal_items) ? proposal.meal_items : []
     const confMeal = proposal.meal_name
       || (confItems.length ? confItems.map((i: any) => i.qty > 1 ? `${i.name} ×${i.qty}` : i.name).join(', ') : null)
@@ -236,6 +239,8 @@ export async function POST(request: Request) {
         .update({ status: 'available' })
         .eq('id', proposal.claims?.calendar_date_id),
     ])
+
+    await captureServer(kitchen.recipient_id, 'meal declined', { channel: 'sms' })
 
     // Notify the coordinator their offer was declined (parity with the app flow).
     try {
