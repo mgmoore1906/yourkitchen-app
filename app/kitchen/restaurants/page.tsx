@@ -1,4 +1,5 @@
 'use client'
+import posthog from 'posthog-js'
 import { useState, useEffect, useCallback, useRef, Suspense } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
@@ -168,6 +169,7 @@ if (data.success) {
 const updated = await loadRestaurants(kitchenId)
 setListOpen(true)
 setSaveMsg(`${place.name} added!`)
+posthog.capture('restaurant added', { name: place.name })
 setTimeout(() => setSaveMsg(''), 3000)
 // Auto-expand the newly added restaurant so meal entry is immediate
 const newRest = updated.find((r: any) => r.place_id === place.place_id)
