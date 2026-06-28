@@ -16,7 +16,8 @@ const DIETARY_OPTIONS = ['No shellfish', 'No nuts', 'No dairy', 'No gluten', 'Ve
 const TIER_BADGES: Record<string, { badge: string; price: string; period: string; color: string; bg: string; desc: string }> = {
 free:     { badge: 'Care', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
 trial:    { badge: 'Pilot Access', price: '', period: '', color: '#4A8FA8', bg: '#DFF0F6', desc: 'Full access during the pilot.' },
-care:     { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
+care:     { badge: 'Care', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
+careplus: { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
 annual:   { badge: 'Care+', price: '', period: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
 founding: { badge: 'Founding Member', price: '', period: '', color: '#B88B4A', bg: '#FFF4E8', desc: 'Thank you for founding YourKitchen.' },
 }
@@ -320,22 +321,22 @@ style={{ background: S.sage, border: 'none', borderRadius: 10, width: 36, height
 {open.plan && (
 <div style={{ marginTop: 12, paddingTop: 12, borderTop: `0.5px solid ${activeTier.color}33`, display: 'flex', flexDirection: 'column', gap: 10 }}>
 <div>
-<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care &middot; free</div>
+<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care &middot; $10/mo or $100/yr</div>
 <div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Your kitchen with an unlimited calendar and your full village. Delivery confirmation included.</div>
 </div>
 <div>
-<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care+ &middot; $9.99/mo or $90/yr</div>
+<div style={{ fontSize: 12.5, fontWeight: 700, color: S.forest }}>Care+ &middot; $20/mo or $200/yr</div>
 <div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Everything in Care, plus multiple kitchens, a custom link, priority support, and a warmer thank-you and tracking layer.</div>
 </div>
 <div>
-<div style={{ fontSize: 12.5, fontWeight: 700, color: '#B88B4A' }}>Founding Member &middot; $200 once</div>
+<div style={{ fontSize: 12.5, fontWeight: 700, color: '#B88B4A' }}>Founding Member &middot; from $200</div>
 <div style={{ fontSize: 12, color: S.stone, fontWeight: 300, lineHeight: 1.5 }}>Three years of Care+, a founder badge, early access, and the Founders Gift Box. Limited to the first 250.</div>
 </div>
 </div>
 )}
 </div>
 
-{(currentTier === 'care' || currentTier === 'annual') && (
+{(currentTier === 'care' || currentTier === 'careplus' || currentTier === 'annual') && (
 <button onClick={openBillingPortal} disabled={portalLoading} style={{ width: '100%', padding: '12px', borderRadius: 10, border: `1.5px solid ${S.border}`, background: 'transparent', fontSize: 13, fontWeight: 600, color: S.forest, cursor: portalLoading ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", marginBottom: 24 }}>
 {portalLoading ? 'Opening…' : 'Manage or cancel subscription'}
 </button>
@@ -420,6 +421,18 @@ style={{ padding: '8px 16px', borderRadius: 20, border: 'none', cursor: 'pointer
 </div>
 )}
 
+{error && <div style={{ background: '#FDE8E8', border: `1.5px solid ${S.red}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, marginTop: 8 }}><p style={{ fontSize: 13, color: S.red, margin: 0 }}>⚠️ {error}</p></div>}
+
+<button onClick={handleSave} disabled={saving}
+style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: saving ? S.sageMid : S.forest, color: S.white, fontSize: 14, fontWeight: 500, cursor: saving ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", marginTop: 8, marginBottom: 24 }}>
+{saving ? 'Saving…' : 'Save Changes'}
+</button>
+
+{/* ── ACCOUNT (grouped) ── */}
+<div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 16, padding: '20px' }}>
+<CollapseHeader label="Account" openState={!!open.acct} onClick={() => toggle('acct')} />
+{open.acct && (<div style={{ marginTop: 18, display: 'flex', flexDirection: 'column', gap: 22 }}>
+<div>
 <button onClick={() => toggle('temp')} style={{ width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: 'transparent', border: 'none', padding: 0, cursor: 'pointer', marginBottom: open.temp ? 12 : 24, fontFamily: "'DM Sans', sans-serif" }}>
 <span style={{ ...lStyle, marginBottom: 0 }}>Temporary delivery address{tempAddress.trim() ? ' · on' : ''}</span>
 <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B7066" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" style={{ transform: open.temp ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform .2s', flexShrink: 0 }}><path d="M6 9l6 6 6-6"/></svg>
@@ -450,16 +463,8 @@ Away from home for a stretch — a hospital stay, recovery at a parent’s place
 {tempMsg && <p style={{ fontSize: 12.5, color: S.sage, fontWeight: 500, margin: '10px 0 0', lineHeight: 1.5 }}>{tempMsg}</p>}
 </div>
 )}
-
-{error && <div style={{ background: '#FDE8E8', border: `1.5px solid ${S.red}`, borderRadius: 12, padding: '12px 16px', marginBottom: 16, marginTop: 8 }}><p style={{ fontSize: 13, color: S.red, margin: 0 }}>⚠️ {error}</p></div>}
-
-<button onClick={handleSave} disabled={saving}
-style={{ width: '100%', padding: '14px', borderRadius: 10, border: 'none', background: saving ? S.sageMid : S.forest, color: S.white, fontSize: 14, fontWeight: 500, cursor: saving ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif", marginTop: 8, marginBottom: 24 }}>
-{saving ? 'Saving…' : 'Save Changes'}
-</button>
-
-{/* ── EMAIL ── */}
-<div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
+</div>
+<div>
 <CollapseHeader label="Email address" openState={!!open.email} onClick={() => toggle('email')} />
 {open.email && (<div style={{ marginTop: 16 }}>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
@@ -474,11 +479,9 @@ style={{ width: '100%', padding: '13px', borderRadius: 10, border: `1.5px solid 
 </button>
 </div>)}
 </div>
-
-{/* ── ACCOUNT ── */}
-<div style={{ background: S.white, border: `1px solid ${S.border}`, borderRadius: 16, padding: '20px', marginBottom: 16 }}>
-<CollapseHeader label="Account" openState={!!open.account} onClick={() => toggle('account')} />
-{open.account && (<div style={{ marginTop: 16 }}>
+<div>
+<CollapseHeader label="Reset password" openState={!!open.pwd} onClick={() => toggle('pwd')} />
+{open.pwd && (<div style={{ marginTop: 16 }}>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
 Send a password reset link to your registered email.
 </p>
@@ -489,9 +492,7 @@ style={{ width: '100%', padding: '13px', borderRadius: 10, border: `1.5px solid 
 </button>
 </div>)}
 </div>
-
-{/* ── DANGER ZONE ── */}
-<div style={{ background: S.white, border: `1.5px solid ${S.red}`, borderRadius: 16, padding: '20px' }}>
+<div>
 <CollapseHeader label="Danger Zone" openState={!!open.danger} onClick={() => toggle('danger')} color={S.red} />
 {open.danger && (<div style={{ marginTop: 16 }}>
 <p style={{ fontSize: 14, color: S.stone, margin: '0 0 14px', fontWeight: 300, lineHeight: 1.6 }}>
@@ -514,6 +515,8 @@ Permanently delete your account and all Kitchen data. This cannot be undone.
 Delete my account
 </button>
 )}
+</div>)}
+</div>
 </div>)}
 </div>
 </div>
