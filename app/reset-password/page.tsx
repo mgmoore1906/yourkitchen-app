@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -30,40 +30,36 @@ export default function ResetPasswordPage() {
   const [loading, setLoading] = useState(false)
   const [done, setDone] = useState(false)
 
-  // The /auth/callback route verifies the recovery token and establishes the
-  // session before redirecting here. We confirm that session exists; if it
-  // doesn't (expired or reused link), we show a "request a new link" state
-  // instead of a form that can't save.
+  // We deliberately do NOT verify the recovery token on page load. Mobile mail
+  // apps and security scanners pre-load URLs, and tapping a link often spawns an
+  // in-app webview that loads the page and then hands off to the real browser —
+  // so the page can run twice. The recovery token is single-use, so verifying on
+  // load lets that first automated load burn it, and the human's tap then reads
+  // as "expired." Instead we hold the token and verify only when the user submits
+  // a new password; loads that never submit can't consume it.
   const [checking, setChecking] = useState(true)
-  const [hasSession, setHasSession] = useState(false)
+  const [canReset, setCanReset] = useState(false)   // token in URL OR a live session
+  const recoveryRef = useRef<{ token_hash: string; type: string } | null>(null)
 
   useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const token_hash = params.get('token_hash')
+    const type = params.get('type')
+    if (token_hash && type) {
+      recoveryRef.current = { token_hash, type }   // verified on submit, not now
+      setCanReset(true); setChecking(false)
+      return
+    }
+
+    // No token in the URL → maybe a session already exists (same-browser code
+    // flow, or the token was already verified). Allow a short grace window.
     let settled = false
-    const ready = () => { if (!settled) { settled = true; setHasSession(true); setChecking(false) } }
-
-    ;(async () => {
-      // Preferred path: token_hash OTP verification. Works in ANY browser or
-      // device because it needs no PKCE verifier — the email link carries the
-      // token_hash directly and we verify it right here.
-      const params = new URLSearchParams(window.location.search)
-      const token_hash = params.get('token_hash')
-      const type = params.get('type')
-      if (token_hash && type) {
-        const { error } = await supabase.auth.verifyOtp({ type: type as any, token_hash })
-        if (!error) { ready(); return }
-      }
-      // Fallback: a PKCE ?code= / #hash link — detectSessionInUrl exchanges it
-      // (same-browser only). Pick up the resulting session if one exists.
-      const { data: { session } } = await supabase.auth.getSession()
-      if (session) ready()
-    })()
-
-    // Catch the session if it lands a beat after mount.
+    const ready = () => { if (!settled) { settled = true; setCanReset(true); setChecking(false) } }
+    supabase.auth.getSession().then(({ data: { session } }) => { if (session) ready() })
     const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
       if (session || event === 'PASSWORD_RECOVERY' || event === 'SIGNED_IN') ready()
     })
-    // Grace window: nothing established a session → invalid/expired/used link.
-    const timer = setTimeout(() => { if (!settled) { settled = true; setChecking(false); setHasSession(false) } }, 5000)
+    const timer = setTimeout(() => { if (!settled) { settled = true; setChecking(false); setCanReset(false) } }, 5000)
     return () => { settled = true; sub.subscription.unsubscribe(); clearTimeout(timer) }
   }, [])
 
@@ -73,6 +69,16 @@ export default function ResetPasswordPage() {
     if (password.length < 8) { setError('Password must be at least 8 characters'); return }
     if (password !== confirm) { setError('Passwords do not match'); return }
     setLoading(true)
+    // Consume the single-use recovery token now — on the user's explicit submit.
+    const rec = recoveryRef.current
+    if (rec) {
+      const { error: vErr } = await supabase.auth.verifyOtp({ type: rec.type as any, token_hash: rec.token_hash })
+      if (vErr) {
+        setError('This reset link has expired or was already used. Please request a fresh one from the sign-in screen.')
+        setLoading(false); return
+      }
+      recoveryRef.current = null   // single-use; don't re-verify on a retry
+    }
     const { error } = await supabase.auth.updateUser({ password })
     if (error) { setError(error.message); setLoading(false); return }
     setDone(true); setLoading(false)
@@ -99,7 +105,7 @@ export default function ResetPasswordPage() {
             <h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: '#1E2620', margin: '0 0 10px', letterSpacing: -0.5 }}>Password updated</h1>
             <p style={{ fontSize: 14, color: '#6B7066', fontWeight: 300, lineHeight: 1.7 }}>Taking you to your dashboard…</p>
           </div>
-        ) : !hasSession ? (
+        ) : !canReset ? (
           <div style={{ textAlign: 'center' }}>
             <h1 style={{ fontFamily: "'Lora', serif", fontSize: 24, fontWeight: 500, color: '#1E2620', margin: '0 0 10px', letterSpacing: -0.5 }}>This link has expired</h1>
             <p style={{ fontSize: 14, color: '#6B7066', fontWeight: 300, lineHeight: 1.7, margin: '0 0 24px' }}>
