@@ -71,7 +71,7 @@ export async function POST(request: Request) {
       user_id, full_name, phone, sms_consent, address,
       street, apt, city, state, zip,
       household_size, household_adults, household_children,
-      dietary_restrictions, use_case, tier, restaurants, calendar_dates,
+      dietary_restrictions, use_case, tier, restaurants, calendar_dates, timezone,
       breakfast_windows, lunch_windows, dinner_windows,
       delivery_window_start, delivery_window_end, favorites
     } = await request.json()
@@ -81,9 +81,18 @@ export async function POST(request: Request) {
     }
 
     // Update profile with everything collected in onboarding
+    // Authoritative login email straight from auth (works for email/password
+    // AND Google signups), so profiles.email never drifts from the real login.
+    let authEmail: string | null = null
+    try {
+      const { data: au } = await supabase.auth.admin.getUserById(user_id)
+      authEmail = au?.user?.email || null
+    } catch (e) { console.error('Onboarding email lookup failed:', e) }
+
     await supabase.from('profiles').upsert({
       id: user_id,
       full_name,
+      email: authEmail,
       phone: phone || null,
       sms_consent: sms_consent ?? false,
       street: street || null,
@@ -130,6 +139,7 @@ export async function POST(request: Request) {
         household_children: household_children ?? 2,
         dietary_restrictions: dietary_restrictions || [],
         use_case: use_case || null,
+        timezone: timezone || null,
         breakfast_windows: breakfast_windows || [],
         lunch_windows: lunch_windows || [],
         dinner_windows: dinner_windows || ['17:30-19:00'],
