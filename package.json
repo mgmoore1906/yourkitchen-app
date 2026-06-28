@@ -15,12 +15,15 @@
     "@stripe/stripe-js": "^9.3.0",
     "@supabase/ssr": "^0.10.2",
     "@supabase/supabase-js": "^2.104.0",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.38.0",
+    "esbuild": "^0.28.1",
     "next": "16.2.4",
+    "posthog-js": "^1.257.0",
     "react": "19.2.4",
     "react-dom": "19.2.4",
     "stripe": "^22.0.2",
     "twilio": "^6.0.0",
-    "posthog-js": "^1.257.0",
     "unpdf": "^1.6.2"
   },
   "devDependencies": {
