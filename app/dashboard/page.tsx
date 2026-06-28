@@ -21,13 +21,14 @@ const MEAL_COLORS: Record<string, { color: string; bg: string; label: string; em
 const TIER_META: Record<string, { badge: string; price: string; color: string; bg: string; star?: boolean; desc: string }> = {
   free:     { badge: 'Care',            price: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
   trial:    { badge: 'Pilot Trial',     price: 'Care+', color: '#4A8FA8', bg: '#DFF0F6', desc: 'Full Care+ access during the pilot.' },
-  care:     { badge: 'Care+',           price: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
+  care:     { badge: 'Care',            price: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'Your kitchen, covered.' },
+  careplus: { badge: 'Care+',           price: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
   annual:   { badge: 'Care+',           price: '', color: '#3D6B4F', bg: '#EAF2ED', desc: 'The full village and more.' },
   founding: { badge: 'Founding Member', price: '', color: '#C17F47', bg: '#FBF0E4', star: true, desc: 'Thank you for founding YourKitchen.' },
 }
-const TIER_LIMITS: Record<string, number> = { free: 3, trial: 10, care: 10, annual: 10, founding: 999 }
+const TIER_LIMITS: Record<string, number> = { free: 8, trial: 999, care: 8, careplus: 999, annual: 999, founding: 999 }
 // Menu items allowed per restaurant by tier
-const MEAL_LIMITS: Record<string, number> = { free: 4, trial: 12, care: 12, annual: 12, founding: 999 }
+const MEAL_LIMITS: Record<string, number> = { free: 8, trial: 999, care: 8, careplus: 999, annual: 999, founding: 999 }
 const isFounding = (t: string) => t === 'founding'
 const MINS_PER_MEAL = 95
 
@@ -168,7 +169,10 @@ function DrawerIcon({ name }: { name: string }) {
     'Delivery Times': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
       <circle cx="12" cy="12" r="9" {...s}/><path d="M12 6v6l4 2" {...s}/>
     </svg>,
-    'Plans & Pricing': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+    'Care & Care+': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
+      <path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.29 1.49 4.04 3 5.5l7 7Z" {...s}/>
+    </svg>,
+    'Founding Membership': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
       <polygon points="12,2 15.09,8.26 22,9.27 17,14.14 18.18,21.02 12,17.77 5.82,21.02 7,14.14 2,9.27 8.91,8.26" {...s}/>
     </svg>,
     'Share Your Kitchen': <svg width="20" height="20" viewBox="0 0 24 24" fill="none">
@@ -194,7 +198,8 @@ function Drawer({ name, tier, kitchenUrl, recipientName, onClose, onSignOut, onS
     { label: 'My Restaurants',   action: () => router.push('/kitchen/restaurants') },
     { label: 'Delivery Times',   action: () => router.push('/kitchen/delivery') },
     { label: 'Order History',    action: () => router.push('/kitchen/orders') },
-    { label: 'Plans & Pricing',  action: () => router.push('/tiers') },
+    { label: 'Care & Care+',     action: () => router.push('/plans') },
+    { label: 'Founding Membership', action: () => router.push('/tiers') },
     { label: 'Share Your Kitchen', action: onShare },
     { label: 'Refresh',          action: onRefresh },
     { label: 'Settings',         action: () => router.push('/settings') },
