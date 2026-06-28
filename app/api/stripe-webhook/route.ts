@@ -197,9 +197,31 @@ export async function POST(request: Request) {
         .eq('stripe_customer_id', customerId)
         .single()
       if (prof && (prof.tier === 'care' || prof.tier === 'annual')) {
-        await supabase.from('profiles').update({ tier: 'free' }).eq('id', prof.id)
+        await supabase.from('profiles').update({ tier: 'free', past_due: false }).eq('id', prof.id)
         await captureServer(prof.id, 'subscription canceled', { from_tier: prof.tier })
       }
+    }
+    return NextResponse.json({ received: true })
+  }
+
+  // invoice.payment_failed ── a Care+ renewal charge bounced. Flag the profile
+  // past_due so the in-app banner prompts a card update before the subscription
+  // cancels. (Subscribe invoice.payment_failed + invoice.payment_succeeded in Stripe.)
+  if (event.type === 'invoice.payment_failed') {
+    const inv = event.data.object as Stripe.Invoice
+    const customerId = inv.customer as string
+    if (customerId) {
+      await supabase.from('profiles').update({ past_due: true }).eq('stripe_customer_id', customerId)
+    }
+    return NextResponse.json({ received: true })
+  }
+
+  // invoice.payment_succeeded / invoice.paid ── payment recovered; clear the banner.
+  if (event.type === 'invoice.payment_succeeded' || event.type === 'invoice.paid') {
+    const inv = event.data.object as Stripe.Invoice
+    const customerId = inv.customer as string
+    if (customerId) {
+      await supabase.from('profiles').update({ past_due: false }).eq('stripe_customer_id', customerId)
     }
     return NextResponse.json({ received: true })
   }
