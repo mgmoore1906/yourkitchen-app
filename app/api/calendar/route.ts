@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { getSessionUserId } from '@/lib/requireUser'
 export const dynamic = 'force-dynamic'
 function getSupabase() {
   return createClient(
@@ -8,14 +9,28 @@ function getSupabase() {
   )
 }
 
+// A calendar write is only allowed by the kitchen's organizer or recipient.
+async function userOwnsKitchen(supabase: any, userId: string, kitchenId: string | null): Promise<boolean> {
+  if (!kitchenId) return false
+  const { data: k } = await supabase
+    .from('kitchens').select('organizer_id, recipient_id').eq('id', kitchenId).single()
+  return !!k && (k.organizer_id === userId || k.recipient_id === userId)
+}
+
 // POST — add a date to the calendar
 export async function POST(request: Request) {
   const supabase = getSupabase()
   try {
+    const userId = await getSessionUserId()
+    if (!userId) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+
     const { kitchen_id, date, delivery_window_start, delivery_window_end, meal_type, slots } = await request.json()
 
     if (!kitchen_id) {
       return NextResponse.json({ error: 'Missing kitchen_id' }, { status: 400 })
+    }
+    if (!(await userOwnsKitchen(supabase, userId, kitchen_id))) {
+      return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
     }
 
     // ── Batch mode: open many (date × meal_type) slots at once ──
@@ -89,6 +104,9 @@ export async function POST(request: Request) {
 export async function DELETE(request: Request) {
   const supabase = getSupabase()
   try {
+    const userId = await getSessionUserId()
+    if (!userId) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+
     const { date_id } = await request.json()
 
     if (!date_id) {
@@ -98,12 +116,15 @@ export async function DELETE(request: Request) {
     // Only allow deletion if status is 'available' — never remove claimed or confirmed dates
     const { data: existing } = await supabase
       .from('calendar_dates')
-      .select('id, status')
+      .select('id, status, kitchen_id')
       .eq('id', date_id)
       .single()
 
     if (!existing) {
       return NextResponse.json({ error: 'Date not found' }, { status: 404 })
+    }
+    if (!(await userOwnsKitchen(supabase, userId, existing.kitchen_id))) {
+      return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
     }
 
     if (existing.status !== 'available') {
