@@ -1,5 +1,6 @@
 import { createClient } from '@supabase/supabase-js'
 import { NextResponse } from 'next/server'
+import { getSessionUserId } from '@/lib/requireUser'
 export const dynamic = 'force-dynamic'
 function getSupabase() {
   return createClient(
@@ -9,6 +10,25 @@ function getSupabase() {
 }
 
 const PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY!
+
+// ── Access gate ─────────────────────────────────────────────────────────────
+// A write to a kitchen is only allowed by its organizer (the sponsor) or its
+// recipient. Every write handler below calls this so a signed-in user can never
+// mutate a kitchen that isn't theirs — closes the IDOR where any kitchen_id /
+// restaurant_id from the body would otherwise be trusted blindly.
+async function userOwnsKitchen(supabase: any, userId: string, kitchenId: string | null): Promise<boolean> {
+  if (!kitchenId) return false
+  const { data: k } = await supabase
+    .from('kitchens').select('organizer_id, recipient_id').eq('id', kitchenId).single()
+  return !!k && (k.organizer_id === userId || k.recipient_id === userId)
+}
+
+// Resolve the kitchen a restaurant belongs to (for restaurant_id-scoped writes).
+async function kitchenIdForRestaurant(supabase: any, restaurantId: string): Promise<string | null> {
+  const { data } = await supabase
+    .from('kitchen_restaurants').select('kitchen_id').eq('id', restaurantId).single()
+  return data?.kitchen_id ?? null
+}
 
 // Fetch the FULL formatted address + phone for a place_id via Places Details.
 // Nearby Search only returns a short `vicinity` (street + city, no state/ZIP),
@@ -38,6 +58,8 @@ async function fetchPlaceDetails(placeId: string): Promise<{ address: string | n
   }
 }
 
+// GET stays PUBLIC — the village page (/k/[slug]) reads the active restaurants
+// by slug for senders, who have no account. No auth gate here by design.
 export async function GET(request: Request) {
   const supabase = getSupabase()
   const { searchParams } = new URL(request.url)
@@ -65,8 +87,14 @@ export async function GET(request: Request) {
 export async function POST(request: Request) {
   const supabase = getSupabase()
   try {
+    const userId = await getSessionUserId()
+    if (!userId) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+
     const { kitchen_id, place_id, name, address, cuisine, lat, lng } = await request.json()
     if (!kitchen_id || !name) return NextResponse.json({ error: 'kitchen_id and name required' }, { status: 400 })
+    if (!(await userOwnsKitchen(supabase, userId, kitchen_id))) {
+      return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
+    }
 
     // Upgrade the short vicinity address to the full formatted_address (with
     // state + ZIP) using Place Details — essential for correct cross-region
@@ -130,8 +158,17 @@ export async function POST(request: Request) {
 export async function PATCH(request: Request) {
   const supabase = getSupabase()
   try {
+    const userId = await getSessionUserId()
+    if (!userId) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+
     const { restaurant_id, favorite_meals, favorite_meal_prices, favorite_meal_categories, favorite_meal_notes, favorite_meal_tags, is_active, pickup_preferred } = await request.json()
     if (!restaurant_id) return NextResponse.json({ error: 'restaurant_id required' }, { status: 400 })
+
+    const kId = await kitchenIdForRestaurant(supabase, restaurant_id)
+    if (!(await userOwnsKitchen(supabase, userId, kId))) {
+      return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
+    }
+
     const updates: any = {}
     if (favorite_meals !== undefined) updates.favorite_meals = favorite_meals
     if (favorite_meal_prices !== undefined) updates.favorite_meal_prices = favorite_meal_prices
@@ -151,9 +188,15 @@ export async function PATCH(request: Request) {
 export async function DELETE(request: Request) {
   const supabase = getSupabase()
   try {
+    const userId = await getSessionUserId()
+    if (!userId) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
+
     const { restaurant_id, kitchen_id, delete_all } = await request.json()
     const nowIso = new Date().toISOString()
     if (delete_all && kitchen_id) {
+      if (!(await userOwnsKitchen(supabase, userId, kitchen_id))) {
+        return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
+      }
       // Soft-delete: hide instead of hard-deleting. A restaurant that's been
       // ordered from is referenced by meal_proposals, so a hard DELETE hits a
       // foreign key and fails. Hiding always succeeds and keeps order history.
@@ -164,6 +207,12 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: true, deleted: 'all' })
     }
     if (!restaurant_id) return NextResponse.json({ error: 'restaurant_id required' }, { status: 400 })
+
+    const kId = await kitchenIdForRestaurant(supabase, restaurant_id)
+    if (!(await userOwnsKitchen(supabase, userId, kId))) {
+      return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
+    }
+
     const { error } = await supabase.from('kitchen_restaurants')
       .update({ deleted_at: nowIso, is_active: false })
       .eq('id', restaurant_id)
