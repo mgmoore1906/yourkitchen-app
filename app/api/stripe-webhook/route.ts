@@ -168,6 +168,43 @@ async function provisionFounding(supabase: any, session: Stripe.Checkout.Session
   return true
 }
 
+// ── Pay-first bridge ────────────────────────────────────────────────────────
+// People can pay on a Stripe-hosted page (Payment Link) BEFORE they have an
+// account. Those sessions carry no user_id, so we stash the entitlement against
+// the email Stripe collected; profile/create claims it when they sign up.
+const PRICE_TIER: Record<string, string> = {
+  'price_1TmbNT0sYTt6G0PfEJAmFxZg': 'care',     // care monthly
+  'price_1TmbP70sYTt6G0Pf6QsuRCaH': 'care',     // care annual
+  'price_1TmbQZ0sYTt6G0Pf9iXPNdGE': 'careplus', // care+ monthly
+  'price_1TmbR60sYTt6G0PfV6ImyLKC': 'careplus', // care+ annual
+}
+async function tierFromSession(stripe: Stripe, session: Stripe.Checkout.Session): Promise<string | null> {
+  const m = session.metadata?.tier
+  if (m && m !== 'founding') return m
+  try {
+    const items = await stripe.checkout.sessions.listLineItems(session.id, { limit: 1 })
+    const priceId = items.data[0]?.price?.id
+    if (priceId && PRICE_TIER[priceId]) return PRICE_TIER[priceId]
+  } catch (e) { console.error('tierFromSession line-item lookup failed:', e) }
+  return null
+}
+async function capturePending(
+  supabase: any,
+  opts: { email?: string | null; tier: string; customerId?: string | null; circle?: FoundingCircle | null; expires?: string | null }
+) {
+  const email = (opts.email || '').trim().toLowerCase()
+  if (!email) { console.log('Pending: anonymous session had no email -- cannot link it later'); return }
+  await supabase.from('pending_entitlements').upsert({
+    email,
+    tier: opts.tier,
+    stripe_customer_id: opts.customerId || null,
+    founding_circle: opts.circle || null,
+    founding_expires_at: opts.expires || null,
+    created_at: new Date().toISOString(),
+  }, { onConflict: 'email' })
+  console.log(`Pending entitlement saved: ${email} -> ${opts.tier}${opts.circle ? ' (' + opts.circle + ')' : ''}`)
+}
+
 export async function POST(request: Request) {
   const stripe = getStripe()
   const supabase = getSupabase()
@@ -244,7 +281,20 @@ export async function POST(request: Request) {
       type !== 'proposal' && type !== 'subscription' &&
       (session.metadata?.tier === 'founding' || circleFromAmount(session.amount_total) != null)
     if (isFounding) {
-      await provisionFounding(supabase, session)
+      const provisioned = await provisionFounding(supabase, session)
+      // Anonymous founding (shared card link, paid while logged out): no user to
+      // attach yet -- stash by email so it lands when they create an account.
+      if (!provisioned && session.payment_status === 'paid'
+          && !(session.metadata?.user_id || session.client_reference_id)) {
+        const circle = resolveCircle(session)
+        await capturePending(supabase, {
+          email: session.customer_details?.email,
+          tier: 'founding',
+          customerId: session.customer as string,
+          circle,
+          expires: foundingExpiry(circle),
+        })
+      }
       return NextResponse.json({ received: true })
     }
 
@@ -252,13 +302,21 @@ export async function POST(request: Request) {
     // Recurring Checkout sets metadata.type='subscription' (+ metadata.tier).
     // Card only, so it's always paid on 'completed'.
     const tierMeta = session.metadata?.tier
-    if (type === 'subscription' || (tierMeta && tierMeta !== 'founding')) {
+    if (type === 'subscription' || session.mode === 'subscription' || (tierMeta && tierMeta !== 'founding')) {
       const userId = session.metadata?.user_id
-      const tier   = tierMeta
+      const tier   = await tierFromSession(stripe, session)
       if (userId && tier) {
         await supabase.from('profiles').update({ tier }).eq('id', userId)
         console.log(`Tier updated: ${userId} → ${tier}`)
         await captureServer(userId, 'subscription started', { tier })
+      } else if (tier) {
+        // Anonymous subscription (Payment Link, paid before signup): stash by
+        // email; profile/create claims it at account creation.
+        await capturePending(supabase, {
+          email: session.customer_details?.email,
+          tier,
+          customerId: session.customer as string,
+        })
       }
       return NextResponse.json({ received: true })
     }
