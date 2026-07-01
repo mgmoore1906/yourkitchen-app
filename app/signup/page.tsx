@@ -93,7 +93,7 @@ if (error) { setError(error.message); setGoogleLoading(false) }
 const passwordsMatch = confirmPassword.length > 0 && password === confirmPassword
 
 return (
-<div style={{ minHeight: '100vh', background: '#FAFAF5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
+<div style={{ minHeight: '100dvh' }}: '100vh', background: '#FAFAF5', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: "'DM Sans', sans-serif" }}>
 <link href="https://fonts.googleapis.com/css2?family=Lora:ital,wght@0,400;0,500;0,600;1,400&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
 <div style={{ width: '100%', maxWidth: 400, padding: '0 24px' }}>
 
