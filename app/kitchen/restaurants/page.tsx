@@ -263,6 +263,7 @@ method: 'PATCH', headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags }),
 })
 const data = await res.json()
+if (!res.ok || !data.success) { alert(data.error || 'Could not save this meal \u2014 please try again.'); setSavingMeals(null); return }
 if (data.success) {
 setRestaurants(prev => prev.map(r => r.id === restaurantId
 ? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags } : r))
@@ -323,7 +324,9 @@ const prices = [...(rest.favorite_meal_prices || [])]; prices[i] = price
 const cats = [...(rest.favorite_meal_categories || [])]; cats[i] = editMeal.category
 const notes = [...(rest.favorite_meal_notes || [])]; notes[i] = editMeal.note.trim()
 setSavingMeals(restaurantId)
-await fetch('/api/restaurants/favorites', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: meals, favorite_meal_prices: prices, favorite_meal_categories: cats, favorite_meal_notes: notes }) })
+const editRes = await fetch('/api/restaurants/favorites', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: meals, favorite_meal_prices: prices, favorite_meal_categories: cats, favorite_meal_notes: notes }) })
+const editData = await editRes.json().catch(() => ({}))
+if (!editRes.ok || !editData.success) { alert(editData.error || 'Could not save changes \u2014 please try again.'); setSavingMeals(null); return }
 setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, favorite_meals: meals, favorite_meal_prices: prices, favorite_meal_categories: cats, favorite_meal_notes: notes } : r))
 setSavingMeals(null)
 setEditMeal(null)
@@ -477,6 +480,7 @@ method: 'PATCH', headers: { 'Content-Type': 'application/json' },
 body: JSON.stringify({ restaurant_id: restaurantId, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags }),
 })
 const data = await res.json()
+if (!res.ok || !data.success) { alert(data.error || 'Could not add these meals \u2014 please try again.'); setAddingAll(null); return }
 if (data.success) {
 setRestaurants(prev => prev.map(r => r.id === restaurantId ? { ...r, favorite_meals: updatedMeals, favorite_meal_prices: updatedPrices, favorite_meal_categories: updatedCategories, favorite_meal_notes: updatedNotes, favorite_meal_tags: updatedTags } : r))
 setReviewItems(p => { const n = { ...p }; delete n[restaurantId]; return n })
