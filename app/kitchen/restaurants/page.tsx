@@ -459,14 +459,14 @@ if (!rest || items.length === 0) return
 const mealLimit = MEAL_LIMITS[userTier] || 8
 const current = rest.favorite_meals?.length || 0
 const available = Math.max(0, mealLimit - current)
-let toAdd = items.filter(it => it.name.trim())
+let toAdd = items.filter(it => it.sel && it.name.trim())
 let trimmedNote = ''
 if (toAdd.length > available) {
 toAdd = toAdd.slice(0, available)
 trimmedNote = ' (capped to your plan limit \u2014 upgrade to Care+ for more)'
 }
 if (toAdd.length === 0) {
-alert(`You're at your meal limit for ${rest.name}. Upgrade to Care+ to add more.`)
+alert(items.some(it => it.sel) ? `You're at your meal limit for ${rest.name}. Upgrade to Care+ to add more.` : 'Check the meals you want to add first.')
 return
 }
 setAddingAll(restaurantId)
@@ -648,7 +648,7 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A7ADA3'
 <span>💡</span><span><b style={{ fontWeight: 600 }}>This spot didn’t share prices.</b> Type them in, or snap a photo of the order screen. Keep 10 or fewer.</span>
 </div>
 ) : (
-<p style={{ fontSize: 11.5, color: reviewItems[r.id].length > 10 ? S.amber : S.stone, fontWeight: 400, margin: '6px 0 12px', lineHeight: 1.5 }}>{reviewItems[r.id].length > 10 ? `Pick your family’s favorites — keep 10 or fewer. Remove ${reviewItems[r.id].length - 10} more.` : 'Edit anything that looks off, drop what you don’t want, then add them.'}</p>
+<p style={{ fontSize: 11.5, color: S.stone, fontWeight: 400, margin: '6px 0 12px', lineHeight: 1.5 }}>Check the meals you want, then tap Add. Drag across the checkboxes to grab several at once.</p>
 )}
 {reviewItems[r.id].length > 1 && (
 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '2px 0 4px' }}>
@@ -691,10 +691,18 @@ style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#A7ADA3'
 })}
 </div>
 <div style={{ display: 'flex', gap: 8 }}>
-<button onClick={() => addAllReviewed(r.id)} disabled={reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10 || addingAll === r.id}
-style={{ flex: 1, padding: 11, borderRadius: 11, border: 'none', background: (reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10) ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: (reviewItems[r.id].length === 0 || reviewItems[r.id].length > 10) ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
-{addingAll === r.id ? 'Adding…' : reviewItems[r.id].length > 10 ? `Remove ${reviewItems[r.id].length - 10} to add` : `Add these ${reviewItems[r.id].length}`}
+{(() => {
+const selCount = reviewItems[r.id].filter(it => it.sel).length
+const lim = MEAL_LIMITS[userTier] || 8
+const avail = Math.max(0, lim - (r.favorite_meals?.length || 0))
+const off = selCount === 0 || selCount > avail
+return (
+<button onClick={() => addAllReviewed(r.id)} disabled={off || addingAll === r.id}
+style={{ flex: 1, padding: 11, borderRadius: 11, border: 'none', background: off ? S.border : S.sage, color: S.white, fontSize: 13, fontWeight: 600, cursor: off ? 'default' : 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
+{addingAll === r.id ? 'Adding…' : selCount === 0 ? 'Check the meals you want' : selCount > avail ? `Select ${avail} or fewer` : `Add ${selCount} selected`}
 </button>
+)
+})()}
 <button onClick={() => { setReviewItems(p => { const n = { ...p }; delete n[r.id]; return n }); setAutofillError(p => ({ ...p, [r.id]: '' })) }}
 style={{ padding: '11px 15px', borderRadius: 11, border: `1px solid ${S.border}`, background: S.white, color: S.stone, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: "'DM Sans', sans-serif" }}>
 Discard
